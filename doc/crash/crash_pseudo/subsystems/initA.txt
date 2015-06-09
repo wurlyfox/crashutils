@@ -1,0 +1,146 @@
+sub_8001AAD8 (gool subsystem init routine):
+
+gp[0x2B8] = 0;                 //clear Will process
+
+pageA = PAGE_ALLOCATE(0xE280); //allocate page A (used to hold the virtual processes)
+pageB =  PAGE_ALLOCATE(0x35C); //allocate page B (used to hold the virtual process buffer) [holds one process + 0x100 additional info bytes]
+
+if (pageA == 0 || pageB == 0) { return 0xFFFFFFF1; } //if either page couldnt be allocated then return error
+
+*(0x60DB4) = pageA;            //these memory locations will be used to hold the
+*(0x60DB0) = pageB;            //addresses of pageA and pageB respectively
+
+//a3 = 0x60DB4
+//a2 = 0x25C
+//a1 = 0
+//a0 = 0
+//v0 = 2
+//t0 = 0x60DF8
+
+*(0x60E00) = 0;
+*(0x60E04) = 0;
+
+*(0x60DF8)[0] = 2;                //60DF8 is the location of the initial process struct
+*(0x60DF8)[4] = pageA;            //=setting field 0 to 2 means this process struct will only have 2 fields: a word at field 0 (designating                                              //the variation of process struct), and a word at field 4 that points to its one and only subprocess   
+                                  //(is 60DF8 rather a struct included within a bigger struct 60DB0 that describes the gool subsystem?)
+                                  //[the inital process's subprocess will then be the first process in pageA, for it will be the first process
+                                  // in a CHAIN of proccesses whose parent process/backlink is the initial process]
+
+                                  //(note that this is not the purpose of this field 4 here, but it will actually refer to a process to ADOPT
+                                  // from the main chain and assign a new parent process when calling 1C6C8, arg_a0 being the new parent)
+-----
+
+//NOW we create the very first 'process chain.' these will all link back to the inital process.
+
+offsetNextProcess = 0x25C;
+offsetCurProcess  =     0;
+
+do
+{
+  process = pageA + offsetCurProcess;
+
+  process[0] = 0;                 //=setting field 0 to 0 means th process struct will be one that is 0x25C bytes in size 
+
+  process[0x64] = 0x60DF8;        //this is the processes's "backlink"; it points back to it's parent process. all processes in this first chain will                                    //refer back to the initial process
+  process[0x6C] =       0;        //this is the processes's "subprocess"; initially, no process in the first chain will have a subprocess
+
+  if (processCounter < 0x5F)      //if this is not last process in the chain:
+  {
+    nextProcess = pageA + offsetNextProcess;  //calculate the address of the next process in the chain
+
+    process[0x68] = nextProcess;              //this is the processes's "forward link"; it points to the next process in its chain   
+  }  
+  else                            //otherwise this is the last process in the chain:
+  {
+    process[0x68] =           0;  //the very last process in a chain is indicated by a forward link of 0
+  }
+
+  offsetNextProcess += 0x25C;
+  offsetCurProcess  += 0x25C;
+  processCounter++;
+} while (processCounter <= 0x60)
+
+-----
+
+//NOW we create a small list of 8 processes of type 2 (ones that have only the type and subprocess field:)
+
+offsetCurProcess = 0;
+processCounter   = 0;
+
+do
+{
+  process = 0x60DB8 + offsetCurProcess; //located right after the initial process memorywise
+
+  process[0] = 2;                       //type 2
+  process[4] = 0;                       //these will have no subprocess for right now
+
+  offsetCurProcess += 8;
+  processCounter++;
+} while (processCounter < 8)
+
+------
+
+//FINALLY we set up the process in the process buffer
+
+process = *(0x60DB0);    //points to pageB, a page for holding exactly ONE process
+
+process[0]    = 0;
+process[0x64] = 0;
+process[0x68] = 0;
+process[0x6C] = 0;       //this will initially be an entirely blank process
+
+return 0xFFFFFF01;
+
+-------------------------------------------------------------
+
+sub_80029A58(): (SLST INITB SUBROUTINE)
+{
+  if (gp[0x314] == 0x19 || 0x38)
+  {
+    pageSize = 0xA32;
+  }
+  else
+  {
+    pageSize = 0x5B4;
+  }
+  
+  pageA = PAGE_ALLOCATE(pageSize*2 + 4);
+  
+  gp[0x2BC] = pageA;
+  gp[0x304] = pageA;
+
+  if (pageA)
+  {
+    pageA[2] = 0;
+
+    pageB = PAGE_ALLOCATE(pageSize*2 + 4)
+    gp[0x2C0] = pageB;
+
+    if (pageB)
+    {
+      pageB[2] = 0;
+    }
+    else
+      return 0xFFFFFFF1;
+  }    
+  else
+    return 0xFFFFFFF1;
+  
+  return 0xFFFFFF01;
+}
+    
+
+-----------------------------------------------------------------
+
+sub_80031BAC(): (MDAT INIT SUBROUTINE)
+{
+  if (*(0x56710) != 0x19) { return 0; }    //if not initial mode then we've already allocated this space
+
+  gp[0x2E4] = sub_80011D30(1, 0x35D8);     //allocate a page of size 0x35D8 and clears memory
+                                           //perhaps this is just calloc and page_allocate is malloc
+  if (gp[0x2E4] == 0)                      //if allocation faild
+    exit(-1);                              //stop game execution
+}
+
+
+  

@@ -1,0 +1,434 @@
+ROM:
+
+0x514DC: subsystem tables
+0x51728: EID string conversion character table
+0x51768: zero vector     
+0x51774: texture regions map (600 x 4 hword structures)
+0x52A34: precomputed list of (x,y) byte pairs sorted by euclidian distance
+0x52B64: structures describing player angle and displacement for each controller direction (16x3 word structures)
+0x52C24: strucutres describing player velocity per state (on ground, in air, etc.)
+0x52CB4: ?
+0x52CF4: circle bitmap
+0x52D74: ? (referenced by sub_8002EC68 TBD)
+0x52EC4-0x53068: ?
+0x5306C: sin/cosine table
+0x53890-0x54B98: reserved for various library (gpu and etc?) routines
+-0x54A20 = pointer for generating the current drawing primitive packet 
+0x54B9C: square root table
+0x54D1C: atan2 table
+0x555A0-0x563F8: reserved for cd-rom (and spu?) routines 
+
+RAM:
+
+0x563FC = global data (location of gp)
+
+global variables:
+0x563FC: gp[0]     = ?
+...
+0x56400: gp[0x4]   = ?
+...
+0x56420: gp[0x24]  = frame buffer destination X
+0x56422: gp[0x26]  = frame buffer destination Y
+0x56424: gp[0x28]  = frame buffer destination W (inited in binary with 0x100)
+0x56426: gp[0x2A]  = frame buffer destination H (inited in binary with 0x80)
+0x56428: gp[0x2C]  = quit game flag (see main game loop, will break main loop)
+...
+0x56440: gp[0x44]  = ??used by sub_2EC68  apparently this is a depth cuing matrix used by sub_80019F90
+0x56444: gp[0x48]  = ??used by sub_2EC68  apparently this is a depth cuing matrix used by sub_80019F90
+0x56448: gp[0x4C]  = ??used by sub_2EC68  apparently this is a depth cuing matrix used by sub_80019F90
+0x5644C: gp[0x50]  = ??used by sub_2EC68  apparently this is a depth cuing matrix used by sub_80019F90
+0x56450: gp[0x54]  = ??used by sub_2EC68  apparently this is a depth cuing matrix used by sub_80019F90
+0x56454: gp[0x58]  = ??used by sub_2EC68  apparently this is a depth cuing matrix used by sub_80019F90
+0x56458: gp[0x5C]  = ??used by sub_2EC68  apparently this is a depth cuing matrix used by sub_80019F90
+0x5645C: gp[0x60]  = ??used by sub_2EC68  apparently this is a depth cuing matrix used by sub_80019F90
+0x56460: gp[0x64]  = ??used by sub_2EC68  
+0x56464: gp[0x68]  = ??used by sub_2EC68
+0x56468: gp[0x6C]  = ??used by sub_2EC68
+0x5646C: gp[0x70]  = ??used by sub_2EC68
+0x56470: gp[0x74]  = ??used by sub_2EC68
+0x56474: gp[0x78]  = ??used by sub_2EBB4* EDIT: ALSO USED BY ALT PRIM ROUTINE 19DE0
+0x56478: gp[0x7C]  = ??used by sub_2EBB4  EDIT: ALSO USED BY ALT PRIM ROUTINE 19DE0
+0x5647C: gp[0x80]  = ??copied to stack and unused during path routine; byte of 0x80 followed by 3 zero bytes
+0x56480: gp[0x84]  = ??pointer to scratch[0x40]
+0x56484: gp[0x88]  = zero ???
+0x56488: gp[0x8C]  = ??pointer to scratch[0x40]
+0x5648C: gp[0x90]  = zero ???
+0x56490: gp[0x94]  = ? see ldat initb/253a0
+0x56494: gp[0x98]  = ? see ldat initb/253a0
+0x56498: gp[0x9C]  = "0b_pZ\0" string used by demo routine (extends to gp[0xA0])
+0x5649C: gp[0xA0]  =  ^^^^^^^^^^^^^
+0x564A0: gp[0xA4]  = ??? inited with 0
+0x564A4: gp[0xA8]  = camera Z trans due to 'lookback' (i.e. moving forward or backward)
+0x564A8: gp[0xAC]  = camera Z trans due to nearby Z section 'scale'
+0x564AC: gp[0xB0]  = flag for camera 'lookback' (i.e. camera Z trans'ed forward due to moving forward (clear) or trans'ed back due to moving back (set))
+0x564B0: gp[0xB4]  = flag for camera 'pan X'    (i.e. camera X trans'ed left due to moving left (clear) or trans'ed right due to moving right right (set))
+0x564B4: gp[0xB8]  = camera Y trans due to nearby Y section 'scale'
+0x564B8: gp[0xBC]  = camera X trans due to 'pan X' (i.e. moving left or right)
+0x564BC: gp[0xC0]  = land offset? (how high crash sits atop nodes before being stopped by them)
+...
+0x564DC: gp[0xE0]  = random seed (inited to 1)
+0x564E0: gp[0xE4]  = "CD001" string used by filesystem read routine (2F8C4)
+...
+0x56500: gp[0x104] = ? see mdat initb (inited with 1)
+0x56504: gp[0x108] = "0b_pz" string (EID string for game over screen/zone) (extends to gp[0x10C])
+0x56508: gp[0x10C] = ^^^
+0x5650C: gp[0x110] = "0c_pz" string (EID string for main menu screen/zone) (extends to gp[0x114])
+0x56510: gp[0x114] = ^^^
+0x56514: gp[0x118] = "0d_pz" string (EID string for Naughty Dog screen/zone) (extends to gp[0x11C])
+0x56518: gp[0x11C] = ^^^
+0x5651C: gp[0x120] = "0e_pz" string (EID string for options/password/load game menu/zone) (extends to gp[0x124])
+0x56520: gp[0x124] = ^^^                                     
+0x56524: gp[0x128] = "0f_pz" string (EID string for 6th zone in map model) (extends to gp[0x12C])
+0x56528: gp[0x12C] = ^^^                                     
+0x5652C: gp[0x130] = "1e_pz" string (EID string for first island (before end) zone in map model) (extends to gp[0x134])
+0x56530: gp[0x134] = ^^^                                     
+0x56534: gp[0x138] = "1a_pz" string (EID string for first island (at end/native fortress) zone in map model) (extends to gp[0x13C])
+0x56538: gp[0x13C] = ^^^                                     
+0x5653C: gp[0x140] = "2b_pz" string (EID string for second island zone in map model) (extends to gp[0x144])
+0x56540: gp[0x144] = ^^^
+0x56544: gp[0x148] = "3a_pz" string (EID string for third island zone in map model) (extends to gp[0x14C])
+0x56548: gp[0x14C] = ^^^
+0x5654C: gp[0x150] = "0a_pz" string (EID string for Entertainment America & Universal Interactive Screens/zone) (extends to gp[0x154])
+0x56550: gp[0x154] = ^^^
+0x56554: gp[0x158] = "%cMapP" EID string to grab the entries in sequence used for palette fading
+0x56558: gp[0x15C] = ^^^
+0x5655C: gp[0x160] = "0MapP" EID string used to grab the first palette entry in sequence for a palette fade
+0x56560: gp[0x164] = ^^^
+...
+0x565C0: gp[0x1C4] = camera speed/most recent change in section progress
+...
+0x565DC: gp[0x1E0] = small slope flag?
+....
+0x56664: gp[0x268] = ? see gool instruction 0x1C
+..
+0x56678: gp[0x27C] = ? see mdat initb
+...
+0x566AC: gp[0x2B0] = 0x1F800180
+0X566B0: gp[0x2B4] = EID of crash code entry
+0x566B4: gp[0x2B8] = crash process
+0x566B8: gp[0x2BC] = initially SLST page A, but used along with current swap page(gp[0x304]) to generate anew
+0x566BC: gp[0x2C0] = SLST page B (swapped with page A, gp[0x304])
+...
+0x566C4: gp[0x2C8] = event descriptor for '(software) memory card: end of i/o'
+0x566C8: gp[0x2CC] = event descriptor for '(software) memory card: error happened'
+0x566CC: gp[0x2D0] = event descriptor for '(software) memory card: timeout'
+0x566D0: gp[0x2D4] = event descriptor for '(software) memory card: new device'
+...
+0x566E0: gp[0x2E4] = MDAT page, structure used by titles
+                   - EDIT: seems to be the CLUT ids for all cluts at 0x31A0
+0x566E4: gp[0x2E8] = ? zeroed at ldat initB 
+0x566E8: gp[0x2EC] = ? zeroed at ldat initB
+0x566EC: gp[0x2F0] = event descriptor for '(hardware) memory card: end of i/o'
+0x566F0: gp[0x2F4] = event descriptor for '(hardware) memory card: error happened'
+0x566F4: gp[0x2F8] = 0x1F800100
+0x566F8: gp[0x2FC] = event descriptor for '(hardware) memory card: timeout'
+0x566FC: gp[0x300] = event descriptor for '(hardware) memory card: new device'
+0x56700: gp[0x304] = SLST page A (swapped with page B, gp[0x2C0])
+0x56704: gp[0x308] = some demo mode gool process?
+...
+0x5670C: gp[0x310] = 0x1F800380  //circle bitmap, 32 words copied from 0x52CF4 to here at BINF init
+-------
+
+0x56710 = game mode
+0x56714 = new game mode to load (for changing levels)
+...
+0x56804 - 0x56E64 = 24 x 0x44 byte structures describing each hardware voice for the SPU
+...
+0x57054: controller data
+...
+0x57280: ? initially 0;
+0x57284: ? initially 0;
+0x57288: ? initially 0;
+0x5728C: short list of 8 EIDs
+...
+0x57298: new EID[4](0x6396347F);   //creates  4 initial null EIDs
+...
+--
+
+(for hword matrices only first 9 hwords used, last 7 are padding for align to 32 bytes)
+0x577C4 - 0x577E4: viewpoint rotation matrix (including translation by viewpoint translation vector)
+0x577E4 - 0x57804: viewpoint rotation matrix negated and scaled 5/8s for Y, negated for Z
+0x57804 - 0x57824: copy of 0x577E4 - 0x57804
+0x57824: unknown matrix
+
+--
+in one case:
+0x57844: 0x57824 scaled 5/8 in the y and negated in the z (last 2 elements replaced with first 2 of 5785C?)
+0x5785C: z rotation matrix for a small angle, approximately 11 degrees
+
+in the other case
+0x57844: same as 577E4
+0x5785C: weirdly rotated version of 577E4
+--
+
+0x57864: camera X/viewpoint translation vector X (in upper halfword) [initial value =       0]
+0x57868: camera Y/viewpoint translation vector Y (in upper halfword) [initial value =       0]
+0x5786C: camera Z/viewpoint translation vector Z (in upper halfword) [initial value = 0x1F400]
+
+0x57870: camera X rotation angle (to generate viewpoint X rotation matrix) [init value =    0]
+0x57874: camera Y rotation angle (to generate viewpoint Y rotation matrix) [init value =    0]
+0x57878: camera Z rotation angle (to generate viewpoint Z rotation matrix) [init value =    0]
+
+0x5787C: ? initially 0x1000
+0x57880: ? initially 0x1000
+0x57884: ? initially 0x1000
+
+0x57888: camera X last time ginfo[0x2FC] bit 13 not set             [initial value =        0]
+0x5788C: camera Y last time ginfo[0x2FC] bit 13 not set             [initial value =  0xE1000]
+0x57890: camera Z last time ginfo[0x2FC] bit 13 not set             [initial value = 0x5DC000]
+
+...
+0x578AC: ? some value: intially 0  //cleared by projection routine
+0x578B0: ? initially      0;
+0x578B2: ? initially      0;
+0x578B4: ? initially 0x1000;
+...
+0x578C4: ? initially      0;
+0x578C8: ? initially      0;
+0x578CC: ? initially      0;
+
+0x578D0: projection distance (from viewer's eye, so we know how far things start to cut off)
+         set by sub_80017790() (ldat initB sub)
+         
+0x578D4: starts hword matrix... initially 0x200
+0x578D6: initially 0x200
+0x578D8: initially 0x200
+0x578DA: initially 0x200
+0x578DC: initially 0x200
+0x578DE: initially 0x200
+0x578E0: initially 0x200
+0x578E2: initially 0x200
+0x578E4: initially 0x200
+
+...
+0x57914: current zone (t7 entry)
+0x57918: previous zone header (item 1)
+0x5791C: current section (zone item 3)
+0x57920: current section progress
+...
+
+0x57930: set to 0x57938 when ginfo[0x2FC] bit 13 not set, else cleared
+
+0x57934: camera X rotation angle after most recent camera adjust
+0x57938: camera Y rotation angle after most recent camera adjust
+0x5793C: camera Z rotation angle after most recent camera adjust
+
+0x57940: camera X rotation angle before most recent camera adjust
+0x57944: camera Y rotation angle before most recent camera adjust
+0x59748: camera Z rotation angle before most recent camera adjust
+
+0x5794C: sin(0x57930)/16;
+0x57950: ?
+0x57954: cos(0x57930)
+...
+0x57960 = (active buffer?)
+...
+0x57968 = 4 byte string? cleared at loadLevel (or is his what the demo mode sub uses)
+...
+0x57970 = set to *(0x34520) at loadLevel
+0x57974 = (starts struct zone checkpoint? state)
+------------
+0x57974 = player trans X
+0x57978 = player trans Y
+0x5797C = player trans Z
+0x57980 = player angle Y? (rewritten as 0)
+0x57984 = player angle X? (rewritten as 0)
+0x57988 = player angle Z? (rewritten as 0)
+0x5798C = player scale X
+0x57990 = player scale Y
+0x57994 = player scale Z
+0x57998 = zone EID
+0x5799C = zone item3 index
+0x579A0 = last 0x57920 value...
+0x579A4 = either level ID or MDAT/LDAT EID? (saved as 0x5c53c[4])
+0x579A8 = flag
+0x579AC -0x57E6C = process bitlist copy
+0x57E6C = 0x61984 count
+--------------
+
+0x57F40 = 8  x page structures used to page audio chunks
+0x580A0 = 16 x page structures used to page texture chunks
+
+------ 
+
+0x58400 = buffer count
+0x58404 = buffer onscreen  pointer
+0x58408 = buffer offscreen pointer
+0x5840C = buffer onscreen  (mirror?) pointer
+
+0x58410 - 0x5A497 = buffer onscreen
+0x5A498 - 0x5C51F = buffer offscreen
+
+-----
+0x5C528 = start of main game struct (15b58 puts 1 here to indicate)                                       game[0]
+0x5C52C = game mode (this is placed at 0x56710)                                                           game[4]
+0x5C530 = pointer to: entry hash table indices/offsets                                                    game[8]
+          (EID >> 13 determines the index into these offsets, which are each offsets into the
+          entry hash table that refer to a block of key pairs that contains the corresponding entry)      
+0x5C534 = pointer to: entry hash table                                                                  game[0xC]
+0x5C538 = pointer to: (loading screen information from NSD?)                                           game[0x10]
+0x5C53C = pointer to NSD Level Descriptor                                                              game[0x14]
+          [0x0] 0x1 magic                                                                              
+          [0x4] levelID
+          [0x8] first zone
+          [0xC] first section
+          [0x10]
+          [0x14-0x110] code EID map    
+          [0x114] projection mode
+          
+0x5c540 = NSD struct (pointer to it) this is where the first page is allocated, and the corresponding  game[0x18]
+          NSD file is copied here
+      
+
+0x5c548 = current address to read from disc
+0x5C54C =                             0;
+
+0x5C550 = COUNT OF page structures IN MAINSPACE      (high priority)                                  game[0x28]
+0X5C554 = MAIN page structure SPACE   (holds 60 x 44 byte page structures)                            game[0x2C] - game[0xA7F] 
+0x5C91C = COUNT OF page structures IN NON-MAINSPACE   (low priority)       
+0x5C920 = NON-MAIN page structures SPACE                
+0x5CFA8 = number of valid pointers in the 0x5CFBC list???                                             game[0xA80]
+          (decremented at case 1 for pages that dont pass a check (REDO CASE 1))
+          (decremented at case 2 for pages referring to soundchunks)
+          (decremented at case 8 for page stuctures that dont pass the shortlist check)
+          (decremented at case 9 for page stuctures that pass the testevent test)
+          (INCREMENTED at 800146f0, i.e. the sub needing to learn)
+0x5CFAC = most recent page stucture set at case 0, and cleared at case 1 if reading doesnt fail       game[0xA84]
+          cleared at start of 12f10 processing of page stucture structs if the index into the 5c554 
+          list yields a page stucture that is equal to the one here 
+0x5CFB0 = pointer to a list of items                                                                  game[0xA88]
+0x5CFB4 = most recent page stucture set at case 8, and cleared at case 9                              game[0xA8C]
+0x5CFB8 = most recent page stucture's CID set at case 0 if reading doesnt fail                        game[0xA90]
+0x5CFBC = CID->page stucture list						     	              game[0xA94] - ....
+          **these are not pointers (but FFFFFFEE) when the page stucture for that chunk is on case 1
+0x5CFC0 = ?
+0x5CFC4 = ?
+0x5CFC8 = ?
+0x5CFCC = ?
+0x5CFD0 = ?
+0x5CFD4 = ?
+0x5CFD8 = ?
+0x5CFDC = ?
+0x5CFE0 = ?
+0x5CFE4 = ?
+0x5CFE8 = ?
+0x5CFEC-0x5CFEC+0x1050 = surface collision data          
+          
+===================
+0x5E03C = filesystem info: array of 3 word structs relating NSF files to sector position: sub_8002f8c4
+          reads the filesystem from the disc at game init. 
+====================
+
+0x5E348 = seems to hold array of AAAAAAABBBBBBBBB where A = a level id, B = index into bitlist array
+0x5FF58 - 0x60418 = process bitlist
+                                                                       
+0x60DB0 = pointer to object space        (points to space allocated for 96 objects)
+0x60DB4 = pointer to player object space (points to space allocated for 1 object plus 0x100 words)
+0x60DB8 = object group A parent 
+0x60DC0 = object group B parent 
+0x60DC8 = object group C parent 
+0x60DD0 = object group D parent 
+0x60DD8 = object group E parent 
+0x60DE0 = object group F parent 
+0x60DE8 = object group G parent 
+0x60DF0 = object group H parent : called with level listEntry 4 and subid 4 at start of 11FC4 loop (called every other time phase A, determined by the flicker of gp[4])
+0x60DF8 = initial process (refers to type 2)
+
+0x60E00 = last animated object (whose process to run sub_8001DA0C-routine that animates all objects of type 3
+0x60E04 = another process count?
+
+0x60E08-0x61887 = 28 x structs relating processes to their bounding boxes
+0x61888 = count of structs
+
+0x6188C starts global variables for gool processes
+------------
+0x6188C [0x00]: initialized with zone number in left 3 bytes (by opat)
+0x61890 [0x01]: ...?
+0x61894 [0x02]: screen Y offset base (will be >> 8 and added to var 0x2D before used as SetGeomOffset Y argument)
+0x61898 [0x03]: ...used by the other drawing modes
+0x6189C [0x04]: copied to global primitive render/animate bitfield perframe flags (bit 3 & 4 set right before title fade in) (see mdat initB)
+0x618A0 [0x05]: ?  (level reload count?)
+0x618A4 [0x06]: instance of graphics process sub 1
+0x618A8 [0x07]: instance of graphics process sub 0
+0x618AC [0x08]: instance of graphics process sub 0x27, set by ripper roo
+0x618B0 [0x09]: global primitive render/animate bitfield (title flags?))
+0x618B4 [0x0A]: ? modified by sub_8002BAB4 called at beginning of 2b2bc (cam routine)
+0x618B8 [0x0B]: ? global central Z of illumination for proc brightness?
+0x618BC [0x0C]: instance of graphics process sub 4 to list H in 11FC4 by 1C6C8
+0x618C0 [0x0D]: use by FruiC, incremented (fruit to HUD collection path interpolation factor?)
+0x618C4 [0x0E]: instance of graphics process sub 5
+0x618C8 [0x0F]: mirror of 0x57930  (17A14); used by aku, and fruit for some y positioning
+0x618CC [0x10]: aku aku stores pointer to itself here (17A14)
+0x618D0 [0x11]: ? set to 0x100 by camera routine case 0, (5, 6 = level); set to 6 by DispC
+0x618D4 [0x12]: title mode buffer?, set by DispC
+0x618D8 [0x13]:
+0x618DC [0x14]: game progress (0x63 = inital progress before start game), (0x1F = full completion, i.e. 31+1=32 levels)
+0x618E0 [0x15]:
+0x618E4 [0x16]:
+0x618E8 [0x17]:
+
+0x618EC [0x18]: init 0; incremented by FruiC (fruit or live counter?)
+0x618F0 [0x19]: init 0
+0x618F4 [0x1A]: init 0
+0x618F8 [0x1B]: init 0
+0x618FC [0x1C]: init 0
+0x61900 [0x1D]: init 0
+
+0x61904 [0x1E]: set to zone flags when loading new zone
+0x61908 [0x1F]: loaded from mem card routine... used by?
+0x6190C [0x20]: loaded from mem card routine... used by?
+0x61910 [0x21]: loaded from mem card routine... used by?
+0x61914 [0x22]: loaded from mem card routine... used by?
+0x61918 [0x23]: loaded from mem card routine... used by?
+0x6191C [0x24]: pointer to tnt explosion process (if event spawns it)
+0x61920 [0x25]: 0x57864 mirror    //gool processes (ex. aku aku) use this as an interface for camera location
+0x61924 [0x26]: 0x57868 mirror 
+0x61928 [0x27]: 0x5786C mirror 
+0x6192C [0x28]: 0x57870 mirror 
+0x61930 [0x29]: 0x57874 mirror 
+0x61934 [0x2A]: 0x57878 mirror 
+0x61938 [0x2B]: previous iteration execution time, minus VSync time (checked by aku aku, also GemsC, also WarpC
+0x6193C [0x2C]: screen X offset (sent to SetGeomOffset) initially 0, cleared by projection init routine
+0x61940 [0x2D]: screen Y offset (sent to SetGeomOffset, after adding initial Y offset value at 0x2 << 8) initially 0
+0x61944 [0x2E]: set by mem card load, checked by BoxsC, or FruiC, along with game progress at 0x14
+0x61948 [0x2F]: maximum initial Z position for entities spawned during title sequences
+...
+0x61950 [0x31]: cleared when an event is sent to a tnt explosion
+...
+0x61964 [0x36]: ? aku aku sets this to 0; also sets to point to itself in certain conditions
+...
+0x6197C [0x3C]: incremental value set by DispC [0x3C]
+....
+0x61984 [0x3E]: box count/number of boxes broken 
+0x61988 [0x3F]: read by GemsC (gems collected?)
+....
+0x61990 [0x41]: timestamp of most recent gem render? in certain case
+...
+0x61998 [0x43]: cleared when a new zone is loaded
+0x6199C [0x44]: debug flag (set in prototype?)
+0x619A0 [0x45]: PID of most recently hit checkpoint box: when not -1 or 0 and saving state, we record the vector at 0x61A24 in place of objects trans
+                also replaced by DispC!
+...
+0x619AC [0x48]: read by GemsC, also BoxsC, also FruiC 
+...
+0x619BC [0x4C]: set by, to point to self instance of DispC state 10
+...
+----
+
+0x61A1C [0x64]: set to 0xD00 by DispC
+...
+0x61A24 [0x66]: X component of most recent broken checkpoint box; replaces object trans when saving state if flag 0x619A0 set
+0x61A28 [0x67]: Y component of .......                                                                                       
+0x61A2C [0x68]: Z component of .......                                                                                       
+...
+0x61A34 [0x6A]: fade duration/counter?
+...
+... 
+...
+0x61A5C [0x74]: ?? set to 0 for each neighbor zone when loading a new zone
+0x61A60 [0x75]: set/incremented by boxes during spawn/entity items with field[0x12]/levelListIndex = 0x22
+                reset when loading a new zone for each neighbor zone
+0x61A64 [0x76]: ?? set to 0 for each neighbor zone when loading a new zone
+
+----------------------
+

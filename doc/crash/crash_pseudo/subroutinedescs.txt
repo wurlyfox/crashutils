@@ -1,0 +1,771 @@
+(UPDATE 6/6/2015): descriptions for some of these routines may prove to be useful, but are, for the most part, outdated. 
+Please refer to ../../crashpc.txt for a more complete list, with equally as effective proposed routine names rather than 
+descriptions for each routine.
+
+
+sub_8001177C = _ExpAllocArea
+sub_80011870 = _expand
+sub_80011A18 = InitHeap
+sub_80011A58 = malloc
+sub_80011C8C = free
+sub_80011CA0 = realloc
+sub_80011D30 = calloc
+
+sub_80011D88 = main
+sub_80011DD0 = game mode dependent initialization routine
+
+sub_80011FC4 = main game loop routine
+sub_80012660 = BASE 64/variant string encoder
+sub_800126C0 = BASE 64/variant string decoder
+
+sub_80012820 = ascii function (i.e. a0=char no. )
+sub_800128A4 = string format function, i.e. can return the NSD/NSF file string just passing the ID in the args
+
+sub_80012DCC = ?
+
+sub_80012F10 = ....
+sub_8001331C = shorter rendition of main chunkinfo handling sub: based on its call to subsystem routines for each entry in the chunk
+
+sub_800134C8 = calls main chunkinfo sub for "[index 0x1C] of chunkinfo pted by 5CFAC" count chunkinfos in reverse from itself (but only the ones on case 12)
+              -finds chunkinfo on case 0 with lowest CID (starting from the 5CFAC pointed address and back *(0x5C91C) chunkinfos)
+              -starting at this lowest value and up to the largest (a global value found at *(0x5C540)[0x400]): THRU the 0x5CFBC list 
+               while a valid struct is pointed to (i.e. < -0xFE) WITH an index [6] of 0 incrementing the var_40 counter UNTIL 
+               an invalid struct or one with a nonzero index [6] is found 
+              -calls the 146f0 sub with var_40 counter and index of found chunkinfo (with lowest CID)
+              -finally calls main chunkinfo sub for chunkinfos starting at 5C554 (main list) and continuing thru the list while 5C550 != 0
+
+sub_80013748 = ? (calls to 13c48 in a loop)
+sub_80013798 = called for GOOL OPCODE 28, SUBOPCODE 12, SUBSUBOPCODE 10 (cd stuff)
+
+
+sub_80013b30 = decompress data and init entry/item pointers for chunkinfo chunk (only for case != 1 or 11)
+sub_80013d48 = main chunkinfo handling sub
+sub_800141F4 = allocate space on the mainlist for a chunkinfo
+
+sub_8001439c = ? (chunk handle calls this for texture chunks)
+sub_80014514 = ? (refs from 1439c and 32fdc)
+
+sub_800145c8 = find the first chunkinfo in the shortlist of 8 with an index[8] equal to the item specified in a1 (reverse list at 58074-57f40)
+sub_800146f0 = kill a chunkinfo (running deconstructor routines for all associated chunk's entries)
+sub_80014930 = clear chunkinfos entry in the CIDlist (replaces with FFFFFFFE)
+
+sub_8001495c = ? (15034, 14930, 14E34)
+
+sub_80014c08 = - args to this is an unprocessed pointer/eid pair, where the pointer is instead an index into the 5CFBC list
+                 the value in the list is either a pointer (which calls sub_146f0 one way)
+                 or the value is FFFFFFEE                  (which calls sub_146f0 a differnt way)
+               - then sub_800134C8 is called
+               - sub returns the now PROCESSED pointer in the pair
+               
+sub_80014D00 = ? (calls to 14c08)
+sub_80014E34 = ? (calls to 14930)
+sub_80015034 = ? (15978)
+
+sub_80015118 = - initializes the chunkinfo for EID/listEntry specified in a0, (finding the chunkinfo in the mainlist whose chunk contains 
+                 the corresponding entry and setting its CID to its), and returns the corresponding entry
+
+sub_800156D4 = ? (14930 we know, but not 15978)
+sub_8001579C = ? (6396347f, call to 15978)
+sub_80015978 = ? (some variation of 15a98)
+
+sub_80015A98 = - if arg a0 is an eid, get the corresponding list of entrys that holds the entry for THIS EID, 
+                 keep going till we find the POINTER,EID pair with our EID 
+                 -replace- the EID with the pointer to its corresponding LIST entry pair 
+                 (so next call to this function will just grab the pointer to the pair directly)
+               - if arg a0 is an pointer, just grab the LIST entry (which holds POINTER,EID PAIR)
+                 ===if the pair's pointer (which points to an entry) has bit 1 set, then process with sub_80014C08()
+                 return the entry from the pair
+
+-----
+
+GAME INIT/DEINIT ROUTINES
+==========
+sub_80015B58 = initialization routine   (reads sectors from cd and creates chunkinfo structs for their data)
+sub_80016420 = deinitialization routine (last one called after main loop ends)
+
+sub_800164f8 = stores 0 at (a0+(a1*0x2C))[30], if already 0 there then return 0
+
+------
+
+HARDWARE INIT/CONTROLLER INTERFACE ROUTINES
+===================
+sub_8001652C = main hardware init routine, calls all others
+sub_8001668C = main hardware deinit routine (still not documented)
+
+sub_80016718 = init controller system (still not documented, look in INIT)
+sub_800167A4 = reads controller buttons *(0x5E718) times, updating a struct for each read (i.e. to determine an actual button 'press' via                       change in state from released to pressed; one of these structs -should- hold the proper data from the point at which a                            button is pressed, if any, after reading)
+sub_800169f8 = ???? blank screen routine? called from 322cc (still not documneted)
+
+sub_80016a6c = gpu init routine (see INIT folder)
+
+-----
+
+
+
+sub_80016c18 = T0 entries A
+sub_80016d14 = T0 entries B
+sub_80016dcc = (called by 16c18)
+
+sub_80016e18 = return *(0x5840C) + 0x78; a pointer to primitives to render
+
+  
+sub_80016e5c = has a lot of 'critical sections', last sub in main loop
+sub_800172e8 = ?
+sub_80017358 = ?
+sub_80017448 = ? lots of const values
+sub_800175d0 = ? small
+
+sub_8001767c = T2 entries, TGEO
+
+
+------
+
+sub_80017790 = simpler graphics function used by map, etc.
+sub_80017a14 = complex graphics function used in levels: 
+               recalculate camera matrices and load WGEO model for current level position
+
+sub_800180a0 = ref from 17790
+sub_800180CC = called by either of 2 subs below: Animation?
+sub_80018964 = 1de78 calls for process[0x108] struct mode 1, when its EID refers to a (T1???) not T20
+sub_80018A40 = 1de7a calls for process[0x108] struct mode 1, when its EID refers to a T20
+sub_80018b98 = create and transform a rectangle (textured and non-gourad shaded) specified by args
+sub_80018DBC = more cop2 3pt transform that stores in a larger primitive,....
+
+sub_80019144 = linear transformation (use input matrix to transform input vector to output vector)
+
+sub_8001922C = load all model entries (specified by 0x57914[0] count 0x40 byte structs with EIDs at their index[0], and filling the remaining part of the structs with                   the info gathered from their entries) 
+
+sub_80019508 = transform a model (referred to by 0x57914) [after setting rotation and light matrixes]
+
+sub_800195CC = has setrotmatrix & setlightmatrix but then lots of coprocessor/maths
+sub_80019bcc = has setrotmatrix & setlightmatrix but then some sub calls
+sub_80019de0 = setrotmatrix & lightmatrix again
+sub_80019f90 = .......
+sub_8001a0cc = this one called by main 11fc4, could be a good starting point for learn graphics
+sub_8001a2e0 = so is this one
+
+sub_8001a460 = entry->gfx, called by sub_8001922C (load wgeo models) when game mode is titles
+sub_8001a5f4 = entry->gfx,  ?????
+
+sub_8001a754 = no xrefs from, has a few consts
+
+sub_8001aad8 = for OPAT entries, (sub 2, INIT A)
+sub_8001ac28 = for OPAT entries, (sub 5, sub_80016420 version)
+sub_8001ac60 = for OPAT entries, (sub 3, INIT B)
+
+sub_8001ac9c = path travelling subroutine
+
+----
+sub_8001b648 = ? calls itself recursively in a loop
+
+sub_8001b6f0 = run a routine that takes an entry as an argument for a process's entire family, 
+               running 1CDD0 (w/o flag) for a processes parent process if makes the 
+               routine return 0xFFFFFFE7, returns the result of calling the routine for process specified  
+
+sub_8001b788 = runs thru a processes entire family till it finds a process that isnt of type 2 and 
+               satisfys a specified routine with argument
+
+sub_8001b84c = runs 1CDD0 on a processes children if a specified subroutine with argument returns true, 
+               else runs 1B648 on each child's [who returns false] children that are not of type 0
+
+sub_8001b92c = accomplishing what 1B6F0 does for a family of a process, but only with the first 2 generations, 
+               but then for the 2nd generation, 1B6F0 is called, thus kind of making this subroutine 
+               redundant-HOWEVER, altogether it accomplishes this -without- overflowing the stack
+
+sub_8001b4ac = jalrs
+sub_8001ba90 = returns process from arg_0 if it has PID arg_1
+               else returns 0
+sub_8001bab0 = ? gool refs this one too
+
+sub_8001bca4 = checks bit specified by a1 at memory location 60ef0
+
+sub_8001bcc8 = creates a new process given an entity (spawn an object)
+sub_8001c6c8 = creates a new process given the index of the code entry in the main nsd list/subroutine pair
+                 
+               -finds all processes that are no longer needed and terminates them with 1CCD0, adopting each
+			          one to the 'free processes' list
+			          [finds all flagged children in the entire family of listprocess4 and run 1CCD0 on them]
+			         -grab the first process in the 'free processes' list, this will be used as the 'new process'
+			         -adopt this new process to the parent specified in the subroutine arguments 
+               -reinitialize this process, getting it ready for execution of specified subroutine in the
+                specified gool entry's code			   
+               -copys processes' color vectors to the zone that contains it (or the current zone if none specified)
+			         -returns the new process
+
+sub_8001cb80 = reinitializes a specified process, executing specified subid from specifed EIDorlistentry as 'main'
+sub_8001cdd0 = for a process: its entire 'family', set all links to refer to the initial process [by parent                field] and its children [link field]
+               the initial process will NOT refer back to any of the processes EXCEPT for a specified process                             in gp[0x2B8], if it exists in the family. when a process is not the one specified in gp[0x2B8], the process                buffers links are cleared.
+               additionally:
+                  -sub_80024040(0, process, 0x1A00, 0, 0) is called for each process in the family if flag is
+                  set
+                  -sub_80030260(process) is called for each process in the family 
+                   [initializes hardware voices for the processes that need it]
+                  process[0xD8]>>8 determines the position of a word in 0x5FF58 array whose bit 1 is cleared for each                   process
+                  -process type set to 0 
+               EDIT: SUB 1CDD0 TERMINATES AN OBJECT PROCESS
+sub_8001d11c = for a process that matches the entry in field [0x28], if it doesnt have bit 25 set in field [0xCC] 
+               AND if it doesnt have bit 19 set in field[0x120], then issue the 0x1A00 event
+               if, after this, field[0x28] doesnt exist or 0x57918 doesnt exist, then run 1CDD0 on the process without the flag
+sub_8001d1e0 = calls to 1CDD0 without the flag
+
+sub_8001d200 = execute sub_8001D11C for all processes in the smalllist
+sub_8001d33c = initialize one of a process's vectors using its current animation entry?
+
+sub_8001d5EC = handle all objects/processes in the 8 lists
+
+sub_8001d698 = for a process: reads info about a specified gool subroutine (subid) from the process' gool entry, REINITING the stack, and executes it 
+sub_8001d914 = for a process: sets returnframe to stack before pushing: header, process.pc, and range from stackframeoffset-returnframeoffset
+
+sub_8001da0c = main object handling routine: includes execute object animation gool code,
+               execute 'per frame' gool code, default physics routines, and object rendering
+sub_8001de78 = main object rendering routine: includes handling object animation/display structure
+sub_8001e3d4 = ?another big func
+sub_8001e7d8 = ?calls the one above
+sub_8001eb28 = determines color intensity of a object/process based on, process[0x128] = visibility phase (fading in/out, done fading in/out, terminating, etc) and process[0x12C] = frames elapsed at initiation?
+sub_8001eea8 = appends a new structure linking an object to its future bounding box and tests its collision with crash
+sub_8001f30c = default object physics routine
+
+sub_8001fb34 = gool address translation
+sub_8001fc4c = gool address translation (push pop/variation)
+sub_8001fdc4 = gool controller read routine
+               *may be recording at significant addresses
+               5E720, 52B64
+sub_800201DC = executes instructions for a gool process frame until it returns
+sub_80024040 = issues an event to a gool process               
+
+-----------
+sub_800243A0 = ?? [call from 1f30c]
+
+sub_800245F0 = returns nearest 90 degree angle between two angles
+sub_80024628 = ?? [call from gool parse]
+sub_8002465C = linearly transforms a given vector based on given tait-bryan angles for a rotation matrix
+               confined to the bounds of the given scale vector, and adds the resultant vector to a given
+               'translate' vector
+sub_800248A0 = transforms a vector with one of 2 rotation and translation matrix pairs (determined by mode)  
+sub_800249E0 = transforms a vector with rotation and translation matrices
+               returning the corresponding 'screen equivalent coordinates' (with Z equivalent to the drawing priority) 
+
+sub_80024AD4 = ??some object collision function; TODO: document
+sub_80024CC8 = does various things (determined by a case) before issuing a specified event to a process
+
+sub_80025134 = runs 24CC8 for the 8 processes in the shortlist
+sub_800251B8 = 
+sub_800252C0 = 
+sub_800253A0 =  for LDAT entries (sub 3, init B)
+sub_80025628 =  for ZDAT entries (sub 3, init B)
+sub_800256DC =  for MDAT entries (sub 4, entry handler)
+sub_80025928 =  one of main functions called from 11FC4, deals with 0x1A byte structs (init some graphics process?)
+sub_80025A60 =  loads a zone/section
+sub_800260AC =   
+sub_80026140 =  initial init routine
+sub_80026200 =   global init routine
+sub_800262DC =     misc init routine
+sub_80026460 =  records information about the current level state
+sub_80026650 =  reinitializes a level given a structure describing previous level state
+
+sub_80026B80 =  TODO; call from some gool instr and 24CC8
+sub_80026CA8 =  TODO; one of the 2 subs called from 1EEA8
+sub_80026DD4 =  find and return the zone (entry) that contains a specified point in either
+                the specified zone's list of neighbors or the current zone's list of neighbors
+sub_80026FF0 =  probably collision subs ..calls from itself and the sub below
+sub_800277EC =  ...call from gool instr 0x8E
+sub_80027A4C =        ..call from the sub below
+sub_80027BC4 =      ..call from the sub below
+sub_80027F50 =    ..calls from 28E3C, 2940C the 2 below
+sub_8002832C =    ..calls from itself, and the next 3 below
+sub_80028644 =  ...call from gool instr 0x8E
+sub_800289B4 =  ...call from gool instr 0x8E
+sub_80028E3C =  ...call from gool instr 0x8E
+sub_8002940C =  ...call from gool instr 0x8E
+
+sub_800294B0 =  seems to prepare to load zone collision data from current and all neighbor zone's item 2s...
+sub_800296A8 =  adjust camera X, Y, Z and rot X, Y, Z depending on T7 zone (from 25a60)
+sub_80029A58 =  for SLST entries (sub 2, init A)
+sub_80029AD8 =  for SLST entries (sub 5, sub_80016420 version)
+sub_80029B0C =  swaps and handles the slst double buffer.. still confusing
+sub_80029B90 =  approximates euclidian distance between 2 vectors
+sub_80029C90 =  checks collision given 2 points and a bounding volume [specified as a cube containing all points in range (-maxX, -maxY, -maxZ) : (maxX, maxY, maxZ)] 
+                returns FALSE on collision
+                returns TRUE and sets bit 16 of specified process[0xC8] bitfield when not colliding
+sub_80029D30 =  calculates euclidian distance between 2 vectors
+sub_80029BD0 =  calculates euclidian distance in XZ plane between 2 vectors
+sub_80029E10 =  calculates angle in XZ plane between 2 vectors
+sub_80029E48 =  calculates angle in XY plane between 2 vectors
+sub_80029F6C =  ..part of cam routine
+sub_8002A0C4 =  camera subroutine for sections where view is straightforward
+sub_8002A3EC =  camera subroutine for sections where view is rotated?
+sub_8002A82C =  camera subroutine for levels
+sub_8002B2BC =  main camera subroutine, handles cases for all camera modes
+sub_8002BAB4 =  ..part of main cam routine
+sub_8002BE8C =  main object collision routine: including handle all events related to collision? (including fall into pits, etc.)
+sub_8002C184 =  from main collision routine:
+                scale velocity vector accordingly to call sub (2D384) that handles all the rest of 
+                collision, then appropriately modifies return translation vector due to any 
+                collision based on results from that subroutine                
+sub_8002C3B8 =  determines how to change object current issued event based on collision octree node value
+sub_8002C660 =  ..? routine for handle object surface collision
+sub_8002C8EC =  1)  seems to call both routines for recording zone surface & object surface collision information
+sub_8002CD9C =  4)  seems to deal with compares object bound box with the structs linking objects to 
+                their bounding boxes; schedules the event for 'object hit from bottom'
+                calls crucial sub sub_80038DF8
+sub_8002D18C =  5)  seems to deal with checking if object has left bottom bounds of the zone and 
+                issuing the appropriate events (I.E. death) 
+sub_8002D384 =  important collision sub: determines/records collision information from:
+                current zone collision octree, object collision information?
+                modifies output translation vectors accordingly based on input translation vectors 
+                also handles issuing appropriate events for various collision types 
+                5 count children subroutines, indicated by #) in nearby subs                
+sub_8002D638 =  for BINF entries (sub 2, init A)
+sub_8002D694 =  for BINF entries (sub 6, sub_80016420 version)
+sub_8002D69C =  **TODO** called by 2D8B8
+sub_8002D8B8 =  **TODO** called by 2DF50
+sub_8002DF50 =  2) ..? seems to deal with loading those unidentified values in scratch mem or something
+sub_8002E0A0 =  **TODO** called by 2DF50
+sub_8002E3F8 =  3) ..? seems to deal with the unidentified values in scratch memory based on 
+                some constant pre-calculated byte table
+sub_8002E8A4 =  for PBAK entries (sub 2, init A)
+nullsub_28   =
+sub_8002E98C =  zone/zdat subsystem init routine
+sub_8002EABC =
+sub_8002EBB4 =
+sub_8002EC68 =
+sub_8002F6B0 =  
+sub_8002F75C =
+sub_8002F76C =
+sub_8002F778 =
+absdistance  =
+sub_8002F8C4 =
+SeVibOn                
+SetVib         
+SsUtVibrateOn    
+SsUtVibrateOff    
+SeVibOn_0       
+SetVib_0        
+SsUtVibrateOn_0  
+SsUtVibrateOff_0  
+SeVibOn_1         
+SetVib_1          
+SsUtVibrateOn_1    
+SsUtVibrateOff_1   
+SeVibOn_2           
+SetVib_2           
+SsUtVibrateOn_2     
+SsUtVibrateOff_2     
+SeVibOn_3             
+SetVib_3             
+SsUtVibrateOn_3       
+SsUtVibrateOff_3     
+nullsub_2            
+sub_8002FDE0 =  for ADIO entries (sub 2, initA)      
+sub_8002FFC0 =  for ADIO entries (sub 6, deinit) deinit != chunk deinit
+sub_8002FFFC         
+sub_80030008          
+sub_80030078           
+sub_80030260 =  initialize/set up hardware voices for a process         
+sub_80030328           
+sub_800304C8           
+sub_80030840           
+sub_80030CC0           
+sub_800311B0           
+sub_80031244           
+sub_800313B4 =  for MIDI entries (sub 2, init A)         
+sub_800313C4         
+sub_800314C4           
+sub_800317DC           
+sub_800317F8           
+sub_80031938 =  for MIDI entries (sub 6, deinit)          
+sub_80031964           
+sub_800319DC           
+sub_80031A40           
+sub_80031BAC =  for MDAT entries (sub 2 initA)         
+sub_80031BF8 =  for MDAT entries (sub 3 initB)
+sub_80031D50 =          
+sub_80031EB4 =  world map subroutine        
+sub_800322CC           
+sub_800326D8 =  titles/title screen subroutine   
+sub_80032AF4           
+sub_80032BB4 =  called before 32DFC in titles routine      
+sub_80032DFC =  called after  32BB4 in titles routine
+sub_80032FDC           
+nullsub_27             
+sub_800334A0           
+sub_80033878           
+nullsub_5              
+sub_80033FBC           
+nullsub_6              
+sub_800342D8           
+sub_80034504           
+sub_80034524           
+sub_80034580           
+sub_8003460C          
+sub_80034B08          
+sub_800351C8          
+sub_80035370          
+sub_800353B0           
+sub_80035438           
+sub_80035898           
+sub_80035E10           
+sub_80036340           
+sub_80036BF4           
+sub_80036D9C           
+sub_800375EC           
+sub_80037D50 = sub optimized for loading collision data from T7 entry's item2         
+sub_8003864C           
+sub_800389A8           
+sub_80038AC4           
+sub_80038DF8           
+sub_8003905C =  sine           
+sub_800390D0 =  cosine          
+sub_8003913C           
+sub_80039BD4           
+sub_8003A144           
+sub_8003A76C           
+sub_8003A94C           
+sub_8003AA7C           
+sub_8003ABA4           
+sub_8003AC2C           
+sub_8003ADB8           
+sub_8003AE08           
+sub_8003AED8           
+sub_8003AF24           
+sub_8003B5E0           
+sub_8003B74C           
+sub_8003B8B8           
+sub_8003BE40           
+sub_8003BFFC           
+sub_8003C038           
+sub_8003C358           
+nullsub_3              
+nullsub_4              
+sub_8003C3E4           
+sub_8003C3FC           
+sub_8003C420           
+sub_8003C538           
+sub_8003C608           
+sub_8003C69C           
+sub_8003C6E4           
+sub_8003C714           
+sub_8003C7A8           
+sub_8003C900           
+sub_8003C970           
+sub_8003C9B8           
+sub_8003CA04           
+sub_8003CA50           
+sub_8003CAB0           
+sub_8003CAD8           
+sub_8003CAF8           
+sub_8003CB74           
+sub_8003CB88           
+sub_8003CB9C           
+sub_8003CD3C           
+sub_8003CD60           
+sub_8003CE20           
+sub_8003CEA8           
+sub_8003CEF0           
+sub_8003D094           
+sub_8003D1B4           
+sub_8003D1F0           
+sub_8003D308           
+sub_8003D444           
+sub_8003D4EC           
+exit                   
+atoi                   
+strcat                 
+strcmp                 
+strncmp                
+strcpy                 
+strlen                 
+bcopy                  
+bzero                  
+memcpy                 
+memset                 
+printf                 
+sub_8003D740           
+memchr                 
+sub_8003DFAC           
+start                  
+_bu_init               
+OpenEvent              
+CloseEvent             
+TestEvent              
+EnableEvent            
+DisableEvent           
+EnterCriticalSection   
+ExitCriticalSection    
+open                   
+read                   
+write                  
+close                  
+format                 
+firstfile2             
+nextfile               
+erase                  
+sub_8003E298           
+sub_8003E370           
+sub_8003E3A4           
+sub_8003E3D8           
+sub_8003E410           
+sub_8003E460           
+sub_8003E490           
+StopPAD2               
+PAD_init2              
+PAD_dr                 
+ChangeClearPAD         
+sub_8003E4F0           
+sub_8003E638           
+sub_8003E6D4           
+ChangeClearRCnt        
+ResetCallback          
+InterruptCallback      
+DMACallback            
+VSyncCallback          
+StopCallback           
+CheckCallback          
+SetIntrMask            
+sub_8003E88C           
+sub_8003E968           
+sub_8003EB50           
+sub_8003ECA4           
+sub_8003ED50           
+sub_8003EDD8           
+setjmp                 
+sub_8003EE14           
+ReturnFromException    
+ResetEntryInt          
+HookEntryInt           
+sub_8003EE54           
+sub_8003EEAC           
+sub_8003EF24           
+sub_8003EF50           
+sub_8003EF7C           
+sub_8003EFCC           
+sub_8003F150           
+sub_8003F1F8           
+sub_8003F224           
+GsGetWorkBase          
+sub_8003F338           
+SetDefDrawEnv          
+SetDefDispEnv          
+sub_8003F514           
+sub_8003F5DC           
+sub_8003F73C           
+sub_8003F7D8           
+sub_8003F7F0           
+sub_8003F890           
+sub_8003F8F4           
+sub_8003FA14           
+ResetGraph             
+SetGraphDebug          
+sub_80040144           
+sub_800401C0           
+sub_8004025C           
+sub_800402C8           
+sub_80040484           
+sub_800404E8           
+sub_80040760           
+sub_800407C0           
+sub_80040834           
+sub_80040A0C           
+sub_80041054           
+sub_800410AC           
+sub_80041350           
+sub_800413AC           
+sub_80041478           
+sub_80041544           
+sub_8004158C           
+sub_80041610           
+sub_800416CC           
+sub_800416E4           
+sub_800417CC           
+sub_800419E4           
+sub_80041C38           
+sub_80041ED4           
+sub_80041EFC           
+sub_80041F10           
+sub_80041F60           
+sub_80041FAC           
+sub_80041FDC           
+sub_80042000           
+sub_800422E4           
+sub_800425E0           
+sub_8004271C           
+sub_80042864           
+sub_80042898           
+sub_80042A04           
+sub_80042AE0           
+GPU_cw                 
+sub_80042B1C           
+sub_80042B9C =  square root         
+MulMatrix              
+TransMatrix            
+sub_80042D6C           
+SetRotMatrix           
+SetLightMatrix         
+SetColorMatrix         
+SetTransMatrix         
+ReadSZfifo3            
+SetFarColor            
+SetGeomOffset          
+SetGeomScreen          
+RotTransPers           
+RotTrans               
+sub_8004301C =  atan2  (for find the angle between two points in XY, XZ, or YZ plane)           
+sub_8004319C =             
+FlushCache             
+sub_8004324C           
+sub_800432DC           
+sub_80043304           
+sub_8004332C           
+DeliverEvent           
+sub_80043384           
+PadChkVsync            
+PadStopCom             
+sub_800434F0           
+sub_80043508           
+sub_80043520           
+sub_80043668           
+sub_80043984           
+sub_800439A4           
+sub_80043A24           
+sub_80043BA8           
+sub_800440EC           
+sub_80044370           
+sub_80044640           
+sub_80044AA8           
+sub_80044B30           
+sub_80044C40           
+sub_80044D28           
+sub_80044E1C           
+sub_80044E8C           
+sub_8004519C           
+sub_80045518           
+sub_80045610           
+sub_800458C8           
+sub_80045A34           
+sub_80045C04           
+SpuInitMalloc          
+sub_80045E50           
+sub_8004636C           
+sub_800466A0           
+sub_80046A20           
+sub_80046CC8           
+sub_80046DB8           
+sub_80046E00           
+sub_80046EE0           
+sub_80046FB0           
+sub_80047078           
+sub_800470FC           
+sub_80047190           
+sub_80047208           
+_spu_setReverbAttr     
+SpuSetReverbDepth      
+sub_80047C60           
+sub_80047C84           
+SpuClearReverbWorkArea 
+sub_80047ED4           
+sub_80047EE4           
+sub_80047F5C           
+sub_80047F84           
+sub_800485E0           
+sub_800489B8           
+sub_80048A18           
+sub_80048A54           
+sub_80048A88           
+sub_80048B30           
+sub_80048EC4           
+sub_80048FB4           
+sub_800491E0           
+sub_80049268           
+sub_80049404           
+sub_80049428           
+sub_80049504           
+sub_80049538           
+sub_80049614           
+sub_80049648           
+_SsInit                
+sub_800497F4           
+sub_80049824           
+sub_80049844           
+sub_80049BA0           
+sub_80049C20           
+sub_8004A060           
+sub_8004A128           
+sub_8004A1EC           
+sub_8004A298           
+sub_8004A324           
+sub_8004A44C           
+sub_8004A594           
+sub_8004A608           
+sub_8004A67C           
+sub_8004A740           
+sub_8004A7E8           
+sub_8004A9FC           
+sub_8004AD64           
+sub_8004AE44           
+sub_8004AEB8           
+sub_8004AF70           
+sub_8004B078           
+sub_8004B44C           
+sub_8004B544           
+sub_8004B5A8           
+sub_8004B5E0           
+sub_8004B6AC           
+sub_8004B6D8           
+sub_8004B7D8           
+sub_8004B828           
+sub_8004B868           
+sub_8004B8B8           
+sub_8004BB3C           
+sub_8004BDB4           
+sub_8004C074           
+sub_8004C300           
+sub_8004C39C           
+sub_8004C3C8           
+sub_8004C4D4           
+sub_8004C764           
+sub_8004C7CC           
+sub_8004C964           
+sub_8004C990           
+sub_8004CB6C           
+sub_8004CCDC           
+sub_8004CD58           
+sub_8004CDCC           
+sub_8004CFB0           
+sub_8004D080           
+sub_8004D184           
+sub_8004D3BC           
+sub_8004D478           
+sub_8004D498           
+sub_8004D65C           
+sub_8004D66C           
+sub_8004D680           
+sub_8004DA78           
+sub_8004DA9C           
+sub_8004DDA8           
+sub_8004DDD4           
+sub_8004DDE4           
+sub_8004E330           
+sub_8004E59C           
+sub_8004E80C           
+sub_8004EA24           
+sub_8004EADC           
+sub_8004EBDC           
+sub_8004F090           
+sub_8004F0D4           
+sub_8004F1A4           
+sub_8004F680           
+sub_8004F8AC           
+sub_8004F998           
+sub_8004FF54           
+sub_80050060           
+sub_800500F8           
+sub_800501A8           
+sub_80050728           
+sub_800507EC           
+sub_80050868           
+sub_800508E8           
+sub_80050964           
+sub_80050C64           
+sub_80050D30           
+sub_80050D60           
+SpuMalloc              

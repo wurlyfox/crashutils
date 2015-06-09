@@ -1,0 +1,209 @@
+sub_80016A6C:
+
+*(0x57960) = 0;   //activeBuffer?
+
+ResetGraph(0);    //(initialize drawing environment and display environment)
+SetGraphDebug(0); //SetGraphDebug (set debugging level 0 = no checks are performed)
+                  //(highest speed mode)
+
+SetDefDrawEnv(&var_90, 0, 0, 0x400, 0x200); //SetDefDrawEnv(drawEnv, 0, 0, 0x400, 0x200)
+
+var_79 =     1; //byte
+PutDrawEnv(&var_90);                     //PutDrawEnv(drawEnv);
+
+TermPrim(&var_30);
+SetBlockFill(&var_30);
+
+var_22 =    0x1FF;  //clear screen
+var_24 =    0x3FF;
+var_26 =        0;
+var_28 =        0;
+var_2A =        0; //byte
+var_2B =        0; //byte
+var_2C =        0; //byte
+DrawPrim(&var_30);
+
+
+s2 =     0;
+s5 =     1;
+s4 = 0x100;
+v1 
+
+s1, s3 = 0x58410;
+*(0x58400) = 2;       //2 draw/display environments (1 for onscreen, one for offscreen)
+
+//struct doubleBuffer
+//{
+//  long      count = 2;
+//  buffer *ptr1, *ptr2;   //swapped accordingly
+    buffer     *initial;   //temp for swap
+    buffer A;
+    buffer B;
+  }
+  
+//struct
+//{
+//  long     xoffset;
+//  DISPENV  display;
+    DRAWENV     draw;
+    MODEL  modbuffer;
+    long *primitives;  //set to 0x34520
+    long     unknown;
+    long   primCount;    
+    ...primitive space?...
+  } buffer;
+  
+  
+do
+{
+  s1[0]    =  s2*512;
+  s1[0x7C] =       0; 
+                                      //512 x 240
+  SetDefDispEnv(   &s1[4], s2*512,   0, 0x200,  0xF0);     //SetDefDispEnv
+                                      //512 x 216
+  SetDefDrawEnv(&s1[0x18], s2*512, 0xC, 0x200,  0xD8);   //SetDefDrawEnv
+
+  s1[0x20] =      s4;                                   //additionally, this will set the drawing offset 
+  s1[0x22] =    0x78;                                   //of the drawing environment to (s4, 120)
+
+  s1[0x2E] =       1;                                   //and make sure dithering processing is set                                                          (set DefDrawEnv already does this) 
+
+  //s1[0x38] starts the data after the DrawEnv
+
+  s1[0x7C] = *(0x34520);
+  s1[0x84] =       0x22;
+
+  if (s2 == 0)                  //for the first draw/display pair (onscreen)
+  {
+    *(0x5840C)   =      s1;     //set 5840C to point to structure with the onscreen environments
+    *(0x58404)   =      s1;     //also 58404 
+  }
+  else if (s2 == 1)
+  {
+    *(0x58408)   =      s1;     //58408 will refer to the structure with the offscreen environments
+  }
+
+  s1 = s1 + 0x2088;
+  s4 = s4 +  0x200;
+  s2++;
+   
+} while (s2 < *(0x58400))      //for both environments
+
+PutDispEnv(*(0x58404) + 4);   //putdispenv, display environment will refer to the onscreen structure
+PutDrawEnv(*(0x58408) + 0x18);//putdrawenv, drawing environment will refer to the one in the offscreen structure
+                                  //
+                        
+SetDispMask(1);                  //setdispmask
+
+
+-----------------------------------
+
+
+struct drawDisplayBuffer  //struct containing a displayEnvironment and a drawing Environment, so in the case 
+{                         //that 2 of these structs exist, one can swap between the 2 for a double buffering
+                          //sort of thing
+  word displayX;
+  DISPENV displayEnv;
+
+  word unknown;
+  word unknown;
+
+  DRAWENV drawEnv;
+
+
+  hword unknown;
+  hword unknown;
+  hword unknown;
+  hword unknown;
+
+  char unknown;
+
+  .......
+
+}
+  
+
+
+
+--------------------
+
+SetDefDrawEnv/sub_8003F408:
+
+//var_98 = arg_10 = 0x200;
+//sub_8003F408(&var_90, 0, 0, 0x400);
+
+arg_a0[0]    = arg_a1; //hword   x       --------
+arg_a0[2]    = arg_a2; //hword   y        RECT  |
+arg_a0[4]    = arg_a3; //hword   width          |  Drawing Area 
+arg_a0[6]    = arg_10; //hword   height  -------|
+
+arg_a0[8]    = arg_a1;           x        - 
+arg_a0[0xA]  = arg_a2;           y        -  Drawing Offset
+
+arg_a0[0xC]  =      0; //hword   x --------------|
+arg_a0[0xE]  =      0; //hword   y   RECT        |
+arg_a0[0x10] =      0; //hword   w               | Texture Window
+arg_a0[0x12] =      0; //hword   h --------------|
+
+arg_a0[0x14] =    0xA; //hword   tpage = initial value of texture page
+
+arg_a0[0x16] =      1; //byte    dfd   = dithering processing flag    (1 = on)
+arg_a0[0x18] =      0; //byte    isbg  = drawing area clear flag      (0 = off)
+
+arg_a0[0x19] =      0; //byte    r
+arg_a0[0x1A] =      0; //byte    g     (bg color, only valid when isbg is one)
+arg_a0[0x1B] =      0; //byte    b
+
+
+if (GsGetWorkBase())     //the sub obtains an address for generating the current drawing primitive packet, but  
+{                        //this just checks if we can do that successfully
+  if (arg_10 < 0x121) { arg_a0[0x17] = 1; }
+  else                { arg_a0[0x17] = 0; }    //dfe   = drawing to display area flag (0 = drawing is currently locked)
+}
+else
+{
+  if (arg_10 < 0x101) { arg_a0[0x17] = 1; }
+  else                { arg_a0[0x17] = 0; }
+}
+
+if (sub_80040144() != 1)    //loads a byte from 0x54A6C?
+{
+  sub_80040144();
+}
+
+
+
+/*struct DRAWENV {
+RECT clip;
+short ofs[2];
+RECT tw;
+unsigned short tpage;
+unsigned char dtd;
+unsigned char dfe;
+unsigned char isbg;
+unsigned char r0, g0, b0;
+DR_ENV dr_env;
+};
+Members
+clip Drawing area. Drawing is restricted to a short area specified by clip. Drawing is not performed
+outside the clipping area. (See Remarks 1, below.)
+ofs Offset. Drawing commands use the added values of (ofs[0], ofs[1]) as an address and draw in
+the frame buffer. (See Remarks 2.)
+tw Texture window. The short area texture pattern restricted by the texture page tw is used
+repeatedly.
+tpage Initial value of texture page
+dtd Dithering processing flag
+0: off
+1: on
+dfe Drawing to display area flag
+0: drawing to display area is blocked
+1: drawing to display area is permitted
+isbg Drawing area clear flag.
+0: off
+1: on
+Does not clear drawing area when drawing environment is set.
+Paints entire clip area with brightness values (r0, g0, b0) when drawing environment is set.
+r0, g0, b0 Background color. Valid only when isbg is 1
+dr env System reserved
+Explanation
+This sets basic drawing parameters, such

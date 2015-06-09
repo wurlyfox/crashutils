@@ -1,0 +1,1315 @@
+inline word *getChildren(process) 
+{ 
+  if (process.type == 2)
+  {
+    return process.headChildren;      //is a small 2 word process variation that serves the purpose of a 'head' in a linked list
+  }
+  else
+  {
+    return process.Children;
+  }
+}
+
+inline word *findPrevChild(child, process)
+{
+  firstChild = process.children;
+  curChild   =       firstChild;
+         
+  if (curChild.link == child) { return curChild.link; }
+  
+  do
+  {
+    curChild = curChild.link;
+
+    if (!curChild) { return 0; }
+  
+    nextChild = curChild.link;
+    if (!nextChild) { return 0; }
+
+  } while (nextChild != child)
+  
+  return curChild;
+}
+
+inline word *addChild(child, newParent)
+{
+  child.parent = newParent;
+  child.link   = getChildren(newParent);
+  setChildren(newParent, child);
+}
+
+inline word *adoptChild(child, process)
+{
+  if (child.hasParent)
+  {
+    parent           =        child.parent;
+    parentChildren   = getChildren(parent);
+    parentfirstChild =      parentChildren;
+ 
+    if (parentfirstChild == child)
+    {
+      setChildren(parent, child.link)   
+    }
+    else
+    {
+      if (parent.hasChildren)
+      {
+        prev = findPrevChild(child, parent);
+
+        if (prev) 
+        { 
+          prev.link  =  child.link; 
+          addChild(child, process);          
+        }
+      }
+    }
+  }
+}
+
+sub_8001B6F0(process, routine, entry)  //run a routine that takes an entry as an argument for a process's entire family
+{                                      //additionally, run 1CDD0 (w/o flag) for a processes parent process if makes the routine return 0xFFFFFFE7      
+  chilren = process.children;          //returns the result of calling the routine for processes specified  
+
+  if (children)         
+  {
+    firstChild =   children;
+    nextChild  = firstChild;
+   
+    do
+    {
+      curChild  =     nextChild;
+      nextChild = curChild.link;
+
+      result = sub_8001B6F0(curChild, routine, entry); 
+                                                          
+      if (result == 0xFFFFFFE7)
+      {
+        sub_8001CDD0(process, 0);
+      }
+    } while (nextChild)
+  }
+      
+  return (*routine)(process, entry);
+}
+
+sub_8001B788(process, routine, arg)      //runs a thru a processes entire family till it finds a process that isnt of type 2 and satisfys the specified routine
+{
+
+  if (!process) { return 0; }
+  
+  if (process.type != 2)
+  {
+    result = (*routine)(process, arg);
+
+    if (result) { return result; }
+    
+    children = getChildren(process);
+  }
+  else
+  {
+    children = process.headChildren;
+  }
+
+  if (!children) { return 0; }
+
+  firstChild =   children;
+  nextChild  = firstChild;
+  do
+  {
+    curChild  = nextChild;
+      
+    result = sub_8001B788(curChild, routine, arg);   
+
+    nextChild = curChild.link;
+
+  } while (!result && nextChild)
+
+  return result;
+}
+
+sub_8001B84C(process, routine,   arg)
+{
+  children = getChildren(process);
+
+  if (!children) { return 0xFFFFFF01; }
+
+  firstChild =   children;
+  nextChild  = firstChild;
+
+  do
+  {
+    curChild = nextChild;
+
+    result = *(routine)(arg);
+
+    if (result)
+    {
+      sub_8001CDD0(curChild, 0);
+    }
+    else
+    {
+      grandchildren = curChild.children;
+     
+      if (grandchildren)
+      {
+        firstgrandChild   =   grandchildren;
+        nextgrandChild    = firstgrandChild;      
+    
+        do
+        {
+          curgrandChild   =  nextgrandChild;
+
+          if (curgrandChild.type != 0)
+          {
+            sub_8001B648(curgrandChild, routine, arg);
+          }
+          
+          nextgrandChild  = curgrandChild.link;
+        } while (nextgrandChild)
+      }
+    }
+
+    nextChild = curChild.link;
+  } while (nextChild)
+
+  return 0xFFFFFF01;
+}
+
+sub_8001B92C(process, routine, entry)   //this is accomplishing what 1B6F0 does for a family of a process, but only with the first 2 generations, but then for 
+{                                       //the 2nd generation, 1B6F0 is called, thus kind of making this subroutine redundant-HOWEVER, altogether it                                                              //would accomplish this -without- the recursion for the first 2 gens, therefore we can avoid overflowing the stack
+  children = getChildren(process);
+
+  if (!children) { return 0xFFFFFF01; }
+
+  firstChild =   children;
+  nextChild  = firstChild;
+  
+  do
+  {
+    curChild  =     nextChild;
+  
+    grandchildren   = curChild.children;   
+  
+    firstgrandChild =     grandchildren;
+    nextgrandChild  =   firstgrandChild;
+ 
+    if (grandchildren)          
+    {
+      curgrandChild  =     nextgrandChild;
+    
+      result = sub_8001B6F0(curgrandChild, routine, entry);                                                                             
+ 
+      if (result == 0xFFFFFFE7)
+      {
+        sub_8001CDD0(curChild, 0);
+      }
+    
+      nextgrandChild = curgrandChild.link;
+
+    } while (nextgrandChild) 
+
+    result = (*routine)(process, entry);
+
+    if (result == 0xFFFFFFE7)
+    {
+      sub_8001CDD0(process, 0);
+    }
+
+    nextChild = curChild.link;           
+
+  } while (nextChild)
+
+  return 0xFFFFFF01;
+
+}
+
+sub_8001BCC8(entityEntry, itemIndex)
+{
+  //arg_a0 = entry
+  //arg_a1 = itemIndex
+
+  if (entry == 0) { return 0xFFFFFFF2; }
+
+  s3 = 0;
+
+  entryType = entityEntry[8];
+
+  if (entryType == 7)    //if an entity 
+  {
+    item1  = entityEntry[0x10];
+    NIndex = ((item1[0x204] + item1[0x208]) * 4);
+    itemN  = entityEntry[0x10 + NIndex];
+  }                      
+  if (entryType == 0x11) //if type 0x11 (in game map data?)
+  {
+    itemN  = entityEntry[0x14 + (itemIndex * 4)];
+  }   
+  else
+  {
+    itemN  = entityEntry[0x10 + (itemIndex * 4)];  //is this right?
+  }
+ 
+
+  //criteria for the crash object
+  if (itemN[6]    == 3 && 
+     ((itemN[0x12] == 0)                        || 
+      (itemN[0x8]   > 0 &&     itemN[0x8] <  5) ||
+      (itemN[0x12] == 0x2C && itemN[0x13] == 0) || 
+      (itemN[0x12] == 0x30))
+  {        
+    //if crash already exists then we dont have to create him
+    if (gp[0x2B8] != 0) { return 0xFFFFFFF2; }
+  }
+
+  //criteria for box object
+  if (itemN[0x12] == 0x22)  //if listEntry index == 0x22
+  {                         //ALWAYS BOXC, so this means boxes
+
+    prevItemN = *(0x61A64);
+    
+    //if a box less than 10 in all 3 dimensions from the
+    //immediately previous created box
+    if ( (prevItemN) &&
+          sub_8002F840(itemN[0x14], previtemN[0x14])        < 0xA &&
+          sub_8002F840(itemN[0x18], previtemN[0x18])        < 0xA &&
+          sub_8002F840(itemN[0x16], previtemN[0x16] + 0x64) < 0xA)
+    {
+      s3 = *(0x61A5C);
+    }
+    else
+    {
+      *(0x61A60) = 0x19000;
+      *(0x61A5C) =       0;
+      s3         =       0;
+    }
+
+    *(0x61A64) = itemN;
+  }
+
+  listProcessBitfield = 0x5FF58[(itemN[8]*4)];
+  
+  if ((listProcessBitfield & 1) || (listProcessBitfield & 2))
+  {
+    if (itemN[0x12] == 0x22)
+    {
+      *(0x61A60) += 0x19000;
+    }
+     
+    return 0xFFFFFFF2;
+  }
+
+  //different criteria for different forms of the crash object?
+  //crash gets loaded to listprocess 7
+  if (itemN[6]    == 3 && 
+     ((itemN[0x12] == 0)                        || 
+      (itemN[0x8]   > 0 &&     itemN[0x8] <  5) ||
+      (itemN[0x12] == 0x2C && itemN[0x13] == 0) || 
+      (itemN[0x12] == 0x30))
+  { 
+    gp[0x2B8] = *(0x60DB0);
+    child     = gp[0x2B8];
+    listProcessIndex = 7;  //0 = main process, 1 = list process 1 etc
+  }
+  else
+  {
+    ------------------------------
+    //?olda0 = a0; //one of the 4 cases above, 0x14, 0x16, 0x18, or arg_a0
+
+    do
+    {
+      children       = 0;
+      flaggedProcess = 0;
+
+      initProcessChildren      = getChildren(initProcess);
+      initProcessfirstChild    =      initProcessChildren;
+      child                    =    initProcessfirstChild;
+
+      if (child)                                    //if initial process has children
+      {
+        break;
+      }
+      else
+      {
+        if (listProcess[4].type == 2)              //note that index 1 is the first in the 'list', index 0 is init process        
+          children = listProcess[4].headChildren;       
+        else
+        {
+          flaggedProcess = sub_8001BCA4(&listProcess[4], 8);  //returns process in first arg if 'process[0x120]' bit 4 is set
+                                                              //else returns 0
+          if (flaggedProcess)
+            children = getChildren(listProcess[4]);   
+        }
+
+        nextChild = children;
+        if (flaggedProcess && nextChild)
+        {
+          do
+          {
+
+            flaggedProcess = sub_8001B788(nextChild, sub_8001BCA4, 8);  //runs a thru a processes entire family till it finds a process that isnt of type 2 and                                                                                  //satisfys the specified routine
+            nextChild      =                          nextChild[0x68];  //keep following links
+             
+          } while (nextChild && (flaggedProcess == 0))                  //while they exist & a process is not found within the current processes family
+        } 
+
+        if (flaggedProcess)                 //if a process was found
+        {
+          sub_8001D1E0(flaggedProcess, 0);  //run sub_8001CDD0 on the process with the flag      
+        }
+      }
+    } while (flaggedProcess);
+  }
+
+  if (child == 0) { retun 0xFFFFFFEA; }
+
+  parent = listProcess[listProcessIndex];
+
+  //'parent' is the list process here
+  adoptChild(parent, child);
+
+  child.subtype  = itemN[6];   //field 0x4
+  
+  levelListIndex = itemN[0x12];
+  subIDIndex     = itemN[0x13];
+  fill           =           0;
+  fillVal        =           0;
+  result = sub_8001CB80(parent, levelListIndex, subIDIndex, fill, fillVal);
+ 
+  if (isErrorCode(result))
+  {
+    adoptChild(initProcess, child);
+  }
+
+  0x5FF58[itemN[8]*4] |=               1;   //s1[8] then an offset into 5FF58 words
+  child[0xD8]          = (itemN[8] << 8);        //and also process D8 set to the index * 256
+
+  if (entityEntry)                     //if the entry from the args is valid
+  {
+    if (entityEntry[8] == 0x11)        //if a (map data entry?)
+    {
+      entityEntry   =     0x57914;     //
+      child[0x28]   = entityEntry;
+    }                            //we use the global entry with graphicsinfo as item1
+    else
+    {
+      child[0x28]   = entityEntry;     //0x28: if init arg_a1 not 0xD, 4, or 5, is set to backlink's [0x28] at init if backlink's mode is 1
+    }                            //else set to 0
+  }
+
+  if (itemN[0x13] == 0)
+  {  
+    item1 = entityEntry[0x10];
+
+    processOffset = child   +  0x30;
+    itemOffset    = item1   + 0x348;
+   
+    if (((a2 | a3) & 3) != 0)
+      copyInterleave(processOffset, itemOffset, 12, sizeof(word), 3); //copy 12 words, but dont copy the 3rd byte
+    else
+      copy(processOffset, itemOffset, 12, sizeof(word));
+  }
+  else
+  {
+    item1 = entityEntry[0x10];
+
+    processOffset = child   +  0x30;
+    itemOffset    = item1   + 0x318;
+
+    if (((a2 | a3) & 3) != 0)
+      copyInterleave(processOffset, itemOffset, 12, sizeof(word), 3); //copy 12 words, but dont copy the 3rd byte
+    else
+      copy(processOffset, itemOffset, 12, sizeof(word));
+  }
+
+  child[0x110] = itemN;
+  child[0x118] = itemN[0xA] * 256;
+
+  if (itemN[4] & 1 == 0)
+  {
+    child[0x8C] = itemN[0xC];   //from halfwords to word
+    child[0x90] = itemN[0xE];
+    child[0x94] = itemN[0x10];
+  }
+
+  child[0xBC] =   itemN[0xC] * 256;   //these are just scaled versions of the values above
+  child[0xC0] =   itemN[0xE] * 256;
+  child[0xC4] =  itemN[0x10] * 256;
+
+  sub_8001AC9C(child, 0, child + 0x80);
+
+  if (child == gp[0x2B8])
+  {
+    if (*(0x56714) == -1)
+    {
+      sub_80026460(child, 0x57974, 1);   
+    }
+  }
+
+  entry = child[0x20];
+  item1 = entry[0x10];
+
+  if (item1[4] == 0x300) 
+  {
+    adoptChild(listProcess[4], child);
+  }
+
+  //regrab this code's listEntry index/object type
+  //which is -also- found at index 0 in the header
+  //CHECKING IF A BOX
+  if (item1[0] == 0x22) 
+  {
+    //case if this box has been created next to a previous box
+    if (s3 != 0)
+    {
+      //wouldn't 0xA4 normally be where the scale vectors are?
+      //or then do boxes don't have to be scaled so this field
+      //is used differently?      
+      child[0xA4] = s3;   //this was the old *(0x61A5C) value gotten at beginning of sub
+      child[0xA8] =  0;    
+
+      s3[0xA8]    = child;   //?
+    }
+    else
+    {
+      child[0xA4] =  0;
+      child[0xA8] =  0;
+    }
+
+    child[0x84] = (0x19000 + child[0x84]) - *(0x61A60);
+
+    *(0x61A5C) = child;   //then it is set right here...
+
+    item1 = entityEntry[0x10];   //this was either the arg_a0 entry or the 0x56714 entry
+    if (item1[0x2DC] & 4 == 0)
+    {
+      XorZbit = (((child[0x88]/16) ^ child[0x80]) & 7);
+      child[0x104] = XorZbit;
+ 
+      if (XorZbit)
+        child[0xCC] |= 0x10000000;
+    }
+  }
+
+  return child;
+}
+
+//TODO: study the assembly for this more, i think this might be a bit off
+//      my guess: finds the first 'empty' process and adopts it to what args
+        here specify as 'child' (but should really be called parent and the
+        'parent' here renamed appropriately)
+        also check somewhere if the sub actually returns that newly created process
+
+//flag = flag for terminate child processes of a previously ended 
+//'free process'
+sub_8001C6C8(parent, levelListIndex, subIDIndex, fill, fillVal, flag)
+{
+  if (levelListIndex == 0 || subIDIndex == 0)
+  {
+    gp[0x2B8] = processBuffer;    //*(0x60DB0) blank process with its own designated page
+    child     = processBuffer;
+  }
+  else
+  { 
+    do
+    {
+      children       = 0;
+      flaggedProcess = 0;
+
+      initProcessChildren   = getChildren(initProcess);
+      initProcessfirstChild =      initProcessChildren;
+      child                 =    initProcessfirstChild;
+
+      if (!child || !initProcessChildren || flag)  //if initial process has no children (or referred to a first child that was removed)
+      {
+        break;
+      }
+      else
+      {
+        if (listProcess[4].type == 2)              //note that index 1 is the first in the 'list', index 0 is init process        
+          children = listProcess[4].headChildren;       
+        else
+        {
+          flaggedProcess = sub_8001BCA4(&listProcess[4], 0x80000);  //returns process in first arg if 'process[0x120]' bit 4 is set
+                                                              //else returns 0
+          if (flaggedProcess)
+            children = getChildren(listProcess[4]);   
+        }
+
+        nextChild = children;
+        if (flaggedProcess && nextChild)
+        {
+          do
+          {
+
+            flaggedProcess = sub_8001B788(nextChild, sub_8001BCA4, 0x80000);  //runs a thru a processes entire family till it finds a process that isnt of type 2 and                                                                                  //satisfys the specified routine
+            nextChild      =                          nextChild[0x68];  //keep following links
+             
+          } while (nextChild && (flaggedProcess == 0))                  //while they exist & a process is not found within the current processes family
+        } 
+
+        if (flaggedProcess)                 //if a process was found
+        {
+          sub_8001D1E0(flaggedProcess, 0);  //run sub_8001CDD0 on the process with the flag      
+        }
+      }
+    } while (flaggedProcess);
+  }
+
+  if (child == 0) { retun 0xFFFFFFEA; }
+
+  //'child' is either the init process's first child or the process buffer/crash process (if listIndex or subIDindex == 0)
+  adoptChild(parent, child);       //we adopt the newfound empty/initialized process to the process specified in the sub arguments                 
+
+  child.type = 3;  //a code process
+
+  //process, levelListIndex, subIDIndex, fill, fillVal
+  sub_8001CB80(child, levelListIndex, subIDIndex, fill, fillVal);
+
+  graphicsEntry = child[0x28];
+  if (graphicsEntry)
+  {  
+    item1 = graphicsEntry[0x10];
+
+    processOffset = child   +  0x30;
+    itemOffset    = item1   + 0x318;
+   
+    if (((a2 | a3) & 3) != 0)
+      copyInterleave(processOffset, itemOffset, 12, sizeof(word), 3); //copy 12 words, but dont copy the 3rd byte
+    else
+      copy(processOffset, itemOffset, 12, sizeof(word));
+  }
+  else
+  {
+    item1 = *(0x57914)[0x10];
+    
+    if (gp[0x2B8] == child)
+      itemOffset    = item1 + 0x348;
+    else
+      itemOffset    = item1 + 0x318;
+
+    processOffset   = child +  0x30;
+
+    if (((a2 | a3) & 3) != 0)
+      copyInterleave(processOffset, itemOffset, 12, sizeof(word), 3); //copy 12 words, but dont copy the 3rd byte
+    else
+      copy(processOffset, itemOffset, 12, sizeof(word));
+  }
+  
+  return child;
+}
+
+  
+sub_8001CDD0(process, flag)  //for a processes entire 'family', set all links to refer to the initial process [by parent field] and its children [link field]
+{                            //the initial process will NOT refer back to any of the processes EXCEPT for a specified process in gp[0x2B8], if it exists
+                             //in the family. when a process is not the one specified in gp[0x2B8], the process buffers links are cleared.
+                             //additionally:
+                             //   sub_80024040(0, process, 0x1A00, 0, 0) is called for each process in the family if flag is set
+                             //   sub_80030260(process)                  is called for each process in the family
+                             //   process[0xD8]>>8 determines the position of a word in 0x5FF58 array whose bit 1 is cleared for each process
+                             //   process type set to 0 
+  if (!process) { return 0xFFFFFF01; }
+
+  if (process == gp[0x2B8] && *(0x5C53C).level != 0x19) { return 0xFFFFFF01; }
+
+  if (flag)
+  {
+    sub_80024040(0, process, 0x1A00, 0, var_18=0);
+  }
+
+  if (process.hasChildren)
+  {
+
+    firstChild = process.children;
+
+    nextChild = firstChild;
+    do
+    {
+      sub_8001CDD0(nextChild, flag)
+   
+      nextChild = nextChild.link;
+    } while (nextChild)
+  }
+
+  //--
+  sub_80030260(process);
+
+  0x5FF58[process[0xD8] >> 8] &= 0xFFFFFFFE;  //clear bit 1 of the word in the 0x5FF58 array determined by the 0xD8 field of parent
+
+  process.type = 0;
+  
+  if (process != gp[0x2B8])
+  {
+    oldChildren = getChildren(initProcess);
+    adoptChild(process, initProcess);
+    setChildren(initProcess, oldChildren)
+
+    processBuffer.parent   = 0;
+    processBuffer.children = 0;
+    processBuffer.link     = 0;
+      
+    gp[0x2B8] = 0;
+  }
+  else
+  {
+    adoptChild(process, initProcess);
+  }
+
+  return 0xFFFFFF01;
+}
+
+
+-------
+
+#define isErrorCode(val) (val >= 0xFFFFFF01)
+
+#define frameRange(start, end) (start | (end << 16))
+sub_80024040(struct, process, tag, count, uval)            //if process has codepointer 3 then 
+                                                           //-stack = tag, uval, 0x0000FFFF, ---PC---, stak|ret
+                                                           //-code executed at codepointer 3, which is expected to return a subid  (if return error then break)                                                                      //else
+                                                           //-initial stack refers to list of subids (copied from item5 before the t11 header offset value?) where to                                                                // grab determined by left half of tag 
+                                                           //-if subid highest bit set, process[0x13C] set to tag, count x of uval pushed to stack, push (0x0000FFFF,                                                                    ---PC---, stak|ret), and latter bits of subid determine offset to execute code, which returns
+                                                           //WHEN SUBID = 0xFF, return error
+							   //if frameinfo for the subid has none of its header2 bits set (which bits determined by process[0xD0]), then
+                                                           //process[0x13C] set to tag and corresponding subid subroutine executed
+{                                                          
+  if (!process)
+  {
+    if (struct) { struct[0xF4] = 0; }   //cleared when no process
+    
+    return 0xFFFFFF01;
+  }
+
+  if (struct)   { struct[0xF4] = 1; }   //and set when is process   
+
+  process[0x7C] = struct;
+
+  
+  result = 0xFFFFFFE6;        //cp3 = 0xEC
+  
+  //if the process was defined an 'event handler determinant'
+  //routine from its 
+  //'main routine/per-frame routine/event determinant routine' 
+  //header (per subroutine id) then determine the event
+  //handler routine with that specified routine
+  if (process.codepointer3)               //ex stack = 00001A00, 00000000, 0x0000FFFF, ---PC---, stak|ret
+  {                                       //run codepointer 3, if error code return
+    
+    //edit: the issued event ID tag and argument are sent as
+    //the argument pair for all 'event handler determinant'
+    //type routines
+    //(any implied arguments for a routine instance come 
+    // right before the start of its frame)
+    process.push(tag);        
+    process.push(uval);
+    
+    //then we create the new frame (right after args) and 
+    //execute the 'event handler determinant' routine
+    oldrframeOffset = process.getreturnframeOffset() - 0x60;
+    oldsframeOffset = process.getstackframeOffset()  - 0x60;
+    
+    process.returnframe = process.stack;   //codepointer1, the stack frame to return to
+
+    process.push(0xFFFF);
+    process.push(process.pc);
+    process.push(frameRange(oldrframeOffset, oldsframeOffset));
+       
+    process.setPC(process.codepointer3)
+    result = sub_800201DC(process, 8, &var_30);
+    
+    //^^ only bit 4 is set in interpreter status bits; this
+    //is precisely the mode of operation for routines that 
+    //are to return the subID of an event handler
+    
+    //two 'event handler returning' type instructions:
+    //---
+    //(var_30) = both instructions return the ID of an event 
+    // handler
+    //        instruction
+    //(var_2C) = 0x88 - returns true
+    //           0x89 - returns false    
+    
+    if (result)
+    {
+      if (isErrorCode(result)) { return result; }     
+      s3 = var_30;    //the determined event handler     
+    }
+
+    if (struct)
+    {
+      struct[0xF4] = var_2C; //the determined flag 
+    }
+  }
+  //otherwise there was no 'event handler determinant routine'
+  //so instead we use the event tag->routine MAP 
+  //(located right before entity subtype->routine MAP)
+  else   
+  {
+    //otherwise w/o cp3 events are not handled variably and thus determined
+    //by the default event->sub list in the code header
+    
+    codeInfo  = process.entry.item[0];    //item 1 in T11 entry, header
+    listIndex = codeInfo.listIndex;      //initial offset into T11 item 4
+
+    //grab the correct subid for the corresponding event issued
+    if ((tag >> 8) < listIndex)          //these tags refer to item5 indexes -before- the initial offset
+      s3 = codeInfo.initStackframe[(tag>>8)];  //tag>>8 is num of halfword offset!!
+    else
+      s3 = 0xFF;
+    
+    //indicate the existence of the corresponding sub for the 
+    //event in the sender's unique data field
+    if (struct) 
+    {
+      if (s3 != 0xFF)         { struct[0xF4] = 1; }
+      else                    { struct[0xF4] = 0; }
+    }
+
+    //for corresponding tag in the event->sub list, if it has
+    //its highest bit set:
+    //  indicate the issued event tag in [0x13C]
+    //  execute new frame for code at the address of 
+    //  the lower bits * 4
+    if (s3 & 0x8000)                   //if the one in the item4 (tag >> 8) has this bit set
+    {                                  //then it refers directly to an actual index into code rather than some stack frame info
+      process[0x13C] = tag;
+
+      if (count > 0)
+      {
+        do
+        {
+          uval += 4;
+          process.push(uval);          //additionally, fill the stack with count words of uval
+        } while (c++ < count)
+      }
+
+      oldsframeOffset = process.getstackframeOffset() - 0x60;
+      oldrframeOffset = process.getreturnframeOffset() - 0x60;
+      
+      process.returnframe = process.stack;
+
+      process.push(0xFFFF);                   //0x0000FFFF, ---PC---, stak|ret
+      process.push(process.pc);
+      process.push(framerange(oldrframeoffset, oldsframeOffset + (count*4));
+
+      goolCode = process.entry.item[2];   //item 3
+      process.setPC( goolCode + ((s3 & 0x7FFF)*4) );  //
+
+      return sub_800201DC(process, 3, 0);
+
+    }
+  }
+ 
+  //s3 = either one of the item5 indexes [left half of tag determines which one] (before the header offset, which are mirrored at the very start of processes stack)
+         or a value returned from sub_800201DC (when codepointer 3 exists)
+
+  //if no sub corresponds to the issued event
+  if (s3 == 0xFF) { return 0xFFFFFF01; }
+
+  
+  //TODO: sort of difficult to understand unless it can be
+  //determined where 0xD0 is modified from the original header
+  //value to something other than that
+  
+  if (tag == 0x1800 || 
+      tag == 0x1900 || 
+      tag == 0x2500)
+  {
+    bits = process[0xD0] & 0xFFFFFFFD;  //grab the value with cleared bits 1 & 2 (so that the only other bit could be set is 13?)
+  }
+  else
+  {
+    bits = process[0xD0];
+  }
+
+  frameInfo = process.entry.item[4];   //item5, frameinfo is an array of frameinfo structs
+
+  header = frameInfo[s3].header;     
+                                       
+  if (process == gp[0x2B8])
+  {
+	  if (process[0x128] == 3, 4, 5)
+	  {
+	    testval = (bits | 0x1002) & header;
+	  }
+	  else
+	  {
+	    testval = bits & header;
+	  }
+  }
+  else
+    testval = bits & header;
+    
+  if (testval)                      
+  {
+    if (s3 != 0xFF && struct)
+      struct[0xF4] = 0;              //clear for when the bits are set
+  }
+  else
+  {
+    process[0x13C] = tag;           //if the bits determined by frameinfo header are NOT set in process[0xD0] (except for bits 1&2 of tags 0x1800, 0x1900, 0x2500)
+
+    if (tag == 0x1800 || tag == 0x1900)
+      process[0xC8] |= 0x10000;          //set bit 17 for these tags
+
+    //here we finally execute the determined event handler
+    //(granted no bits from 0xD0/statusC have changed from
+    // their initial value)
+    sub_8001D698(process, s3, count, uval);  //execute the frame for the event handler s3
+  }
+  
+  return 0xFFFFF01;
+        
+}
+
+    
+--------------------
+sub_8001CB80(process, levelListIndex, subIDIndex, fill, fillVal)
+{
+  process[0x158] = 0xFFFF;
+  process[0xD8]       = 0;  //determines location in bitlist
+
+  process[0x110]      = 0;
+  process[0x114]      = 0;
+  process[0x118]      = 0;
+  
+  process[0]          = 1;  //set type to 1
+
+  process[0xA4]       = 0;
+  process[0xA8]       = 0;
+  process[0xAC]       = 0;
+
+  process[0xB0]       = 0;
+  process[0xB4]       = 0;
+  process[0xB8]       = 0;
+
+  process[0xBC]       = 0;
+  process[0xC0]       = 0;
+  process[0xC4]       = 0;
+ 
+  process[0x124]      = 0;
+  process[0x10C]      = 0;
+
+  process[0xF8]       = 0;
+  process[0xB4]       = 0;
+  process[0xC8]       = 0;     //clear flag field   
+  process[0xD0]       = 0;
+  process[0xCC]       = 0;     //clear flag field
+  process[0x128]      = 0;
+  process[0x138]      = 0;
+  process[0x130]      = 0;
+  process[0x148]      = 0;
+
+  process[0x14C] = 0xFFFFFFFE;
+
+  parent         = process[0x64];
+  parentType     =     parent[0];
+
+  if (parentType == 1)
+  {
+    processOffset = process + 0x80;  
+    parentOffset  = parent + 0x80;
+
+    process[0x28] = parent[0x28];
+
+    copy(processOffset, parentOffset, 8, sizeof(word));
+   
+    process[0xA0] = parent[0xA0];   //or is this 0xB0 and we copy 12 words above? 
+  }
+  else
+  {
+    process[0x28] = 0;
+    
+    process[0x8C] = 0;
+    process[0x90] = 0;
+    process[0x94] = 0;
+
+    process[0x98] = 0x1000;
+    process[0x9C] = 0x1000;
+    process[0xA0] = 0x1000;
+  }
+
+  if (levelListIndex == 4 | 5 | 0x1D )  { process[0x28] = 0; }
+  if (levelListIndex == 0)             { process[0x140] = 0; }
+  
+  if (process[4] != 3) { return 0xFFFFFFF2; }  //if not type 3
+  
+  //levelListIndex is then an index into (EIDorlistEntry LIST) [i.e. at index 0x14 of NSD]
+  EIDorlistEntryPtr = *(0x5C53C)[0x14 + (arg_a1*4)];
+  EIDorlistEntry    =          *(EIDorlistEntryPtr);
+
+  if (EIDorlistEntry == 0x6396347F) { return 0xFFFFFFF2; }  //if invalid EIDorlistEntry
+  if (levelListIndex >= 0x40)       { return 0xFFFFFFF2; }  //or refers to outside of the 64 level listEntrys
+
+  initEntry = sub_80015118(EIDorlistEntry, 1, 0);           //finds entry using EIDorlistEntry
+  
+  process[0x20] = initEntry;
+
+  if (initEntry > 0xFFFFFF01)       { return 0xFFFFFFF2; }  //if an EIDorlistEntry refers to invalid entry
+
+  ----
+
+  process[0x60] = process;       //first link set to link back to itself
+  
+  process[0x70] = 0;             //linkA
+  process[0x78] = 0;             //linkC             
+  process[0x7C] = 0;             //linkD
+  
+  process[0xD4]  = subIDIndex;    //index in subID list of initial subroutine to run
+  
+  process[0x108] = 0;            //unknown
+  process[0xF0]  = 0;            //unknwon
+  
+  process[0x74] = *(0x60DB0);    //linkB
+  
+  ----
+
+  entry  = process[0x20];   //regrab the initial T11 executable/code entry
+  header =   entry[0x10];   //item 1 in the entry is info about the executable
+
+  subs   =  header[0x10];   //at header[0x10] is the offset into
+                            //subroutine ids that refer to the main subroutines
+                            //..to distinguish from event handlers
+
+  initSubIDIndex  =           process[0xD4];  //regrab the initial index of sub with subID we want to execute   
+  subOffset       = (subs + initSubIDIndex);  //calculate the total offset into subID list
+  subIDList       =             entry[0x1C];  //item 4 in the entry is the list of event handler and subroutine IDs
+  subID           = subIDList[subIDOffset*2]; //grab the subroutine        
+ 
+  if (subID != 0xFF)
+  {
+    retval = sub_8001D698(process, subID, fill, fillval);
+
+    if (retval < 0xFFFFFFEE) { return 0xFFFFFF01; }
+    else                     { return 0xFFFFFFF2; }
+  }
+  else
+  {
+    return 0xFFFFFFE5;
+  }
+}     
+
+sub_8001D698(process, subid, count, uval)
+{
+
+
+  destroyRoutine = process[0xF0];  // initially 0, unless it is changed somewhere later in this sub          
+  
+  if (subid == 0xFF)              { return 0xFFFFFFF2; }                   //can't be 0xFF;
+  if (process[0xCC] & 0x10000000) { return process[0xCC] & 0x10000000; }   //not sure where this is used, but returns the bit if its set
+  
+  //--  
+
+  arg_a0[0x2C] = subid;                           //remember the routine ID   
+
+  //--  
+ 
+  frameInfoStructures = process.entry.item[4];    //item 5 in the entry (contains array of 16 byte structs, each corresponding to a seperate 'virtual subroutine' and)
+                                                  //holding information about how to set up a stack frame and execute the sub)
+  frameInfo    = frameInfoStructures[subid];      //
+  arg_a0[0xD0] = frameInfo.header2;               //0xd0 gets set to this (either 2 or 0?)       
+  
+  //--  
+
+  EIDList = process.entry.item[2];                //item 3 in the entry
+  EID     = EIDList[frameInfo.EID];               //item 3 then has a list of EIDs, which eid to choose determined by (index[8] of the item 5 struct) 
+
+  codeEntry     = EID_PROCESS(EID);
+  process[0x24] =        codeEntry;               //process it and grab the corresponding entry 
+                                                  //this is where the actual code lies since some T11 entries have only 3 items and thus refer to some external code by these eids
+                                                  //this field [0x24] is set as opposed to [0x20] set for the instantiating entry
+
+  //goolCode = codeEntry.item[1];                   //item 2 has the actual code     
+  goolCode = codeEntry[0x14];
+  
+  //--
+  
+  //-load the relative offset (into code), calculating the absolute address 
+  // which describes the 'main' routine that this object/process is to run
+  
+  //if (frameInfo.initialPC != 0x3FFF)             
+  if (frameInfo[0xE] != 0x3FFF)
+    codeOffset = goolCode + (frameInfo[0xE]*4);  
+  else
+    codeOffset = 0;
+  
+  //process.PC  = codeOffset;                   
+  process[0xE0] = codeOffset;
+  
+  //--
+  
+  //-load the relative offset (into code), calculating the absolute address 
+  // which describes the default routine that this object/process is to run
+  // when triggered by an event
+  
+  //if (frameInfo.defaultEvent != 0x3FFF)
+  if (frameInfo[0xA] != 0x3FFF)
+    codeOffset = goolCode + (frameInfo.frameInfo[0xA]*4);
+  else
+    codeOffset = 0;
+
+  //process.defaultEventRoutine = codeOffset;                          //and stored in 0xEC
+  process[0xEC] = codeOffset;
+  
+  //--
+ 
+  //-load the relative offset (into code), calculating the absolute address 
+  // which describes the routine that this object/process is to run
+  // per frame of execution (obviously happens more frequently than main 
+  // routine)
+  
+  if (frameInfo[0xC] != 0x3FFF)
+    codeOffset = goolCode + (frameInfo[0xC]*4);
+  else
+    codeOffset = 0;
+
+  //process.perFrameRoutine = codeOffset;
+  process[0xE8] = codeOffset;                          //and stored in 0xE8    (index of next code after running gool sub?)
+
+  //--
+  
+  //-clear the destructor/replacement routine set by the process that
+  // previously occupied this processes space
+  process[0xF0] = 0;
+  
+  //--
+  
+  //-set the initial frame pointer
+  process.returnframe = &process[0x60];                       //0xE4 points to [0x60]
+
+  //-set the initial stack pointer
+  header        = process.entry.item[0];                       //item 1 in the entry  (24 byte header/struct)
+  initStack     = header.initialStack;                         //grab index 0xC      
+  process.stack = &process[0x60 + (initStack*4)];
+  
+  //---
+
+  process[0xC8]  = process[0xC8] | 0x20020;  //set bits 6 and 18 of this?
+  
+  //process[0x120] = frameInfo.header;         
+  process[0x120] = frameInfo[0];
+  
+  //--
+  
+  c = 0;
+  if (count > 0)
+  {
+    do
+    {
+      process.push(*(uval));
+      uval+=4;
+    } while (c++ < count)
+  }
+
+  //--
+
+  //create initial stack frame
+  //-this saves the starting PC, which above is set to point to the 'main' 
+  // animation subroutine described by the frame information (frameInfo[0xE])
+  sub_8001D914(process, count, 0xFFFF);    
+
+  //if there is a destructor routine for the process being replaced by this
+  //one, execute it
+  if (destroyRoutine)
+  {
+    sub_8001D914(process, 0, 0xFFFF);
+
+    process.pc = destroyRoutine;     
+
+    result = sub_800201DC(process, 0x13, 0);   //gool engine
+
+    if (isErrorCode(result)) { return result; }
+  }
+  else
+  {
+    process.push(0);
+  }
+
+  //--
+   
+  //-if there is a per frame routine to run for the process, we timestamp
+  // this point of initialization 
+  // - additionally we compensate for a process that was replaced by this
+  //   init routine upon failing to execute its per-frame routine properly 
+  //   by executing the new per-frame routine  
+  
+  //if (process.perFrameRoutine == 0) { return 0xFFFFFF01; }  
+  if (process[0xE8])
+  {
+	process[0x100] = *(0x60E04); //timestamp
+
+	if (*(0x60E00) == process)
+	{
+	  sub_8001D914(process, 0, 0xFFFF); 
+	  
+	  //process.pc  = process.perFrameRoutine;
+	  process[0xE0] = process[0xE8];
+	  result        = sub_800201DC(process, 3, 0);      
+	   
+      if (isErrorCode(result))  { return result; }
+	}
+  }
+  
+  return 0xFFFFFF01; //success
+}  
+
+---------------
+
+sub_8001D914(process, offset, header):
+{
+
+  oldsframeOffset = process.getstackframeOffset() - 0x60;
+  oldrframeOffset = process.getreturnframeOffset() - 0x60;
+
+
+  process.returnframe = process.stack;    //0xE4 will now be 0xDC -before- it is incremented 0xC     
+
+  process.push(header);                   //-header-, ---PC---, stak|ret
+  process.push(process.pc);
+  process.push(framerange(oldrframeoffset, oldsframeOffset - (offset*4));
+
+  return 0xFFFFFF01;
+}
+
+---------------------------
+
+//TODO: find some gool script that uses opcode 0x1C (MSC) subfunction 13 (which calls this sub)
+
+sub_8001BAB0(process, struct)
+{
+  //s2 = struct
+  //s1 = process
+  procB = struct[0x4];
+  if (process == procB) { return 0; }
+  
+  codeEntry  = process[0x20];
+  codeHeader = codeEntry[0x10];
+  
+  typesField = struct[0]; //a0
+  
+  execType = (codeHeader[0x4]) >> 8;
+  bit      = 1 << execType;
+  
+  if (typesField & bit)
+  {
+    result = sub_80029B90(process + 0x80, procB + 0x80);  //approximate euclidian distance/manhattan?
+    
+    val = struct[0xC];
+    if (result < val)
+    {
+      tag = struct[0x10];
+      
+      if (tag != 0xFF)
+      {
+        eventIDIndex = tag >> 8;
+        
+        codeSubIDs = codeEntry[0x1C];
+        eventID    = codeSubIDs[eventIDIndex*2];
+        
+        if (eventID == 0xFF)  //else 1bbc0 with v0 = eventID & 0x8000
+        {
+          if (tag == 0x300)
+          {
+            colorType = process[0x128];
+            statusC    = process[0xD0];
+            
+            if ((colorType - 3 >= 2)
+            && (colorType != 2))
+            {
+              if (statusC & 2)
+              {
+                eventID = 0xFE;
+                goto 1bc70 w/v0 = 0xFF;
+              }
+                 
+            }
+          }
+          if (tag == 0xA00)
+          {          
+            frameHeader = process[0x120];    
+
+            if (frameHeader & 0x800)
+            {
+              eventID = 0xFE;
+              goto 1bc70 w/v0 = 0xFF
+            }
+          }
+          if (tag == 0x1D00)
+          {
+            eventID = 0xFE;
+            goto 1bc70 w/v0 = 0xFF
+          }
+          
+          return 0;
+        }  
+        else if (eventID & 0x8000 == 0) //else 1bc14
+        { 
+          colorType = process[0x128];
+          statusC   = process[0xD0];
+          
+          unsigned char *codeSubs = recipient->global->itemData[4];
+          unsigned char *event    = codeSubs + (eventID * 0x10);
+  
+          unsigned long header = event[0];
+  
+          unsigned long testBits;
+
+          if (recipient->process.displayMode >= 3 && recipient->process.displayMode <= 5)
+          {
+            testBits = header & (statusCbits | 0x1002);
+          }
+          else
+          {
+            testBits = header & statusCbits;
+          }
+
+          if (testBits)
+            return 0;
+          else
+            1bc70 with v0 = 0xFF
+        }
+        else  //1bc14
+        {
+          tag = struct[0x10];
+
+          if (tag == 0xF00) //else 1bc70 with v0 = 0xFF       
+          {
+            var_20 = 0x100;
+
+            process[0x7C] = struct[0x4];
+            sub_800252C0(process, eventID, 1, &var_20);  
+          
+            procB = struct[0x4];
+            
+            if (procB[0xF8] == 0)
+              return 0;
+            else
+              1bc70 with v0 = 0xFF
+          }
+          
+          //0x1bc68:
+          //eventID = 0xFE;
+          //0x1bc6C:
+          //v0 = 0xFF;
+        }
+        
+        0x1bc70:
+        if (eventID != v0)
+        {
+          struct[0x8] = process;
+          struct[0xC] = result;
+        }
+  
+  }
+  else
+    return 0;
+  
+  
+  
+
+
+
+
+
+  
+//---------------------------------------------
+

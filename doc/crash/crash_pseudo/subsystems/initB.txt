@@ -1,0 +1,1086 @@
+sub_8001AC60()           //opat initB, initializes object/process subsystem for gool processes
+{
+  levID = *(0x5C53C)[4];
+  
+  *(0x6188C) = levID << 8;
+  
+  isLevel = *(0x5C53C)[0];
+  
+  if (isLevel)
+    return 0xFFFFFF01;
+  else
+    return 0xFFFFFFF2;
+}
+
+sub_800253A0():          //ldat initB, loads level initial zone
+{
+  v0 = *(0x5C538);
+
+  *(0x61A30) = 0;
+
+  EID = v0[0];
+
+  if (EID != 0x6396347F)
+  {
+    processBitList = 0x5FF58;
+  
+    gp[0x2E8]  =      0;
+    gp[0x2EC]  =      0;  //*(0x566E8) =      0;
+    *(0x6189C) = 0xFFFF;  //(animate display flags to reset with for each frame of intro sequence?)
+    *(0x618B0) = 0xFFFF;  //set global process animate and display flags
+
+    memset(processBitList, 0, 0x4C0);
+    
+    levID = *(0x5C53C)[4];
+
+    sub_8001B3F0(levID);     //set up process bitlist array
+
+    initProgress = 0;
+
+    v1 = *(0x5C52C);
+
+    else if (*(0x5C52C) == 0x11 | 0x1E)
+    { 
+      s0 = 2;
+    }
+    else
+    {
+      s0 = 1;
+    }
+   
+    sub_80017790();   //set up projection and screen offset
+
+    if (*(0x5C52C) == 0x19 || *(0x618D0) == 0x200 || gp[0x98] == 0)
+    {
+      //encodes the string in base 64 format
+      *(0x5C53C)[8] = sub_80012660("0b_pz");
+    }
+
+    if (gp[0x94] == 1)                  //(return from bonus??)
+    {
+      *(0x5C53C)[8]   = *(0x57998);    //replace with these zones
+      *(0x5C53C)[0xC] = *(0x5799C); 
+
+      gp[0x94] = 0;
+     
+      s1 = *(0x579A0);
+    }
+
+    firstZone = sub_80015118(*(0x5C53C)[8], 0, s0);       //T7/ZDAT/GLOBAL/INITIAL ENTITY ENTRY
+    
+    *(0x566B0) = 0x6396347F;
+
+    *(0x57914) = 0;     //level entry?
+    *(0x5791C) = 0;     
+    *(0x57920) = 0;
+
+    *(0x57968) = 0; //sb
+    *(0x57969) = 0;
+    *(0x5796A) = 0;
+    *(0x5796B) = 0;
+
+    *(0x57970) = *(0x34520);
+ 
+    //if coming directly from the main menu? then load demo?
+    if (*(0x618D0) == 0)
+    { 
+      sub_8002EABC(0x566B0);
+    }
+        
+    firstZoneHeader = firstZone[0x10];
+    
+    firstSectionIndex      = *(0x5C53C)[0xC];  //NSD file locates index of the first section
+    firstZoneSectionsIndex =    item1[0x204];  //zone indicates in header the index of the start of its section items
+    
+    firstSection = entry[0x10 + ((firstZoneSectionsIndex + firstSectionIndex)*4)];
+
+    //initProgress equivalent to s1
+    sub_80025A60(firstZone, firstSection, initProgress, false);
+    sub_80015458(0x5C53C + 8, 1, initProgress);
+  }
+  else
+  {
+    *(0x5C53C)[0] = 0;
+  }
+
+  if (*(0x56400) == 0)
+  {
+    sub_8002EC68(1);
+    sub_8002EBB4(1);
+  }
+  
+  gp[0x98] = 0;  //seems to be main focus of this subsystem
+}
+  
+---------
+
+sub_80017790()
+{
+  //v0 = *(0x5C53C);
+
+  *(0x57280) = 0;
+  *(0x57284) = 0;
+  *(0x57288) = 0;
+
+  val = *(0x5C53C)[0x114];    //a value for projection modes
+  
+  if      (val == 0x1E) { projection = 0x3C0; *(0x578D0) = projection; }
+  else if (val == 0x25) { projection = 0x320; *(0x578D0) = projection; }
+  else if (val == 0x37) { projection = 0x1F4; *(0x578D0) = projection; }
+  else if (val == 0x3C) { projection = 0x1CC; *(0x578D0) = projection; }
+  else if (val == 0x5A) { projection = 0x120; *(0x578D0) = projection; }
+  
+  SetGeomScreen(*(0x578D0));  //set the screen projection
+     
+  SetGeomOffset(0, 0);
+
+  *(0x578B0) = 0;
+  *(0x578B2) = 0;
+  *(0x578B4) = 0x1000;
+
+  *(0x578C4) = 0;
+  *(0x578C8) = 0;
+  *(0x578CC) = 0;
+ 
+  /* 3 interlaced groups of 3 values */
+  *(0x578D4) = 0x200;  //sh
+  *(0x578DA) = 0x200;
+  *(0x578E0) = 0x200;  //sh
+
+  *(0x578D6) = 0x200;
+  *(0x578DC) = 0x200;  //sh
+  *(0x578E2) = 0x200;
+
+  *(0x578D8) = 0x200;
+  *(0x578DE) = 0x200;  //sh
+  *(0x578E4) = 0x200;
+
+  SetFarColor(0, 0, 0);
+  SetColorMatrix(*(0x578D4)); 
+ 
+  sub_800180A0(*(0x57864));  //clears the following 2 vects with 0
+                             //fills *(0x5787C) vect with 0x1000
+  *(0x57864) =        0;
+  *(0x57868) =        0;
+  *(0x5786C) =  0x1F400;
+  
+  *(0x57870) =        0;
+  *(0x57874) =        0;
+  *(0x57878) =        0;
+
+  *(0x57888) =        0;
+  *(0x5788C) =  0xE1000;
+  *(0x57890) = 0x5DC000;
+
+  *(0x578AC) = 0;
+ 
+  *(0x6193C) = 0;
+  *(0x61940) = 0;
+}
+
+------
+
+sub_8001B3F0(levID)   //0x5E348 seems to hold array of AAAAAAABBBBBBBBB where A = a level id
+{                                                                             B = index into bitlist array
+  if (*(0x5E348) == 0)  //for those in the list that match the current level, set bit4 of the bitlist index
+    return 0;
+
+  val = *(0x5E348)[0] >> 9;
+
+  array = 0x5E348;
+
+  do
+  {
+    if (val == levID)
+    {
+      index = (array[0] & 0x1FF) * 4;     
+      processBitList[index] |= 8;
+    }
+
+    array += 2;
+    
+    val = array[0] >> 9;
+  } while (val != 0)   
+      
+}
+
+-----------------
+
+//chooses a playback/demo entry
+sub_8002EABC(addr)
+{
+  //s2 = addr
+
+  //find the number of playback/demo entries
+  rval = sub_80012DCC(0x5C528, 0x13); 
+
+  //a2 = 0x564C0  (bytes there)
+
+  var_15 = 0x564C3.l
+  c3c4c2c3 c4 c5
+
+  var_15 = *(0x564C3);  //c3c4
+  var_16 = *(0x564C4);
+
+  var_18 = *(0x564C2);  //c2c3
+  var_19 = *(0x564C3);
+  //var1A = *(0x564C2);
+  //var1B = *(0x564C3);
+  
+  var_14 = *(0x564C4);
+  var_13 = *(0x564C5);
+  
+  //5434_23 
+
+  memset(&var_12, 0, 2);  //var_12 = 0, var_11 = 0
+
+  if (rval == 0) //if there aren't any, then can't load any demos...
+  {
+    addr[0] = 0x6396347F;
+
+    if (gp[0x314] != 0x19) { *(0x618D0) = 0; }
+  
+    return;
+  } 
+  else          //otherwise choose a random demo for playback
+  {
+    rval2 = sub_8002F778(rval);     //computes random number
+    var_16 = rval2 + 0x30;
+
+    rval3 = sub_80012820(0x5C52C);  //
+    var_15 = rval3;    
+   
+    rval4 = sub_80012660(&var_18);  //returns an EID?
+
+    addr[0] = rval4;
+
+    *(0x5C54C) = -1;
+    *(0x61A30) =  3;
+  }
+} 
+
+
+-------
+
+sub_8002F778(val)
+{
+  if (val == 0) { return 0; }
+
+  rand = (gp[0xE0] * 0x41C64E6D) + 12345;  //mflo
+
+  //a0 = (v1 * 0x88888889) >> 3; //mfhi
+  
+  gp[0xE0] = rand;
+
+  a0 = rand / 15;
+
+  v1 = ((rand/15) * 33);  //v1 = rand * 11/5
+
+  v0 = (rand/15) - v1;    
+
+  v1 = (v1 & 0xFC000000) * 2;  //round to nearest 1024, multiply by 2
+
+  v0 = v0 - v1;
+  v1 = abs(a0 - v0);
+
+  return v1/val;
+}
+
+---------------------
+
+sub_80012DCC(addr, test)
+{
+  NSD = addr[0x18];
+
+  maxVal = NSD[0x404];
+
+  found = 0;
+  if (maxVal > 0) 
+  {
+    offset=  0x520;
+    count =      0;
+
+    do
+    {
+      val = sub_800126C0(NSD + offset);
+
+      offset+=8;
+      count++
+
+      if (val == test)
+        found++;
+    } while (count < maxVal)
+  }
+
+  return found;    
+}
+  
+
+----------------------
+
+//BASE 64 variant string encoding function
+sub_80012660(addr)
+{
+  val = 0;
+
+  a3 = addr+5;
+
+  count      = 0;
+  charOffset = 0;
+
+  do
+  (
+    count = 0;
+    val = val << 6;
+
+    char = addr[charOffset];
+
+    do
+    {
+      if (char == alpha[count])
+      {
+        val = val | count;
+        break;
+      }   
+      else
+        count++;
+    } while (count < 64)
+
+    charOffset++;
+  } while (charOffset < 5)
+
+  return (val<<1)|1;  //we set lowest bit for this string format
+}
+
+-------------------------------------------------
+
+//one of main process mgmt subroutines
+sub_80025A60(entry, item3, currentZ, unknown):
+
+var_78 = entry
+var_70 = item
+var_68 = scalar
+var_60 = unknown
+
+bufferItem3   = *(0x5791C);
+bufferZ       = *(0x57920);
+
+zoneEndZ = item3[0x1E];
+
+if (entry == 0 || item3 == 0) { *(0x5CFC0) = 0; return 0; }
+
+//restrict currentZ to within the range 0 - zoneEndZ*256
+scaleZoneEndZ = ((zoneEndZ * 256) - 1);
+if (currentZ < scaleZoneEndZ)
+{
+  if (currentZ < 0)
+    currentZ = 0;
+}
+else
+  currentZ = scaleZoneEndZ;
+
+//var_68 = currentZ
+
+item1        = entry[0x10];
+headerfield0 =    item1[0];
+
+/* probably the hardest code of the entire game, sorts an objects precomputed zvalues into a main binary tree?*/
+if (headerfield0 != 0)
+{
+  //if-
+    current zone is different from the one specified in the sub
+    and current item3 different from the one specified in the sub
+    
+  if (entry != *(0x57914) || item3 != bufferItem3 || ((bufferScalar/256) != (scalar/256)) 
+  {
+
+    EID      = splitter[0];
+    objEntry = sub_80015118(EID, 1, 1);    //the splitter's children nodes, refers to a T4 entry
+
+    a1 = (scalar - bufferScalar) >> 8;  //s0
+
+    //s1 = entry
+    if (splitter != bufferItem)
+    {
+      dist = abs(a1);
+
+      scalarShift = scalar >> 8;
+
+      //passes if a object with z at scalar is past an object at bufferScalar 
+        AND 
+           -either an object with z at bufferScalar is past the origin
+        OR -       an object with z at itemVal is further than object at scalar is from object at bufferScalar
+      if (scalarShift >= dist || (splitterZ - (scalarShift + 1)) >= dist)
+      {
+        swap(gp[0x2C0], gp[0x304]);  
+
+        if (scalarShift >= (splitterZ/2))   //if scalarShift is 'near' splitter
+        {
+          item1 = objEntry[0x10];
+      
+          gp[0x2BC] = sub_80029B0C(item1, gp[0x2BC], gp[0x304], 1);
+
+          newVal = 0;
+        }
+        else                              //else scalarShift is 'far' from splitter
+        {
+          offset = (splitterZ/2)*4;
+      
+          itemN = objEntry[0x10 + offset];
+
+          gp[0x2BC] = sub_80029B0C(itemN, gp[0x2BC], gp[0x304], 0);
+
+          newVal = itemVal - 1
+        }
+      }
+      else
+      {
+        newVal = scalarShift           //bufscalar not in scalarshift's or splitter's fov
+      }
+  
+      //t0 = var_68
+
+      s0 = scalarShift - newVal;
+
+      offset2 = (newVal*4);
+      itemJPtr = &objEntry[0x10 + offset2];  
+  
+      if (s0 != 0)                    //for scalarShift found 'near' splitter: start from scalarShift
+      {                               //for scalarShift found 'far'  splitter: start from splitterZ-1
+
+        do 
+        {
+          swap(gp[0x2C0], gp[0x304]);
+
+          if (s0 > 0)
+          {
+            offset2 += 4;
+            itemJ = objEntry[0x10 + offset2];  //a0
+        
+            gp[0x2BC] = sub_80029B0C(itemJ, gp[0x2BC], gp[0x304], 1)
+
+            s0--;
+          }
+          else
+          {
+            offset2 -= 4;
+            itemJ = objEntry[0x10 + offset2];
+
+            gp[0x2BC] = sub_80029B0C(itemJ, gp[0x2BC], gp[0x304], 0)
+    
+            s0++;
+          }
+        } while (s0 != 0)
+      }
+
+      sub_80015458(item, 1);
+    }
+  }
+  else
+  {
+    if (bufferScalar == scalar) { return 0; }
+    else
+    {
+      *(0x57920) = scalar;
+
+      goto 80026000;
+    }
+  }
+}
+/*-----------------------------------------------------*/
+
+bufferEntry = *(0x57914);
+
+if (bufferEntry != entry)
+{
+  var_58 = 1;
+
+  item1 = entry[0x10];   //s6
+
+  *(0x61998) = 0;
+
+  if (*(0x618D0) == 0x600)
+  {
+    var_58 = ((unknown & 2) != 0); //evaluated boolean expression (check bit 2)
+  }
+
+  if (bufferEntry)
+  {
+    beItem1    = bufferEntry[0x10];
+    var_58     = (unknown & 2);   //this time if bit set sets to 2 rater than 1
+
+    *(0x57918) = entry;      //???
+
+    maxA = beItem1[0x210];
+      
+    if (maxA > 0)
+    {
+     
+      countA    = 0;
+      EIDindexA = 0;  //s7
+
+      do
+      {
+        objEntryA = EID_PROCESS(beItem1[0x214 + EIDindexA]);
+
+        noMatchB =         true;
+        maxB     = item1[0x210];
+        if (maxB > 0)
+        {
+          
+          countB         =    0;
+          EIDindexB      =    0;
+
+          do
+          {
+            objEntryB = EID_PROCESS(item1[0x214 + EIDindexB]);
+
+            if (objEntryA == objEntryB)
+            {
+              noMatchB   = false;
+              break;
+            }
+            
+            countB++;
+            EIDindexB+=4;
+          } while (countB < maxB)
+        }
+  
+        matchFound = !noMatchB;
+        if (matchFound)  //if a match was found
+        {
+          oeaItem1 = objEntryA[0x10];
+
+          if (oeaItem1[0x2DC] & 1 != 0)
+          {
+            sub_8001D200(objEntryA);
+
+            oeaItem1[0x2DC] = oeaItem1[0x2FC] & 0xFFFFFFFC; //clear bits 1 & 2
+          }
+        }
+          
+        countA++;  
+      } while (countA < maxA)        
+    }            
+        
+    if (unknown & 1 == 0)
+    {
+      count          =       0;    
+      processFlagPtr = 0x5FF58;
+    
+      do
+      {
+        processFlagPtr[count] = processFlagPtr[count] & 0xFFFFFFFD & 0xFFFFFFFB;  //clear bit 2 & 3
+        count++;
+      } while (count < 0x130)
+    }
+        
+    *(0x57914) = entry;
+    *(0x5791C) =  item;
+    *(0x57920) =scalar;     
+          
+    if (beitem1)
+    {
+      a0 = &beitem1[0x234];
+    }
+    else
+    {
+      a0 =               0;
+    }
+
+    sub_8001495C(a0, 0);
+
+    maxI  = item1[0x234];
+    count =            0;
+  
+    if (maxI > 0)
+    {
+      do
+      {
+        sub_80015118(item1[0x23C + (count*4)], 0, 1);
+ 
+        count++;
+      } while (count < maxI)
+    }
+
+    maxJ  = item1[0x238];
+    count =            0;
+      
+    if (maxJ > 0)
+    { 
+      do
+      {
+        sub_80014DD0(item1[0x25C + (count*4)], 0, 1, 0x6396347F);
+                     
+        count++;
+      } while (count < maxJ)
+    }
+
+    if (var_58 != 0)
+      sub_80013748();
+
+    count =            0;
+    maxB  = item1[0x210];
+
+    if (maxB > 0)
+    {
+      objEntryB = EID_PROCESS(item1[0x214 + (count*4)]);
+      
+      oebItem1 = objEntryB[0x10];
+
+      if (oebItem1[0x2DC] & 1 == 0)  //if bit 1 not set
+      {
+        *(0x61A5C) = 0;
+        *(0x61A64) = 0;
+
+        *(0x61A60) = 0x19000;
+
+        oebItem1[0x2DC] |= 3;  //set bits 1 & 2
+      }             
+      
+      if (var_58 != 0)
+      {
+        oebItem1[0x2DC] |= 4;  //set bit 3
+      }
+      else
+      {
+        oebItem1[0x2DC] &= 0xFFFFFFFB; //clear bit 3
+      }
+
+      count++;
+    } while (count < maxB)
+        
+    sub_800260AC(item1 + 0x2E0, unknown);
+  } 
+}
+else  //dont remember item in a buffer?
+{
+  *(0x57914) = entry;
+  *(0x5791C) = scalar;         
+}
+
+80026000:
+
+*(0x57940) = *(0x57870);
+*(0x57944) = *(0x57874);
+*(0x57948) = *(0x57878);
+
+sub_800296A8(*(0x5791C), -*(0x57920), 0x57864);
+
+*(0x57934) = *(0x57870);
+*(0x57938) = *(0x57874);
+*(0x5793C) = *(0x57878);
+
+*(0x5CFC0) = 0;
+
+return;       
+
+-------------------------------------
+
+sub_80029B0C(treeItem, prevGPVal, swapGPval, flag)
+{
+  //s0 = treeItem;
+  //s1 = swapGPval;
+
+  if (treeItem[2] & 1 == 1)  //flag for copy
+  {
+
+    
+                        //from      //to          //count
+    rval = sub_80033FBC(treeItem+4, swapGPval+4, treeItem[0]);  //optimized memory copy subroutine
+
+    swapGPval[0] = treeItem[0];
+  }
+  else
+  {
+    if (flag)
+    {                     //sorts one binary tree into anothers near elements?          
+      rval = sub_800334A0(treeItem, prevGPVal, swapGPval); 
+    }
+    else
+    {                   //sorts one binary tree into another's far elements?
+      rval = sub_80033878(treeItem, prevGPVal, swapGPval);  
+    }
+  }
+
+  return rval;
+}
+
+--------------------------------------------------
+
+
+sub_80033A40(item, unknown, addr)  
+{
+  //s6 = 0xFFFF;
+
+  //v0 = 0;
+  //t5 = 0;
+  
+  index = 8;
+
+  initPointerA = (item + 4 + (item[4]*2));  //lhu
+  //t7 = pointerA
+  pointerA = initPointerA;  //initPointerA = sp
+
+  initPointerB = (item + 4 + (item[6]*2));  //lhu
+  //fp = pointerB
+  pointerB = initPointerB;  
+
+  unknownVal = unknown[0];  //max count
+  unknownPtr = unknown+4;   //unknownPtr = t6
+
+  addrPtr    =    addr+4;   //addrPtr    = s1
+  val = item[index];     //lhu  
+  index+=2;
+
+  valB = 0
+  if (&item[index] >= initPointerA && val != 0xFFFF)
+  {
+    valA =   val & 0x0FFF;
+    valB = ((val & 0xF000) >> 12) + 1;
+  }
+  else
+  {
+    valA = 0xFFFF00;
+  }
+
+  if (valB != 0)
+  {
+    val = item[index];   //t8
+    index+=2; 
+  }
+  -----------
+
+  paVal = pointerA[0];
+  pointerA += 2;
+
+  paValB = 0;
+  if (pointerA < pointerB && paVal != 0xFFFF)
+  {
+    paValA = paVal & 0xFFF;
+    paValB = ((paVal & 0xF000) >> 12) + 1;
+  }
+  else
+  {
+    paValA = 0xFFFF00;
+  }
+
+  if (paValB > 0)
+  {
+    paVal = pointerB[0];
+    pointerB += 2;
+  }
+
+  count = 0;
+  countB= 0;
+  countC= 0;  //countC = v0
+
+  do
+  {
+    at = valA - 1;
+    if (count < unknownVal && valB > 0)
+    {
+      at = (valA - 1) - count;
+
+      if (at == 0)
+      {
+        valB--;
+        
+        countB++;
+        count++;
+
+        unknownPtr+=2;
+
+        if (valB > 0)
+        {
+          val = item[index];
+          index += 2;
+        
+          valA += (val >> 15); 
+
+          goto 33748; 
+        }
+        else
+        {
+          val = item[index];
+          index += 2;
+        
+          valB = 0
+          if (&item[index] > initPointerA && val != 0xFFFF)
+          {
+            valA = val & 0x0FFF;
+            valB = ((val & 0xF000) >> 12) + 1;
+          }
+          else
+          {
+            valA = 0xFFFF00;
+          }
+
+          if (valB > 0)
+          {
+            val = item[index];
+            index+=2;
+          }
+        }
+      }
+    }
+    else
+    {
+   
+      
+      //t0 = paValA 
+      //t1 = valB
+      //t2 = paValB
+      //t3 = valA
+      //t5 = countB
+      //t6 = unknownPtr
+      
+      //v0 = countC
+      //v1 = count
+            
+      //s1 = addrPtr
+      //s6 = 0xFFFF
+      //s7 = val
+      //t7 = pointerA
+      //fp = pointerB
+
+      //gp = unknownVal;
+
+      //at = paVal
+   
+      //sp = initpointerA
+      
+      if (paValB > 0)  //paValB/valB = counter?
+      { 
+        someVal = paValA + (countB - count);
+        //at = val & 0x7FFF
+        if (someVal == 0)  
+        {
+          *(addrPtr) = val & 0x7FFF;
+          
+          countC++;
+          paValB--;
+   
+          if (paValB > 0)
+          {
+            paVal = *(pointerA);
+            pointerA += 2;
+          
+            paValA = paValA + (paVal>>15);
+            //goto 33748
+          }
+          else
+          {
+            if (pointerA < pointerB)
+            {
+              paValB = 0;
+              val = paVal;
+
+              if (val != 0xFFFF)
+              {
+                paValA = val & 0x0FFF;
+                paValB = ((val & 0xF000) >> 12) + 1; 
+              }
+            }
+            else
+            {
+              paValA = 0xFFFF00;
+            } 
+          }
+
+          if (paValB > 0)
+          {
+            val = *(pointerA);
+            pointerA++;
+          }
+        }
+        else
+        {
+          n = valB - count;
+
+          if (count > unknownVal)  
+          {
+            n -=1;
+   
+            a3 = n + (countB - count);
+
+            if (n >= a3)
+              n = a3;
+            
+            a3 = (unknownVal - count) - 1;
+            if (n >= a3)
+              n = a3;
+
+            if (n >= 2)
+            {
+              *(addrPtr) = *(unknownPtr);
+              addrPtr   +=2;
+              unknownPtr+=2;  
+
+              countC++;
+              count++;
+            }
+            else
+              exit loop to 33c94
+          }
+        }
+      }
+    }
+    
+    //t0 = paValA 
+    //t1 = valB
+    //t2 = paValB
+    //t3 = valA
+    //t5 = countB
+    //t6 = unknownPtr
+      
+    //v0 = countC
+    //v1 = count
+            
+    //s1 = addrPtr
+    //s6 = 0xFFFF
+    //s7 = val
+    //t7 = pointerA
+    //fp = pointerB
+
+    //gp = unknownVal;
+
+    //at = paVal
+   
+    //sp = initpointerA    
+                                    
+  } while (count < unknownVal || paValB > 0 || valA > 0)
+              
+
+
+  pointerB = (item + 4 + (item[6]*2));  //lhu
+  pointerC = (item + 4 + (item[0]*2));  //lhu
+
+  //t6 = pointerB
+  //t7 = pointerC
+
+  while (pointerB > pointerC)
+  {
+    pbVal = *(pointerB);
+    pointerB += 2;
+ 
+    if (pbVal != 0xFFFF)
+    {
+      pbValA = pbVal & 0x8000;
+
+      if (pbValA == 0x8000)
+      {
+        pbValB = (pbVal & 0x7800) >> 11;  //s3
+        pbValC = (pbVal & 0x07FF);        //s4
+      }         
+      else
+      {
+        pbValA = pbVal & 0xC000;
+  
+        if (pbValA == 0x4000)
+        {
+          pbValB = (pbVal & 0x1F) + 0x10;
+          val = (pbVal & 0x3FE0) >> 5;
+
+          pbValC += val;
+        }
+        else
+        {
+          pbValC = pbVal & 0xFFF;
+                    
+          pointerB += 2;
+          pbVal = *(pointerB);
+
+          pbValB = pbVal & 0xFFF;
+        }
+
+        //t9 = pbValB;
+        //addrPtr = addr + 4;
+
+        ptrValB = addrPtr + (((pbValB + 1) + pbValC) * 2);
+        ptrValC = addrPtr + (pbValC * 2);
+
+        swap(*(ptrValB), *(ptrValC));  //swaps the memory values
+      }
+    }
+  }
+  
+  addr[0] = countC;
+}
+                  
+--------------------------------------------------------------------------
+
+sub_80031BF8() //MDAT INITB SUBROUTINE
+{
+  if (*(0x56710) != 0x19) { return 0; }  //only subject to level 0x19 i.e. titles, title screen, map
+ 
+  gp[0x27C] = gp[0x104];        //unknown A
+  gp[0x104] =         0;
+
+  *(0x6189C) = (*(0x6189C) & 0xFFFE3FF0) | 0x20000;   //clear bits 1-4, 15-17, set bit 18
+
+  if (gp[0x27C] == 0)
+  {
+    
+    map = gp[0x2E4];
+
+    if      (*(0x618D0) ==     0) { 31cb4; }
+    else if (*(0x618D0) == 0x100) { 31d34; }
+    else if (*(0x618D0) == 0x200) { 31cf4; }
+    else if (*(0x618B0) == 0x300) { 31cb4; }
+    else if (*(0x618D0) == 0x400) { 31cb4; }
+    else if (*(0x618B0) == 0x600) { 31ce8; }
+    else                          { 31d34; }
+    
+    --
+    31cb4:
+    
+      map[0x35D0] = *(0x618D4);
+      map[0x35D4] = *(0x618D4);
+
+      map[0x3598] =          1;
+
+      map[0x35A0] = *(0x6194C);
+      map[0x35A4] = *(0x6194C);
+    
+      goto 31d34
+
+    31ce8:
+      *(0x618D4)  =          5;
+
+      map[0x35D0] = *(0x618D4);
+      map[0x35D4] = *(0x618D4);
+
+      map[0x3598] =          1;
+
+      goto 31d34
+      
+    31cf4:
+ 
+      *(0x618D4)  =        0xC;
+
+      map[0x35D0] = *(0x618D4);
+      map[0x35D4] = *(0x618D4);
+
+      map[0x3598] =          1;
+
+      goto 31d34
+      
+    31d18:
+
+      *(0x618D4)  =        0xA;
+
+      map[0x35D0] = *(0x618D4);
+      map[0x35D4] = *(0x618D4);
+
+      map[0x3598] =          0;
+
+      goto 31d34
+
+    31d34:
+
+      sub_80031EB4();
+
+      return 0;    
+  }     
+}

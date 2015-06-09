@@ -1,0 +1,295 @@
+sub_80011FC4(level)
+{
+  game = 0x5C528;
+
+  sub_80026140();
+  sub_80015B58(game, level);  //set up main game structure, read nsd file from filesystem structure, allocate pages for chunks, read chunks from disc, etc
+  sub_80011DD0();             //load & process level-specific entries (references copied from NSD file to "EIDlistEntryList")
+  
+  EIDlistEntryPtrUnionStruct = game[0x14]; // a structure containing an array of EID/listEntry pointer unions at index [0x14]
+
+  do
+  {
+    gameMode = EIDlistEntryPtrUnionStruct[4];  //should be the same as 'level'
+
+    if (((*(0x5E71C) & 0x800) == 0) || (*(0x61A30) == 0)) { gp[0x10] = 0; }
+    else if ((gameMode == 0x19 || 0x2D || 0x38) && *(0x619B4) <= 0 ||
+             *(0x619B4) == -1)                            { gp[0x10] = 0; }
+    else
+    {
+      gp[4] = 1 - gp[4];
+        
+      if (gp[4] != 0)
+      {
+        if (*(0x618BC) == 0)
+        {
+          *(0x618BC) = sub_8001C6C8(0x60DF0, 4, 4, 0, 0, 0);   
+
+          if (isErrorCode(*(0x618BC)))
+          {
+            gp[0x10]   = 0;
+            gp[4]      = 0;            
+            *(0x618BC) = 0;
+          }
+          else
+          {
+            gp[0x10]   = 1;
+            gp[0x1BC]  = *(0x34520);
+            gp[0x1C0]  = *(0x58408)[0x7C];
+          }
+        }
+      }
+      else
+      {
+        if (*(0x618BC))
+        {
+          var_30 = 0;
+          sub_80024040(0, *(0x618BC), 0xC00, 1, 0, &var_30);  //read something from memory card?
+            
+          gp[0x10]         =        -1;  
+          *(0x618BC)       =         0;
+          *(0x34520)       = gp[0x1BC];
+          *(0x58408)[0x7C] = gp[0x1C0];
+        }
+      }
+    }
+    
+    if ((*(0x566B4) != 0) && (*(0x566B0) != 0x6396347F))
+    {
+      sub_8002E98C(0x566B0);  //when is this called
+    }
+
+    //for return to the title screen/map?
+    if (  *(0x56714) ==   -1 &&
+            gameMode != 0x19 &&
+          *(0x618D0) == 0x200, 0x300, 0x400)  )
+    {
+      *(0x56714) = 0x19;
+    }
+
+	
+    if (*(0x56714) != -1)
+    {
+      flag = 0;
+      
+      //kill all objs?
+      sub_80025134(0, 0x2900, 0, 0, 0);
+
+      if (*(0x56714) == -2)
+      {
+        flag       =          1;
+        s1         = *(0x579A4);   
+        *(0x56490) =       flag;
+      }
+      else
+      {
+        flag       =          0;
+        s1         = *(0x56714);
+        *(0x56490) =       flag;     
+      }
+        
+      sub_80016420(2);  //var_F0 = 2;
+
+      gp[4] = 0;
+
+      if (s1 == 0x19)
+      {
+        *(0x618A0) =  0;
+        *(0x61A3C) =  0;
+        *(0x618F8) =  0;
+        *(0x618FC) =  0;
+        *(0x61900) =  0;
+        *(0x619A0) = -1;   
+      }
+
+      //load the new level
+      sub_80015B58(0x5C528, s1);
+      sub_80011DD0();
+
+      if (flag)
+      {
+        *(0x56714) = -2;
+        sub_80025928();               //spawn initial objects
+        *(0x56714) = -1;
+
+        sub_80026650(0x57974);  
+      }
+
+      *(0x56490) = 0;
+    }
+
+    //manage pages
+    CHUNKINFOS_CREATEANDPROCESS(-1);  
+    
+    //spawn objects
+    sub_80025928();                   
+
+    ginfo = *(0x57914)[0x10];
+
+    //translate/position camera
+    if (gp[4] == 0)  
+    {
+      if (ginfo[0x2FC] & 0x600)
+        sub_8002EC68(0);          //dependent on level
+      
+      if (gp[4] == 0)  
+      {
+        if (ginfo[0x2FC] & 0x100)
+          sub_8002EBB4(0);        //dependent on level
+
+        if (gp[4] == 0)
+          sub_8002B2BC(0);         
+      }
+    }
+
+    //recalculate matrices
+    sub_80017A14();
+    
+    //generate primitives
+    if ( (*(0x618B0) & 1)  != 0) &&
+               (ginfo[0]   == 0) &&
+                  (gp[0]   != 0) )
+    {
+
+      if      (ginfo[0x2FC] & 0x400)
+        sub_8001A2E0(*(0x5840C) + 0x88);    //another one that does the depth cuing first
+   
+      else if (ginfo[0x2FC] & 0x210)
+        sub_8001A0CC(*(0x5840C) + 0x88);    //no cop2 instructions, but transfers from the regissters
+   
+      else if ((ginfo[0x2FC] &  0x10) == 0)
+        sub_80019BCC(*(0x5840C) + 0x88);    //does the perspective transform first, THEN the depth cuing calls (sub_80035898)
+
+      else if ((ginfo[0x2FC] & 0x100) == 0)
+        sub_80019DE0(*(0x5840C) + 0x88);    //loads (tgeo models?) and does a perspective transform with sub_800351E0
+
+      else if ((ginfo[0x2FC] & 0x200) == 0)
+        sub_80019F90(*(0x5840C) + 0x88);    //does the perspective transform like sub_80019508 but also calculates new vertex colors with depth cueing based on the vertex struct 
+                                 
+      else
+        sub_80019508(*(0x5840C) + 0x88);    //loads wgeo models and does a perspective transform with sub_80035438
+    }
+
+    //execute objects/processes
+    sub_8001D5EC(gp[4] == 0);                    
+
+    //if game mode is titles then do the title screen/map/etc (322CC is loading screen)
+    if (gameMode == 0x19)                        
+      sub_800326D8(*(0x5840C) + 0x88);   
+  
+    //draw/send to GPU
+    sub_80016E5C();
+
+  } while (*(0x56428) == 0)
+
+  *(0x618B0) = 0;
+  sub_80016E5C();
+  sub_80016E5C();
+
+  sub_80016420(0x5C528);
+}
+     
+---------------
+sub_80011DD0()  //main routine B)
+{
+  sub_800167A4();  //reads controller buttons, updating controller structs, and sends the controller event to some process
+                   //1) which process?
+  *(0x618BC) = 0;  //2) what is this flag
+
+  if (*(0x56710) == 0x19)       //if game mode = intro sequence/title screen/main menu
+  {
+    sub_80015118(0x5C53C[0x14 + 0x10], 0, 1);  //EIDorlistentry list index 5   (a T15 entry, title screen graphics?)
+    sub_80015118(0x5C53C[0x14 + 0xD4], 0, 1);  //EIDorlistentry list index 54  (another T15 entry, definitely title screen graphics)
+    return sub_800262DC(1);
+  }
+  else if (*(0x56710) == 0x2D)  //if game mode = level completion screen
+  {
+    sub_80015118(0x5C53C[0x14 + 0x74], 0, 1);  //EIDorlistentry list Index 30 
+    sub_80015118(0x5C53C[0x14 + 0x78], 0, 1);  //EIDorlistentry list index 31 
+    sub_80015118(0x5C53C[0x14 +  0xC], 0, 1);  //EIDorlistentry list index 4
+    return sub_800262DC(1);
+  }
+  else if (0x38 <= *(0x56710) < 0x3A) //if game mode = intro or ending
+  {
+    sub_800262DC(1);
+  }
+  else                          //if any other game mode
+  {
+    //guessing these are 3 separate pieces of the HUD
+    *(0x618A8) = sub_8001C6C8(0x60DC0, 4, 0, 0, 0, 0, 0); 
+    *(0x618A4) = sub_8001C6C8(0x60DC0, 4, 1, 0, 0, 0, 0);
+    *(0x618C4) = sub_8001C6C8(0x60DC0, 4, 5, 0, 0, 0, 0);
+
+    //load crash, aku aku, and shadow code
+    sub_80015118(0x5C53C[0x14 +  0x0], 0, 1);  //EIDorlistentry list index 1
+    sub_80015118(0x5C53C[0x14 + 0x14], 0, 1);  //EIDorlistentry list index 6
+    sub_80015118(0x5C53C[0x14 + 0x74], 0, 1);  //EIDorlistentry list index 30
+     
+    //load boxes code unless level is the great hall
+    if (*(0x56710) != 0x2C) { sub_80015118(0x5C53C[0x14 + 0x88], 0, 1);  //EIDorlistentry list index 35
+
+    //load fruit and display code
+    sub_80015118(0x5C53C[0x14 +  0xC], 0, 1);  //EIDorlistentry list index 4
+    sub_80015118(0x5C53C[0x14 + 0x10], 0, 1);  //EIDorlistentry list index 5
+    return sub_800262DC(1);
+  }
+}
+
+-------
+
+sub_800262DC(flag)         //execute level specific executable entrys
+{
+  
+  switch (0x5C53C[4])
+  {
+    case 0x17:       //ripper roo
+      *(0x618AC) = sub_8001C6C8(0x60DD0, 0x27, 4, 0, 0, 1);
+      break;
+
+    // white fog
+    case 0x14, 0x16: //road to nowhere & the high road
+      sub_8001C6C8(0x60DD0, 0x17,   6, 0, 0, 1); 
+      break;
+    
+    // black smog
+    case 5:          //generator room
+      sub_8001C6C8(0x60DD0,    9,   4, 0, 0, 1); 
+      break;
+
+    //
+    case 0x22, 0x2E: //storm ascent, slippery climb
+      sub_8001C6C8(0x60DD0, 0x35, 0xD, 0, 0, 1); 
+      break;
+
+    case 0x28, 0x2A: //lights out & fumbling in the dark
+      sub_8002EC68(1);   
+      break;
+
+    case default:
+      *(0x618AC) = 0;
+      break;
+  }
+
+  //all cases lead to case for 'boulders' 
+  *(0x61990) = 0;
+  *(0x61994) = 0;
+  *(0x61998) = 0;
+  
+  *(0x61984) = 0;
+  *(0x619B4) = 0;
+
+  if (*(0x61A40 != 2)) { *(0x619BC) = 0; }
+
+  sub_8002BE8C(0, 0, 0);  //reset collision?
+
+  *(0x61A38) = 0x20;
+  *(0x5DFEC) =    0;
+
+  if (*(0x618D0) != 0x600)
+  {
+    *(0x61A34) = 0x120;
+    return 0x120;
+  }
+
+  return 0x600;
+}

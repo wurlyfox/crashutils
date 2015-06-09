@@ -1,0 +1,4079 @@
+sub_0x0(val)
+{
+  //0x20     -0x4($fp), 0x1100
+  global[0x11] = val;
+
+  //CEQ      0x200, -0x4($fp)
+  //BEQZ    0x4($pc), -0x0
+  //0x20     static[0x278], 0x1200
+  if (val != 0x200)
+    global[0x12] = 0xC;
+
+  //PSHA     false, -0x4($fp)
+  //CEQ      0x200, 0xc($fp)
+  //BEQZ    0x1c($pc), -0x0
+  if (val == 0x200)
+  {
+    //0x20     0, 0x1800
+    //0x20     0, 0x1a00
+    //0x20     0, 0x1900
+    //0x20     0, 0x1b00
+    //0x20     0, 0x1c00
+    //0x20     0, 0x1d00
+    global[0x18] = 0;
+    global[0x1A] = 0;
+    global[0x19] = 0;
+    global[0x1B] = 0;
+    global[0x1C] = 0;
+    global[0x1D] = 0;
+
+    //J       0x84($pc), -0x0, process[0xf4]
+  }
+  
+  //CEQ      0x300, 0xc($fp)
+  //CEQ      0x400, 0xc($fp)
+  //CEQ      0x100, 0xc($fp)
+  //CEQ      0x500, 0xc($fp)
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //BEQZ    0x64($pc), -0x0
+  else if (val == 0x300 || val == 0x400 || val == 0x100 || val == 0x500)
+  {
+    //0x20     process[0x164], 0x1800
+    //0x20     process[0x160], 0x1a00
+
+    global[0x18] = process[0x164];
+    global[0x1A] = process[0x160]; 
+
+    //0x1F     false, 0
+    //PSHA     false, pop()
+    //CEQ      0xa00, 0x10($fp)
+    //CEQ      0x800, 0x10($fp)
+    //CEQ      0x1700, 0x10($fp)
+    //CEQ      0x1b00, 0x10($fp)
+    //CEQ      0x1f00, 0x10($fp)
+    //CEQ      0x2100, 0x10($fp)
+    //ORL      pop(), pop()
+    //ORL      pop(), pop()
+    //ORL      pop(), pop()
+    //ORL      pop(), pop()
+    //ORL      pop(), pop()
+    //BEQZ    0x8($pc), -0x0
+    if (global[0] == 0xA00, 0x800, 0x1700, 0x1B00, 0x1F00, 0x2100)
+    { 
+      //0x20     0, 0x1900
+      global[0x19] = 0;
+
+      //J       0xc($pc), -0x0, process[0xf4];
+    }
+    else
+    {
+      //PSHA     false, 0x400
+      //0x87    0xf00, 0, 1, 4
+      issueEvent(process, process[0x70], 0xF00, 0x400);
+
+      //0x20     process[0xf8], 0x1900
+      global[0x19] = process[0xF8];
+    }
+
+    //J       0x0($pc), -0x1, process[0xf4]
+
+    //0x20     process[0x178], 0x1b00
+    //0x20     process[0x180], 0x1c00
+    //0x20     process[0x17c], 0x1d00
+    global[0x1B] = process[0x178];
+    global[0x1C] = process[0x180];
+    global[0x1D] = process[0x17C];
+  } 
+ 
+  //J       0x0($pc), -0x1, process[0xf4]
+  //RTE      (process[0xf4])
+}
+
+sub_0xC4/0()
+{
+  //MOVE     0x700, process[0x1a8]
+  //0x1F     false, 0x1a00
+  //MOVE     pop(), process[0x160]
+  //MOVE     0x6400, process[0x104]
+  //0x1F     false, 0x1800
+  //MOVE     pop(), process[0x164]
+  //0x1F     false, 0x1b00
+  //MOVE     pop(), process[0x178]
+  //0x1F     false, 0x1c00
+  //MOVE     pop(), process[0x17c]
+  //0x1F     false, 0x1d00
+  //MOVE     pop(), process[0x180]
+  //MOVE     0, process[0x194]
+  //MOVE     0, process[0x168]
+  //MOVE     static[0x2a8], process[0x16c]
+  //MOVE     static[0x308], process[0x198]
+  //MOVE     0, process[0x188]
+  //MOVE     0, process[0x19c]
+  //MOVE     0, process[0x1a0]
+  //MOVE     0, process[0x1a4]
+  //MOVE     0, process[0x188]
+  process[0x1A8] = 0x700;
+  process[0x160] = global[0x1A];
+  process[0x104] = 0x6400;
+  process[0x164] = global[0x18];
+  
+  process[0x178] = global[0x1B];
+  process[0x17C] = global[0x1C];
+  process[0x180] = global[0x1D];
+  
+  process[0x194] = 0;
+  process[0x168] = 0;
+  
+  process[0x16C] = ?;
+  process[0x198] = ?;
+
+  process[0x188] = 0;
+
+  process[0x19C] = 0;
+  process[0x1A0] = 0;
+  process[0x1A4] = 0;
+
+  process[0x188] = 0;
+
+  //BRA    0x01b8, 0
+  sub_0x1B8();
+
+  //0x1F     false, 0
+  //PSHA     false, pop()
+  //CEQ      0xa00, 0xc($fp)
+  //CEQ      0x800, 0xc($fp)
+  //CEQ      0x1b00, 0xc($fp)
+  //CEQ      0x1700, 0xc($fp)
+  //CEQ      0x2100, 0xc($fp)
+  //CEQ      0x1f00, 0xc($fp)
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //BEQZ    0x8($pc), -0x0
+  if (global[0] == 0xA00, 0x800, 0x1B00, 0x1700, 0x2100, 0x1F00)
+  {
+    //0x20     0x200, 0x1900
+    //J       0x14($pc), -0x0, process[0xf4]
+    global[0x19] = 0x200;
+  }
+  else
+  {
+    //CEQ      0x1100, 0xc($fp)
+    //CEQ      0x1e00, 0xc($fp)
+    //ORL      pop(), pop()
+    //BEQZ    0x4($pc), -0x0
+    //0x20     0, 0x1900
+    if (global[0] == 0x1100, 0x1E00)
+      global[0x19] = 0;
+
+    
+  }
+
+  //J       0x0($pc), -0x1, process[0xf4]
+
+  //0x1F     false, 0x1900
+  //PSHA     false, pop()
+  //CHLD    1, 0, 5, 1
+  spawnChild(1, 5, 0, 1);     //spawn a single (1) aku aku [=code type 5] of type 0 
+  -init: sub_0(global[0x19]); //use global[0x19] as init arguments (1 word)
+
+  //PSHA     0x1000, 0
+  //PSHA     false, 0
+  //CHLD    1, 0, 29, 3
+  spawnChild(1, 29, 0, 3);    //spawn a single (1) shadow [=code type 29] of type 0
+  -init: (0x1000, 0, 0);      //use these as arguments (3 words)
+
+  //ANDB     static[0x340], process[0xd0]
+  //MOVE     pop(), process[0xd0]
+  process[0xD0] &= static[0x340];
+
+  //0x1F     false, 0
+  //PSHA     false, pop()
+  //JALR    subID(34), process[0xf4]
+  //J       0x4($pc), -0x0, process[0xf4]
+  //JALR    subID(40), process[0xf4]
+  //J       0x0($pc), -0x1, process[0xf4]
+  if (global[0] == 0x900)
+    sub_34();
+  else
+    sub_40();
+
+  //RTE      (process[0xf4])
+}
+
+sub_0x1B8()
+{
+  //0x20     static[0x13c], 0x400
+  global[0x4] = static[0x13C];
+  
+  //MOVE     static[0x148], process[0xcc]
+  process[0xCC] = static[0x148];
+ 
+  //MOVE     0, process[0x78]
+  process[0x78] = 0;          //no initial colliding objects
+
+  //MOVE     0, process[0xa4] 
+  //MOVE     0, process[0xa8]
+  //MOVE     0, process[0xac]
+  process[0xA4] = 0;          //initial velocity = 0 vector
+  process[0xA8] = 0;
+  process[0xAC] = 0;
+                              //initial x rotation depends on forward or l/r level
+  //MOVE     0, process[0x8c] 
+  //MOVE     0, process[0x94] 
+  process[0x8C] = 0;          //initial y rotation = 0
+  process[0x94] = 0;          //initial z rotation = 0
+
+
+  //MOVE     static[0x1a4], process[0x190]
+  process[0x190] = static[0x1A4];
+
+  //MOVE     process[0x90], process[0xb4]
+  process[0xB4] = process[0x90];  //initial x rotation save in approach angle?
+
+  //MOVE     0x2000, process[0xb0]
+  process[0xB0] = 0x2000;         //approach y = 0x2000?
+
+  //MOVE     static[0x23c], process[0x144]
+  process[0x144] = static[0x23C]; //falling angle?
+
+  //MOVE     0, process[0x140]
+  process[0x140] = 0;             //no initial camera zoom
+
+  //MOVE     0x400, process[0x150]
+  process[0x150] = 0x400;          //?? still not sure what this does
+
+  //MOVE     0x1000, process[0x98]
+  //MOVE     0x1000, process[0x9c]
+  //MOVE     0x1000, process[0xa0]
+  process[0x98] = 0x1000;          //initial scale = none i.e. 1 vector
+  process[0x9C] = 0x1000;
+  process[0xA0] = 0x1000;
+
+  //CEQ      static[0x24c], process[0x128]
+  //BEQZ    0x8($pc), -0x0
+  //MOVE     0, self[0x128]
+  //MOVE     process[0xfc], self[0x12c]
+  if (process[0x128] == static[0x24C])  //for certain visibility mode
+  {
+    process[0x128] = 0;
+    process[0x12C] = process[0xFC];
+  }
+
+  //RTE      (process[0xf4])
+}
+
+sub_0x210()
+{
+  //BRA    0x01b8, 0
+  sub_0x1B8();
+  
+  //MOVE     0, process[0x1a0]
+  process[0x1A0] = 0;
+   
+  //NOTL     process[0x128], pop()
+  //BEQZ    0x8($pc), -0x0
+  if (process[0x128] == 0)
+  {  
+    //MOVE     static[0x264], self[0x128]
+    process[0x128] = static[0x264];
+    
+    //MOVE     process[0xfc], self[0x12c]
+    process[0x12C] = process[0xFC];
+  } 
+
+  //RTE      (process[0xf4])
+}
+
+sub_0x22C()
+{
+  //PSHA     process[0xa8], process[0xb4]
+  //BRA    0x01b8, 0
+MOVE     0x10($fp), process[0xa8]
+MOVE     0xc($fp), process[0xb4]
+J       0x0($pc), -0x2, process[0xf4]
+MOVE     process[0xb4], process[0x90]
+RTE      (process[0xf4])
+}
+
+sub_0x248()
+{
+PSHA     false, process[0x1a8]
+CEQ      0x700, 0xc($fp)
+BEQZ    0x8($pc), -0x0
+RTE      (process[0xf4])
+}
+
+sub_0x258()
+{
+J       0x78($pc), -0x0, process[0xf4]
+CEQ      0x1000, 0xc($fp)
+BEQZ    0x14($pc), -0x0
+NTRY     static[0x27c], static[0xc]
+NTRY     static[0x27c], static[0x10]
+NTRY     static[0x27c], static[0x14]
+NTRY     static[0x27c], static[0x10]
+J       0x5c($pc), -0x0, process[0xf4]
+CEQ      0x1100, 0xc($fp)
+BEQZ    0x18($pc), -0x0
+NTRY     static[0x27c], static[0xc]
+NTRY     static[0x27c], static[0x10]
+NTRY     static[0x27c], static[0x14]
+NTRY     static[0x27c], static[0x10]
+0x87    0xc00, 0, 0, 3
+J       0x3c($pc), -0x0, process[0xf4]
+CEQ      0x1200, 0xc($fp)
+BEQZ    0x18($pc), -0x0
+NTRY     static[0x27c], static[0x14]
+NTRY     static[0x27c], static[0x10]
+NTRY     static[0x27c], static[0x18]
+NTRY     static[0x27c], static[0x10]
+0x87    0xc00, 0, 0, 3
+J       0x1c($pc), -0x0, process[0xf4]
+CEQ      0x1300, 0xc($fp)
+BEQZ    0x14($pc), -0x0
+NTRY     static[0x27c], static[0x18]
+NTRY     static[0x27c], static[0x10]
+NTRY     static[0x27c], static[0x1c]
+NTRY     static[0x27c], static[0x20]
+0x87    0xc00, 0, 0, 3
+J       0x0($pc), -0x1, process[0xf4]
+MOVE     0x700, process[0x1a8]
+0x27     0x4a00, process[0x108]
+MOVE     0, process[0x10c]
+ORB      static[0x170], process[0xcc]
+MOVE     pop(), process[0xcc]
+RTE      (process[0xf4])
+}
+
+sub_0x2F0()
+{
+ORB      static[0x188], process[0xd0]
+MOVE     pop(), process[0xd0]
+MOVE     process[0xfc], process[0x188]
+ANDB     static[0x18c], process[0xcc]
+MOVE     pop(), process[0xcc]
+SLT      0, self[0x98]
+BEQZ    0x8($pc), -0x0
+MOVE     static[0x190], process[0x18c]
+J       0x4($pc), -0x0, process[0xf4]
+MOVE     static[0x194], process[0x18c]
+SNDB    0x400, 0, 0, 0, 0
+SNDB    0xa0, 0, 0, 1, 1
+SNDA     static[0x1bc], static[0x24]
+PSHA     false, 0
+0x27     0x3800, process[0x108]
+ADD      process[0x18c], process[0x90]
+MOVE     pop(), process[0x90]
+0x13     0x700, 0xc($fp)
+ANIF    pop(), 1, 3
+SUB      process[0x188], process[0xfc]
+SGE      static[0x278], pop()
+BEQZ    0xfe4($pc), -0x0
+J       0x0($pc), -0x1, process[0xf4]
+0x1F     false, 0xf00
+MOVE     pop(), process[0x90]
+MOVE     process[0x90], process[0xb4]
+ANDB     static[0x1c4], process[0xd0]
+MOVE     pop(), process[0xd0]
+RTE      (process[0xf4])
+}
+
+sub_0x364_1()   //idle routine
+{
+  //MOVE     0, process[0x19c]
+  //MOVE     0, process[0x1a0]
+  //MOVE     0, process[0x1a4]
+  //MOVE     0, process[0x188]
+  process[0x19C] = 0;
+  process[0x1A0] = 0;
+  process[0x1A4] = 0;
+  process[0x188] = 0;
+
+  do
+  {
+    //this is the frame for stand (eyes open), hence why we show it for 30 frames
+    //ANIS    11, 74, 30, 3
+    changeAnim(11, 74, 30, 3); //change to idle/stand animation, frame 11, wait 30 frames, no flip
+
+    //ANIS    11, 74, 1, 3
+    changeAnim(11, 74, 1, 3);  //do it additional time for extra processing
+
+    //RND      static[0x264], 0
+    //NOTL     pop(), pop()
+    //BEQZ    0x10($pc), -0x0
+    if (!rand(4))    //only blink 1/4 of the time at this point
+    {
+      //HERE IS OBVIOUSLY WHERE WE BLINK
+
+      //this is the frame for stand (eyes closed)
+      //ANIS    12, 74, 3, 3
+      changeAnim(12, 74, 3, 3); //change to stand (eyes closed) frame, wait 3 frames, no flip
+
+      //ANIS    11, 74, 3, 3
+      changeAnim(11, 74, 3, 3); //change to stand (eyes open) frame, wait 3 frames, no flip
+
+      //ANIS    12, 74, 3, 3
+      changeAnim(11, 74, 3, 3); //change to stand (eyes closed) frame, wait 3 frames, no flip
+
+      //ANIS    11, 74, 6, 3
+      changeAnim(11, 74, 6, 3); //change to stand (eyes open) frame, wait 3 frames, no flip
+    }
+
+    //RND      static[0x264], 0
+    //NOTL     pop(), pop()
+    //BEQZ    0x4($pc), -0x0
+    if (!rand(4))    //1/4 of the time at this point we continue to stand before doing anything else
+    {
+      //ANIS    11, 74, 30, 3
+      changeAnim(11, 74, 30, 3); //change to stand (eyes closed) frame, wait 30 frames, no flip
+    }
+
+
+    //PSHA     false, 0x400
+    //0x87    0xf00, 0, 1, 4
+    issueEvent(process, process[0x70], 0xF00, {0x400});
+
+    //SLT      0x300, process[0xf8]
+    //BEQZ    0x2d0($pc), -0x0
+    if (process[0xF8] < 0x300)
+    {
+      //SUB      self[0x98], 0
+      //MOVE     pop(), self[0x98]
+      process[0x98] = -process[0x98];  //flip orientation of the turn head animation
+
+      //here we turn our head
+      //ANIS    0, 74, 1, 3
+      //ANIS    1, 74, 1, 3
+      //ANIS    2, 74, 1, 3
+      //ANIS    3, 74, 1, 3
+      //ANIS    4, 74, 1, 3
+      changeAnim(0, 74, 1, 3);
+      changeAnim(1, 74, 1, 3);
+      changeAnim(2, 74, 1, 3);
+      changeAnim(3, 74, 1, 3);
+      changeAnim(4, 74, 1, 3);
+
+      do
+      {
+        //wait when we have turned it completely
+        //ANIS    5, 74, 30, 3
+        changeAnim(5, 74, 30, 3); //wait 30 frames/hold it there when we get to frame 5 i.e head is full turned
+
+        //now start trying to turn it back
+        //ANIS    6, 74, 1, 3
+        //ANIS    7, 74, 1, 3
+        //ANIS    8, 74, 1, 3
+        changeAnim(6, 74, 1, 3);
+        changeAnim(7, 74, 1, 3);
+        changeAnim(8, 74, 1, 3);
+
+        //RND      static[0x1d8], 0
+        //NOTL     pop(), pop()
+        //BEQZ    0xc($pc), -0x0
+        if (!rnd(8) == 0)    //1/8th of the time we will turn back around to do a double take
+        {
+          //ANIS    7, 74, 1, 3
+          //ANIS    6, 74, 1, 3
+          changeAnim(7, 74, 1, 3);  //start turning back again  
+          changeAnim(6, 74, 1, 3);
+          
+          //J       0xfd8($pc), -0x0, process[0xf4]
+          continue;                 //and continue to hold it there as if to do a double take
+        }
+        else
+          break;
+      }
+      
+      //finally complete the head turn back to the normal standing frame
+      //ANIS    9, 74, 1, 3
+      //ANIS    10, 74, 1, 3
+      changeAnim( 9, 74, 1, 3);
+      changeAnim(10, 74, 1, 3);    
+
+      //PSHA     false, process[0x1a8]
+      //CEQ      0x700, 0xc($fp)
+      //BEQZ    0xbc($pc), -0x0
+      if (process[0x1A8] == 0x700)
+      {
+        //0x1F     false, 0
+        //PSHA     false, pop()
+        //CEQ      0xa00, 0x10($fp)
+        //CEQ      0x800, 0x10($fp)
+        //CEQ      0x1700, 0x10($fp)
+        //CEQ      0x1b00, 0x10($fp)
+        //CEQ      0x1f00, 0x10($fp)
+        //CEQ      0x2100, 0x10($fp)
+        //ORL      pop(), pop()
+        //ORL      pop(), pop()
+        //ORL      pop(), pop()
+        //ORL      pop(), pop()
+        //ORL      pop(), pop()
+        //BEQZ    0x8($pc), -0x0
+        //NOP      
+        //J       0x74($pc), -0x0, process[0xf4]
+        if (global[0] != 0xA00, 0x800, 0x1700, 0x1B00, 0x1F00, 0x2100)
+        {
+          //TST      static[0x1dc], process[0xc8]
+          //BEQZ    0x6c($pc), -0x0
+          if (process[0xC8] & 0x00040000)  //if was in air/is in air?
+          {
+            //RND      static[0x1e0], 0
+            //NOTL     pop(), pop()
+            //BEQZ    0x60($pc), -0x0
+            if (!rnd(50))
+            {          
+              //PSHB     static[0x4], static[0x10]
+              //PSHB     static[0xc], static[0x10]
+              //NTRY     static[0x1fc], static[0x264]
+              freePages = countFreePages({2001I, WillG, WiS4V, WillG}, 4);
+              
+              //NTRY     static[0x264], false
+              availablePages = countAvailablePages();
+             
+              //SLE      pop(), pop()
+              condA = (freePages <= availablePages);
+              
+              //PSHB     static[0x8], static[0x10]
+              //PSHB     static[0x4], static[0x10]
+              //NTRY     static[0x1fc], static[0x264]
+              //NTRY     static[0x264], false
+              //SLE      pop(), pop()
+              freePages = countFreePages({Wil9C, WillG, 2001I, WillG}, 4);
+              condB = (freePages <= availablePages);
+                          
+              //PSHB     static[0xc], static[0x20]
+              //PSHB     static[0x8], static[0x10]
+              //NTRY     static[0x1fc], static[0x264]
+              //NTRY     static[0x264], false
+              //SLE      pop(), pop()
+              freePages = countFreePages({WiS4V, WiFrG, Wil9C, WillG}, 4);
+              condB = (freePages <= availablePages);
+              
+              //ANDL     pop(), pop()
+              //ANDL     pop(), pop()
+              //BEQZ    0x18($pc), -0x0
+              if (condA && condB && condC)
+              { 
+                //MOVC    code[0x0248], process[0xf0]
+                process[0xF0] = &sub_0x248;
+                
+                //NTRY     static[0x170], static[0xc]
+                //NTRY     static[0x170], static[0x10]
+                //NTRY     static[0x170], static[0x14]
+                //NTRY     static[0x170], static[0x10]
+                process[0xF4] = loadEntry(WiS4V, 0, 1);
+                process[0xF4] = loadEntry(WillG, 0, 1);
+                process[0xF4] = loadEntry(WiS5V, 0, 1);
+                process[0xF4] = loadEntry(WillG, 0, 1);
+                
+                //MOVE     0x1000, process[0x1a8]
+                process[0x1A8] = 0x1000;
+              } ?
+              
+              //J       0x0($pc), -0x1, process[0xf4]
+              //J       0x1b8($pc), -0x0, process[0xf4]
+              //I.E. GOTO 0X684
+            }
+          }
+        } 
+      }
+      
+      //CEQ      0x1000, 0xc($fp)
+      //BEQZ    0x1b0($pc), -0x0
+      if (fp[0xC] == 0x1000) //hmm wonder if this is the process[0x1A8] flag from above  
+      {
+        //0x27     0x4c00, process[0x108]
+        setAnim(process, 0x4C);  //which anim is this
+        
+        //MOVE     0x1ff00, process[0x10c]
+        process[0x10C] = 0x1FF00; //i.e. -1
+        
+        do
+        {
+          //ADD      0x100, process[0x10c]
+          //ANIF    pop(), 1, 3
+          //ADD      0x100, process[0x10c]
+          process[0x10C] += 0x100;
+          animate(process[0x10C], 1, 3);
+          process[0x10C] += 0x100;
+         
+          //SLE      0x800, pop()
+          //BNEZ    0xfec($pc), -0x0
+        } while (process[0x10C] <= 0x800)
+        
+        //ANIS    9, 76, 6, 3
+        changeAnim(9, 76, 6, 3);
+        
+        //MOVE     0x900, process[0x10c]
+        process[0x10C] = 0x900
+        
+        do
+        {
+          //ADD      0x100, process[0x10c]
+          //ANIF    pop(), 1, 3
+          //ADD      0x100, process[0x10c]
+          process[0x10C] += 0x100;
+          animate(process[0x10C], 1, 3);
+          process[0x10C] += 0x100;
+          
+          //SLE      0x1400, pop()
+          //BNEZ    0xfec($pc), -0x0
+        } while (process[0x10C] <= 0x1400);
+        
+        //my guess is that this is the fruit that crash throws in the air
+        //while idle
+        
+        //PSHA     static[0x214], 0x100
+        //CHLD    1, 21, 3, 2
+        spawnChild(1, 3, 21, 2);            //spawn a single (1) fruit[=code type 3] of type 21  
+        -init: sub_1(static[0x214], 0x100); //popping 2 words from stack to use as initializing arguments 
+        
+        //MOVE     0x1100, process[0x1a8]
+        process[0x1A8] = 0x1100;
+        
+        //MOVE     0x1400, process[0x10c]
+        process[0x10C] = 0x1400
+        
+        do
+        {
+          //ADD      0x100, process[0x10c]
+          //ANIF    pop(), 1, 3
+          //ADD      0x100, process[0x10c]
+          process[0x10C] += 0x100;
+          animate(process[0x10C], 1, 3);
+          process[0x10C] += 0x100;
+          
+          //SLE      0x1800, pop()
+          //BNEZ    0xfec($pc), -0x0
+        } while (process[0x10C] <= 0x1800);
+        
+        //NTRY     static[0x27c], static[0xc]
+        //NTRY     static[0x27c], static[0x10]
+        process[0xFC] = removeEntry(WiS4V, 1);
+        process[0xFC] = removeEntry(WillG, 1);
+        
+        //NTRY     static[0x170], static[0x18]
+        //NTRY     static[0x170], static[0x10]
+        process[0xF4] = loadEntry(WiS6V, 0, 1);  //immediate load
+        process[0xF4] = loadEntry(WillG, 0, 1);
+      
+        //MOVE     0x1200, process[0x1a8]
+        process[0x1A8] = 0x1200;
+        
+        //0x27     0x4e00, process[0x108]
+        setAnim(process, 0x4E);
+        
+        //MOVE     0x1ff00, process[0x10c]
+        process[0x10C] = 0x1FF00; //i.e. -1
+        
+        do
+        {
+          //ADD      0x100, process[0x10c]
+          //ANIF    pop(), 1, 3
+          //ADD      0x100, process[0x10c]
+          process[0x10C] += 0x100;
+          animate(process[0x10C], 1, 3);
+          process[0x10C] += 0x100;
+         
+          //SLE      0x300, pop()
+          //BNEZ    0xfec($pc), -0x0
+        } while (process[0x10C] <= 0x300)
+        
+        //ANIS    4, 78, 30, 3
+        changeAnim(4, 78, 30, 3);
+        
+        //RND      static[0x218], 0
+        //ADD      pop(), static[0x224]
+        sndvol = RND(0xCC) + 0x399;
+        
+        SNDB    pop(), 0, 0, 0, 0
+        SNDB    0x40, 0, 0, 1, 1
+        SNDB    static[0x234], 0, 0, 1, 0
+        SNDA     static[0x240], static[0x28]
+
+        //MOVE     0x400, process[0x10c]
+        process[0x10C] = 0x400;
+        
+        do
+        {
+          //ADD      0x100, process[0x10c]
+          //ANIF    pop(), 1, 3
+          //ADD      0x100, process[0x10c]
+          process[0x10C] += 0x100;
+          animate(process[0x10C], 1, 3);
+          process[0x10C] += 0x100;
+         
+          //SLE      0x1700, pop()
+          //BNEZ    0xfec($pc), -0x0
+        } while (process[0x10C] <= 0x1700)
+        
+        //ANIS    24, 78, 45, 3
+        changeAnim(24, 78, 45, 3);
+        
+        //NTRY     static[0x27c], static[0x14]
+        //NTRY     static[0x27c], static[0x10]
+        process[0xFC] = removeEntry(WiS5V, 1);
+        process[0xFC] = removeEntry(WillG, 1);
+        
+        //now we need the models for wumpa splatter on crashes head..
+        //NTRY     static[0x170], static[0x1c]
+        //NTRY     static[0x170], static[0x20]
+        process[0xF4] = loadEntry(WiFrV, 0, 1);
+        process[0xF4] = loadEntry(WiFrG, 0, 1);
+        
+        //MOVE     0x1300, process[0x1a8]
+        process[0x1A8] = 0x1300;
+        
+        //0x27     0x5000, process[0x108]
+        setAnim(process, 0x50);
+        
+         //MOVE     0x1ff00, process[0x10c]
+        process[0x10C] = 0x1FF00; //i.e. -1
+        
+        do
+        {
+          //ADD      0x100, process[0x10c]
+          //ANIF    pop(), 1, 3
+          //ADD      0x100, process[0x10c]
+          process[0x10C] += 0x100;
+          animate(process[0x10C], 1, 3);
+          process[0x10C] += 0x100;
+         
+          //SLE      0x800, pop()
+          //BNEZ    0xfec($pc), -0x0
+        } while (process[0x10C] <= 0x800)
+        
+        //ANIS    9, 80, 30, 3
+        changeAnim(9, 80, 30, 3);
+        
+         //MOVE     0x900, process[0x10c]
+        process[0x10C] = 0x900;
+        
+        do
+        {
+          //ADD      0x100, process[0x10c]
+          //ANIF    pop(), 1, 3
+          //ADD      0x100, process[0x10c]
+          process[0x10C] += 0x100;
+          animate(process[0x10C], 1, 3);
+          process[0x10C] += 0x100;
+         
+          //SLE      0xD00, pop()
+          //BNEZ    0xfec($pc), -0x0
+        } while (process[0x10C] <= 0xD00)
+        
+        //MOVE     0, pop()
+        counter = 0;
+        
+        do
+        {
+          //scratch our head 5 times
+          //ANIS    14, 80, 1, 3
+          //ANIS    15, 80, 1, 3
+          //ANIS    16, 80, 1, 3
+          //ANIS    17, 80, 1, 3
+          //ANIS    18, 80, 1, 3
+          //ANIS    19, 80, 1, 3
+          //ANIS    18, 80, 1, 3
+          //ANIS    17, 80, 1, 3
+          //ANIS    16, 80, 1, 3
+          //ANIS    15, 80, 1, 3
+          changeAnim(14, 80, 1, 3);
+          changeAnim(15, 80, 1, 3);
+          changeAnim(16, 80, 1, 3);
+          changeAnim(17, 80, 1, 3);
+          changeAnim(18, 80, 1, 3);
+          changeAnim(19, 80, 1, 3);
+          changeAnim(18, 80, 1, 3);
+          changeAnim(17, 80, 1, 3);
+          changeAnim(16, 80, 1, 3);
+          changeAnim(15, 80, 1, 3);
+                     
+          //ADD      0x100, 0x10($fp)
+          //MOVE     pop(), 0x10($fp)
+          counter += 0x100;
+          
+          //SLT      0x600, 0x10($fp)
+          //BNEZ    0xfc8($pc), -0x0
+        } while (counter < 0x600);
+        
+        //MOVE     pop(), false
+        //RND      static[0x244], 0
+        //ADD      pop(), static[0x248]
+        sndvol = RND(0xCC) + 0x399;
+              
+        SNDB    pop(), 0, 0, 0, 0
+        SNDA     static[0x25c], static[0x2c]
+        
+        //MOVE     0xd00, process[0x10c]
+        process[0x10C] = 0xD00;
+        
+        do
+        {
+          //ADD      0x100, process[0x10c]
+          //ANIF    pop(), 1, 3
+          //ADD      0x100, process[0x10c]
+          process[0x10C] += 0x100;
+          animate(process[0x10C], 1, 3);
+          process[0x10C] += 0x100;
+         
+          //SLE      0x1200, pop()
+          //BNEZ    0xfec($pc), -0x0
+        } while (process[0x10C] <= 0x1200)
+        
+        //ANIS    0, 58, 15, 3
+        changeAnim(0, 58, 15, 3);
+        
+        //MOVE     0, process[0x10c]
+        process[0x10C] = 0;
+        
+        do
+        {
+          //ADD      0x100, process[0x10c]
+          //ANIF    pop(), 1, 3
+          //ADD      0x100, process[0x10c]
+          process[0x10C] += 0x100;
+          animate(process[0x10C], 1, 3);
+          process[0x10C] += 0x100;
+         
+          //SLE      0x800, pop()
+          //BNEZ    0xfec($pc), -0x0
+        } while (process[0x10C] <= 0x800)
+        
+        //ANIS    9, 58, 9, 3
+        //ANIS    10, 58, 2, 3
+        //ANIS    9, 58, 2, 3
+        //ANIS    10, 58, 2, 3
+        //ANIS    9, 58, 9, 3
+        changeAnim( 9, 58, 9, 3);
+        changeAnim(10, 58, 2, 3);
+        changeAnim( 9, 58, 2, 3);
+        changeAnim(10, 58, 2, 3);
+        changeAnim( 9, 58, 9, 3);
+        
+        //BRA    0x02f0, 0
+        sub_0x2F0();
+        
+        //BRA    0x0248, 0
+        sub_0x248();
+        
+        //J       0x0($pc), -0x1, process[0xf4]
+        //J       0xcec($pc), -0x0, process[0xf4]
+      }
+    }
+    else
+      break;
+  }
+  
+  //RTE      (process[0xf4])
+}
+
+sub_0x690()
+{
+CEQ      process[0x7c], process[0x78]
+CEQ      0x300, -0x8($fp)
+CEQ      0xe00, -0x8($fp)
+ORL      pop(), pop()
+ANDL     pop(), pop()
+BEQZ    0x18($pc), -0x0
+SLT      0, process[0xa8]
+TST      0x4000, process[0xc8]
+SLT      process[0x84], link6[0x84]
+ANDL     pop(), pop()
+ANDL     pop(), pop()
+RNNT    subID(0), pop()
+CEQ      0xd00, -0x8($fp)
+RSNF    subID(30), pop()
+RTE      (process[0xf4])
+}
+
+sub_0x6CC()
+{
+  //0x1F     false, 0x1100
+  //CEQ      0, pop()
+  //NOTL     pop(), pop()
+  //BEQZ    0x48($pc), -0x0
+  if (global[0x11] != 0)
+  {
+    //PAD     0x040, 3, 0, 8  
+    if (ctrl(0x040, 3, 0, 8))  //if >< is pressed
+    {
+      //BNEZAL  subID(4)
+      sub_4();                 //do jump routine
+    }
+    
+    //PAD     0x0A0, 3, 0, 8   //if () or [] is pressed
+    //BEQZ    0x28($pc), -0x0
+    {
+      //SUB      process[0x194], process[0xfc]
+      process[0xFC] -= process[0x194];
+      
+      //SGE      static[0x260], pop()
+      if (process[0x194] - process[0xFC] > static[0x260])  //if its been awhile since we've last spun
+      {
+        //BEQZ    0x8($pc), -0x0
+        //JALR    subID(15), process[0xf4]
+        sub_15();  //do spin routine
+        
+        //J       0x14($pc), -0x0, process[0xf4]
+      }
+      else
+      {
+        //RND      static[0x218], 0
+        //ADD      pop(), static[0x224]
+        sndvol = rand(0xCC) + 0x399;
+        
+        //play the 'attempt spin but out of energy' sample
+        SNDB    pop(), 0, 0, 0, 0
+        SNDB    0x90, 0, 0, 1, 1
+        SNDA     static[0x240], static[0x30]
+      }
+    }
+    
+    //ABS      process[0x124], pop()
+    //SHA      static[0x18c], pop()
+    //NOTL     pop(), pop()
+    //BEQZAL  subID(2)
+    if (!(abs(process[0x124]) >> 2) == 0)
+      sub_2();
+  }
+  
+  //TST      static[0x170], process[0xc8]
+  //NOTL     pop(), pop()
+  //SUB      process[0x130], process[0xfc]
+  //SGE      static[0x24c], pop()
+  //SUB      static[0x270], process[0x84]
+  //SLT      pop(), process[0x184]
+  //ANDL     pop(), pop()
+  //ANDL     pop(), pop()
+  //BEQZ    0x18($pc), -0x0
+  if (process[0xC8] & 1 && 
+      process[0xFC] - process[0x130] >= 6  &&
+      process[0x84] - 0x19000 < process[0x184]
+  {
+    //MOVE     process[0xfc], process[0x130]
+    process[0x130] = process[0xFC];
+      
+    //SLE      0, process[0xa8]
+    //BEQZ    0x8($pc), -0x0
+    if (process[0xA8] <= 0)   //if not falling 
+    {
+      //JALR    subID(11), process[0xf4]
+      sub_11();
+        
+      //J       0x4($pc), -0x0, process[0xf4]
+    }
+    else
+    {
+      //JALR    subID(5), process[0xf4]
+      sub_5();
+    }
+  }
+  
+  
+  //EDIT!!!: THIS SECTION APPARENTLY INVOLVES VARIOUS DEBUG FEATURES FOUND  
+  //ENABLED BY DEFAULT IN THE PROTOTYPE! Involves setting flag at 0x6199C
+  //and doing the various controller combinations here!
+  
+  //0x1F     false, 0x4400
+  //BEQZ    0x48($pc), -0x0
+  if (global[0x44])   //what is this global variable?
+  {
+    //PAD     0x004, 2, 0, 8        //if L1 and R1 held
+    //PAD     0x008, 2, 0, 8
+    //ANDL     pop(), pop()
+    //BEQZ    0x8($pc), -0x0
+    //MOVE     static[0x27c], self[0x128]
+    //MOVE     process[0xfc], self[0x12c]
+    if (ctrl(0x004, 2, 0, 8) && ctrl(0x008, 2, 0, 8))   //if L1 and R1 held
+    {
+      process[0x128] = static[0x27C];   //stick to ground  
+      process[0xFC] = process[0x12C];
+    }
+    
+    //PSHA     false, process[0x60]
+    //PAD     0x004, 2, 0, 8
+    //PAD     0x002, 1, 0, 8
+    //ANDL     pop(), pop()
+    //0x87    0x600, 31, 1, 4
+    
+    //when parameter 2 == 31 then a flag on the stack determines whether or not event 
+    //is issued
+    if (ctrl(0x004, 2, 0, 8) && ctrl(0x002, 1, 0, 8)) //if L1 held and R2 pressed
+      issueEvent(process, process[0x70], 0x600, {0x400});  //spawn an aku aku for crash
+    
+    //PAD     0x004, 2, 0, 8
+    //PAD     0x001, 1, 0, 8
+    //ANDL     pop(), pop()
+    //BEQZ    0xc($pc), -0x0
+    if (ctrl(0x004, 2, 0, 8) && ctrl(0x001, 1, 0, 8))   //if L1 held and R1 pressed
+    {
+      MSC     static[0x170], 5, 0x3, 12                  //flashing crah
+      0x20     static[0x274], 0x4800
+      0x20     static[0x274], 0x3f00
+    }
+  }
+
+  //RTE      (process[0xf4])
+}
+
+sub_0x7B4()
+{
+MOVE     0, process[0x19c]
+MOVE     0, process[0x1a0]
+MOVE     0, process[0x1a4]
+MOVE     0, process[0x188]
+MOVE     0, process[0x150]
+ANIS    0, 82, 1, 0
+MOVE     0x100, process[0x150]
+ANIS    1, 82, 1, 0
+MOVE     0x200, process[0x150]
+ANIS    2, 82, 1, 0
+MOVE     0x300, process[0x150]
+ANIS    3, 82, 1, 0
+MOVE     0x400, process[0x150]
+ANIS    4, 82, 1, 0
+MOVE     0x500, process[0x150]
+ANIS    5, 82, 1, 0
+MOVE     0x600, process[0x150]
+ANIS    6, 82, 1, 0
+MOVE     0x700, process[0x150]
+ANIS    7, 82, 1, 0
+MOVE     0x800, process[0x150]
+ANIS    8, 82, 1, 0
+MOVE     0x900, process[0x150]
+ANIS    9, 82, 1, 0
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x50, 0, 0, 1, 1
+SNDA     static[0x240], static[0x34]
+MOVE     0, process[0x150]
+ANIS    0, 82, 1, 1
+MOVE     0x100, process[0x150]
+ANIS    1, 82, 1, 1
+MOVE     0x200, process[0x150]
+ANIS    2, 82, 1, 1
+MOVE     0x300, process[0x150]
+ANIS    3, 82, 1, 1
+MOVE     0x400, process[0x150]
+ANIS    4, 82, 1, 1
+MOVE     0x500, process[0x150]
+ANIS    5, 82, 1, 1
+MOVE     0x600, process[0x150]
+ANIS    6, 82, 1, 1
+MOVE     0x700, process[0x150]
+ANIS    7, 82, 1, 1
+MOVE     0x800, process[0x150]
+ANIS    8, 82, 1, 1
+MOVE     0x900, process[0x150]
+ANIS    9, 82, 1, 1
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x50, 0, 0, 1, 1
+SNDA     static[0x240], static[0x38]
+J       0xf24($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x894_2()  //moving routine
+{
+MOVC    code[0x970], process[0xF0]
+ BRA    0x07b4, 0
+RTE      (process[0xf4])
+}
+
+sub_0x8A0()
+{
+CEQ      process[0x7c], process[0x78]
+CEQ      0x300, -0x8($fp)
+CEQ      0xe00, -0x8($fp)
+ORL      pop(), pop()
+ANDL     pop(), pop()
+BEQZ    0x18($pc), -0x0
+SLT      0, process[0xa8]
+TST      0x4000, process[0xc8]
+SLT      process[0x84], link6[0x84]
+ANDL     pop(), pop()
+ANDL     pop(), pop()
+RNNT    subID(0), pop()
+CEQ      0x300, -0x8($fp)
+CEQ      0xe00, -0x8($fp)
+ORL      pop(), pop()
+CEQ      0xd00, process[0x13c]
+ANDL     pop(), pop()
+RNNT    subID(0), pop()
+RTE      (process[0xf4])
+}
+
+sub_0x8EC()
+{
+PAD     static[0x100], 3, 0, 8
+BNEZAL  subID(3)
+PAD     static[0x280], 3, 0, 8
+BEQZ    0x28($pc), -0x0
+SUB      process[0x194], process[0xfc]
+SGE      static[0x260], pop()
+BEQZ    0x8($pc), -0x0
+JALR    subID(15), process[0xf4]
+J       0x14($pc), -0x0, process[0xf4]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x90, 0, 0, 1, 1
+SNDA     static[0x240], static[0x30]
+ABS      process[0x124], pop()
+SHA      static[0x18c], pop()
+BEQZAL  subID(1)
+TST      static[0x170], process[0xc8]
+NOTL     pop(), pop()
+SUB      process[0x130], process[0xfc]
+SGE      static[0x24c], pop()
+SUB      static[0x270], process[0x84]
+SLT      pop(), process[0x184]
+ANDL     pop(), pop()
+ANDL     pop(), pop()
+BEQZ    0x18($pc), -0x0
+MOVE     process[0xfc], process[0x130]
+SLE      0, process[0xa8]
+BEQZ    0x8($pc), -0x0
+JALR    subID(11), process[0xf4]
+J       0x4($pc), -0x0, process[0xf4]
+JALR    subID(5), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x970()
+{
+MOVE     0x400, process[0x150]
+RTE      (process[0xf4])
+}
+
+sub_0x978_3()
+{
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x40, 0, 0, 1, 1
+SNDA     static[0x240], static[0x28]
+SUB      self[0x98], 0
+MOVE     pop(), self[0x98]
+MOVE     static[0x280], process[0xa8]
+MOVC    code[0x&04x], process[0x25c]
+MOVE     0, process[0x150]
+ANIS    0, 84, 1, 3
+MOVE     0x1a500, process[0x150]
+ANIS    1, 84, 1, 3
+MOVE     0x1a500, process[0x150]
+ANIS    2, 84, 1, 3
+MOVE     0x1a500, process[0x150]
+ANIS    3, 84, 1, 3
+ANDB     static[0x18c], process[0xd0]
+MOVE     pop(), process[0xd0]
+MOVE     0x1a500, process[0x150]
+ANIS    0, 86, 63, 3
+J       0xff4($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x9D4()
+{
+TST      static[0x170], process[0xc8]
+BNEZAL  subID(13)
+PAD     static[0x280], 3, 0, 8
+BEQZ    0x28($pc), -0x0
+SUB      process[0x194], process[0xfc]
+SGE      static[0x260], pop()
+BEQZ    0x8($pc), -0x0
+JALR    subID(16), process[0xf4]
+J       0x14($pc), -0x0, process[0xf4]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x90, 0, 0, 1, 1
+SNDA     static[0x240], static[0x30]
+PAD     static[0x100], 2, 0, 8
+BEQZ    0x8($pc), -0x0
+0x1B     static[0x284], process[0xa8]
+MOVE     pop(), process[0xa8]
+SLT      static[0x288], process[0xa8]
+BNEZAL  subID(10)
+RTE      (process[0xf4])
+}
+
+sub_0xA28_4()  //JUMP
+{
+  //RND      static[0x218], 0
+  //ADD      pop(), static[0x224]
+  sndvol = rand(0xCC) + 0x399;
+      
+  //play the 'jump' sample
+  SNDB    pop(), 0, 0, 0, 0
+  SNDB    0x40, 0, 0, 1, 1
+  SNDA     static[0x240], static[0x28]
+      
+  //MOVE     static[0x280], process[0xa8]
+  process[0xA8] = 0x106800;  //set initial jump velocity
+  
+  //MOVC    code[0x0970], process[0xF0]
+  process[0xF0] = &sub_0x970;
+  
+  //MOVE     0x1a500, process[0x150]
+  process[0x150] = 0x1a500;
+  
+  //ANIS    0, 86, 1, 3
+  changeAnim(0, 86, 1, 3);
+  
+  //ANDB     static[0x298], process[0xd0]
+  //MOVE     pop(), process[0xd0]
+  process[0xD0] &= 0xFFFFFFFC;
+  
+  while (true)
+  {
+    //MOVE     0x1a500, process[0x150]
+    process[0x150] = 0x1A500;
+  
+    //ANIS    0, 86, 63, 3
+    changeAnim(0, 86, 63, 3);
+    
+    //J       0xff4($pc), -0x0, process[0xf4]
+  } 
+
+  //RTE      (process[0xf4])
+}
+
+sub_0xA64()  //JUMP-per frame routine
+{
+  //MOVE     0, process[0xf8]
+  process[0xF8] = 0;          //this line executed only once at the instant of set into
+                              //the jump mode
+                              
+  //MOVE     process[0xe0], process[0xe8]
+  process[0xE8] = process.PC  //this routine will start at this point from here on
+  
+  //PAD     0xA0, 3, 0, 8
+  //BEQZ    0x28($pc), -0x0
+  if (ctrl(0xA0, 3, 0, 8))  //if we press () or [] (we want to spin in air)
+  {
+    //SUB      process[0x194], process[0xfc]
+    //SGE      static[0x260], pop()
+    //BEQZ    0x8($pc), -0x0
+    if (process[0xFC] - process[0x194] >= static[0x260])
+    {
+      //JALR    subID(16), process[0xf4]
+      sub_16()   //routine for spin in the air
+      
+      //J       0x14($pc), -0x0, process[0xf4]
+    }
+    else
+    {
+      //RND      static[0x218], 0
+      //ADD      pop(), static[0x224]
+      sndvol = rand(0xCC) + 0x399;
+      
+      //play the 'attempt spin but out of energy' sample
+      SNDB    pop(), 0, 0, 0, 0
+      SNDB    0x90, 0, 0, 1, 1
+      SNDA     static[0x240], static[0x30]
+    }
+  }
+  
+  //TST      static[0x170], process[0xc8]
+  //BNEZAL  subID(13)
+  if (process[0xC8] & 1)
+    sub_13();
+
+  //PAD     0x040, 2, 0, 8
+  //BEQZ    0x8($pc), -0x0
+  if (ctrl(0x040, 2, 0, 8)) //if >< is being held
+  {
+    //0x1B     static[0x284], process[0xa8]
+    //MOVE     pop(), process[0xa8]
+    process[0xA8] += (0x154E00/1024)*globScale;  //increase jump velocity
+  }
+  
+  //PAD     0x000, 0, 2, 8
+  //NOTL     pop(), pop()
+  if (!ctrl(0x000, 0, 2, 8))  //if a valid combination of directional buttons are being held
+  {
+    //BEQZ    0x4($pc), -0x0
+    //MOVE     0x100, process[0xf8]
+    process[0xF8] = 0x100;  //moving and jumping?
+  }
+  
+  //BEQZ    0xc($pc), -0x0, process[0xf8]
+  if (process[0xF8] != 0)
+  {
+    //SLT      static[0x288], process[0xa8]
+    //BNEZAL  subID(10)
+    if (process[0xA8] < static[0x288]) //if we've reached the apex?
+      sub_10();                       //then complete the jump knowing we are moving
+    
+    //J       0x8($pc), -0x0, process[0xf4]
+  }
+  else
+  {
+    //SLT      static[0x288], process[0xa8]
+    //BNEZAL  subID(11)
+    if (process[0xA8] < static[0x288]) //if we've reached the apex?
+      sub_11();                        //then complete the jump knowing we are in place
+  }
+
+  //RTE      (process[0xf4])
+}
+
+sub_0xAE0_5()
+{
+MOVC    code[0x&04x], process[0x25c]
+MOVE     0x1a500, process[0x150]
+ANIS    0, 86, 63, 3
+J       0xff4($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0xAF4_6()
+{
+ADD      0x100, process[0x1a0]
+MOVE     pop(), process[0x1a0]
+MOVE     -0x4($fp), process[0xa8]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x40, 0, 0, 1, 1
+SNDA     static[0x240], static[0x28]
+MOVC    code[0x&04x], process[0x25c]
+MOVE     0x1a500, process[0x150]
+ANIS    0, 86, 1, 3
+ANDB     static[0x298], process[0xd0]
+MOVE     pop(), process[0xd0]
+MOVE     0x1a500, process[0x150]
+ANIS    0, 86, 63, 3
+J       0xff4($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_B38()
+{
+SGT      0, process[0xa8]
+CEQ      0x1500, -0x8($fp)
+ANDL     pop(), pop()
+RNNT    subID(0), pop()
+RTE      (process[0xf4])
+}
+
+sub_0xB4C_7()
+{
+MOVC    code[0x&04x], process[0x6e]
+MOVE     -0x4($fp), process[0x124]
+MOVE     -0x8($fp), process[0xb4]
+ANDB     static[0x2a4], process[0xcc]
+MOVE     pop(), process[0xcc]
+VECT    process[0x124], 2, 3, 5, 0
+ BRA    0x07b4, 0
+RTE      (process[0xf4])
+}
+
+sub_0xB6C()
+{
+CEQ      0x1500, -0x8($fp)
+RSNF    subID(1), pop()
+RTE      (process[0xf4])
+}
+
+sub_0xB78_8()
+{
+MOVC    code[0x&04x], process[0x6e]
+MOVE     0, process[0x124]
+MOVE     0, process[0xa4]
+MOVE     0, process[0xa8]
+MOVE     0, process[0xac]
+ANDB     static[0x2a4], process[0xcc]
+MOVE     pop(), process[0xcc]
+ BRA    0x0364, 0
+RTE      (process[0xf4])
+}
+
+sub_0xB9C()
+{
+CEQ      0x1500, -0x8($fp)
+RSNF    subID(1), pop()
+RTE      (process[0xf4])
+}
+
+sub_0xBA8_9()
+{
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0xa0, 0, 0, 1, 1
+SNDA     static[0x2ac], static[0x3c]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x40, 0, 0, 1, 1
+SNDA     static[0x240], static[0x28]
+TST      0x80, process[0xc8]
+NOTL     pop(), pop()
+BEQZ    0x4($pc), -0x0
+MOVE     static[0x2b0], process[0xa8]
+MOVC    code[0x&04x], process[0x25c]
+MOVE     0x1a500, process[0x150]
+ANIS    0, 86, 1, 3
+ANDB     static[0x18c], process[0xd0]
+MOVE     pop(), process[0xd0]
+MOVE     0x1a500, process[0x150]
+ANIS    0, 86, 63, 3
+J       0xff4($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0xC04()
+{
+CEQ      static[0x1fc], process[0x128]
+BEQZ    0x30($pc), -0x0
+CEQ      0x300, -0x8($fp)
+RNNT    subID(0), pop()
+CEQ      0x1e00, -0x8($fp)
+RNNT    subID(0), pop()
+CEQ      0xe00, -0x8($fp)
+RNNT    subID(0), pop()
+CEQ      0x1900, -0x8($fp)
+RNNT    subID(0), pop()
+CEQ      0x1800, -0x8($fp)
+RNNT    subID(0), pop()
+CEQ      0x2300, -0x8($fp)
+RNNT    subID(0), pop()
+RTE      (process[0xf4])
+}
+
+sub_0xC40_10()   //jumping and moving (i.e. rolling in the air)
+{
+  //MOVC    code[0x0970], process[0xF0]
+  process[0xF0] = &sub_0x970;
+  
+  //MOVE     0x1a500, process[0x150]
+  //ANIS    0, 86, 1, 3
+  process[0x150] = 0x1A500;
+  setAnim(0, 86, 1, 3);
+  
+  //MOVE     0x1a500, process[0x150]
+  //ANIS    1, 86, 1, 3
+  process[0x150] = 0x1A500;
+  setAnim(1, 86, 1, 3);
+  
+  //MOVE     0xe300, process[0x150]
+  //ANIS    2, 86, 1, 3
+  process[0x150] = 0xE300;
+  setAnim(2, 86, 1, 3);
+  
+  //MOVE     static[0x2b4], process[0x150]
+  //ANIS    3, 86, 1, 3
+  process[0x150] = 0x1C700;
+  setAnim(3, 86, 1, 3);
+  
+  //MOVE     static[0x2b8], process[0x150]
+  //ANIS    4, 86, 1, 3
+  process[0x150] = 0x2E300;
+  setAnim(4, 86, 1, 3);
+  
+  MOVE     static[0x1dc], process[0x150]
+  ANIS    5, 86, 1, 3
+  
+  //MOVE     static[0x2c8], process[0x150]
+  //ANIS    6, 86, 1, 3
+  process[0x150] = 0x4FA00
+  setAnim(6, 86, 1, 3);
+  
+  //MOVE     static[0x2cc], process[0x150]
+  //ANIS    7, 86, 1, 3
+  process[0x150] = 0x62200
+  setAnim(7, 86, 1, 3);
+  
+  //MOVE     static[0x2d0], process[0x150]
+  //ANIS    8, 86, 1, 3
+  process[0x150] = 0x80B00;
+  setAnim(8, 86, 1, 3);
+    
+  //MOVE     static[0x2d4], process[0x150]
+  //ANIS    9, 86, 1, 3
+  process[0x150] = 0xA0000;
+  setAnim(9, 86, 1, 3);
+    
+  //MOVE     static[0x2dc], process[0x150]
+  //ANIS    10, 86, 1, 3
+  process[0x150] = 0xC1600;
+  setAnim(10, 86, 1, 3);
+    
+  //MOVE     static[0x2e0], process[0x150]
+  //ANIS    11, 86, 1, 3
+  process[0x150] = 0xD6000;
+  setAnim(11, 86, 1, 3);
+  
+  //MOVE     static[0x2ec], process[0x150]
+  //ANIS    12, 86, 1, 3
+  process[0x150] = 0xE8800;
+  setAnim(12, 86, 1, 3);
+  
+  //MOVE     static[0x2f0], process[0x150]
+  //ANIS    13, 86, 1, 3
+  process[0x150] = 0xF1C00;
+  setAnim(13, 86, 1, 3);
+  
+  //MOVE     static[0x2fc], process[0x150]
+  //ANIS    14, 86, 1, 3
+  process[0x150] = 0xF8E00;
+  setAnim(14, 86, 1, 3);
+  
+  //MOVE     static[0x300], process[0x150]
+  //ANIS    15, 86, 1, 3
+  process[0x150] = 0xFC700;
+  setAnim(15, 86, 1, 3);
+  
+  //MOVE     0, process[0x150]
+  //ANIS    16, 86, 1, 3
+  process[0x150] = 0;
+  setAnim(16, 86, 1, 3);
+  
+  //MOVC    code[0xe18], process[0xf0]
+  process[0xF0] = &sub_0xe18;
+  
+  //PSHB     static[0x0], static[0x10]
+  //NTRY     static[0x1fc], static[0x27c]
+  freePages = countFreePages({WillC, WillG}, 2);
+              
+  //NTRY     static[0x264], false
+  availablePages = countAvailablePages();
+             
+  //SLE      pop(), pop()
+  condA = (freePages <= availablePages);
+  
+  //0x1F     false, 0x6900
+  //CEQ      0, pop()
+  //ANDL     pop(), pop()
+  //BEQZ    0x50($pc), -0x0
+  if (condA && global[0x69] == 0)
+  { 
+    //NTRY     static[0x170], static[0x40]
+    //NTRY     static[0x170], static[0x10]
+    process[0xF4] = loadEntry(WiCoV, 0, 1);
+    process[0xF4] = loadEntry(WillG, 0, 1);
+
+    //MOVE     0x900, process[0x1a8]
+    process[0x1A8] = 0x900;   //do this additionally unlike regular 'in place' jump
+    
+    //MOVE     static[0x300], process[0x150]
+    process[0x150] = static[0x300];
+    
+    //ANIS    16, 86, 1, 3
+    changeAnim(16, 86, 1, 3);
+    
+    //NTRY     static[0x318], static[0x10]
+    //NTRY     static[0x318], static[0x40]
+    resultA = removeEntry(WillG, 0);   //is this actually whats happening?
+    resultB = removeEntry(WiCoV, 0);
+  
+    //ANDL     pop(), pop()
+    //BEQZ    0xfe8($pc), -0x0
+  } while (!resultA && !resultB)
+  
+  //ANIS    15, 86, 1, 3
+  changeAnim(15, 86, 1, 3);  //THEN we do this frame
+  
+   while (true)
+  {
+    //0x27     0x5C00, process[0x108]
+    setAnim(process, 0x5C);
+  
+    //MOVE     0x1ff00, process[0x10c]
+    process[0x10C] = 0x1FF00;  //i.e -1
+  
+    do
+    {
+      //ADD      0x100, process[0x10c]
+      //ANIF    pop(), 1, 3
+      //ADD      0x100, process[0x10c]
+      process[0x10C] += 0x100;
+      animate(process[0x10C], 1, 3);
+      process[0x10C] += 0x100;
+      
+      //SLE      0x400, pop()
+      //BNEZ    0xfec($pc), -0x0
+    } while (process[0x10C] <= 0x400);   //now onto falling...
+    
+    //ANIS    15, 86, 1, 3
+    changeAnim(15, 86, 1, 3);
+      
+    //J       0xfdc($pc), -0x0, process[0xf4]
+  } //continue falling...
+  
+//NEVER REACHED?!
+//J       0xc($pc), -0x0, process[0xf4]
+//MOVE     static[0x300], process[0x150]
+//ANIF    0x1000, 63, 3   DIFF
+//J       0xff4($pc), -0x0, process[0xf4]
+
+  //RTE      (process[0xf4])
+}
+
+sub_0xD50()   
+{
+BEQZ    0x24($pc), -0x0, process[0x7c]
+SLT      0, process[0xa8]
+CEQ      0x300, -0x8($fp)
+CEQ      0xe00, -0x8($fp)
+ORL      pop(), pop()
+TST      static[0x27c], link7[0xd0]
+NOTL     pop(), pop()
+ANDL     pop(), pop()
+ANDL     pop(), pop()
+RNNT    subID(0), pop()
+CEQ      0x1300, -0x8($fp)
+BEQZ    0x18($pc), -0x0
+0x1F     false, 0
+CEQ      0x1100, pop()
+0x1F     false, 0
+CEQ      0x1e00, pop()
+ORL      pop(), pop()
+RNNT    subID(0), pop()
+RTE      (process[0xf4])
+}
+
+sub_0xD9C()      //per-frame routine for jump state 'take off and land'
+{
+  //SLE      0, process[0xa8]
+  //ANDL     pop(), process[0x78]
+  //BEQZ    0x24($pc), -0x0
+  if (0 <= process[0xA8] && process[0x78]) //if we now fall and this link exists
+  {
+    //SUB      0x5000, link6[0x84]
+    //SGT      pop(), process[0x84]
+    //BEQZ    0x18($pc), -0x0
+    if (process[0x78][0x84] - 0x5000 > process[0x84])  //if at least 0x5000 higher than crash
+    {
+      //PSHA     false, process[0x1a0]
+      //0x87    0, 0, 1, 6
+      issueEvent(process, process[0x78], 0x0, {process[0x1A0]}); //issue event 0 to link (HIT AT TOP)
+          
+      //BEQZ    0xc($pc), -0x0, process[0xf4]
+      if (process[0xF4]) //additionally we might change state if this exists
+      {
+        //ADD      0x100, process[0x1a0]
+        //MOVE     pop(), process[0x1a0]
+        process[0x1A0] += 0x100;
+        
+        //JALR    subID(14), process[0xf4]
+        sub_14();     //change state 
+      }
+    }
+  }
+  
+  //TST      static[0x170], process[0xc8]
+  //BNEZAL  subID(13)
+  if (process[0xC8] & 1)     //??if process supposed to hit ground
+    sub_13();                //change state to land?
+    
+  //PAD     0xA0, 3, 0, 8
+  //BEQZ    0x28($pc), -0x0
+  if (ctrl(0xA0, 3, 0, 8))  //if we press () or [] (we want to spin in air)
+  {
+    //SUB      process[0x194], process[0xfc]
+    //SGE      static[0x260], pop()
+    //BEQZ    0x8($pc), -0x0
+    if (process[0xFC] - process[0x194] >= static[0x260])
+    {
+      //JALR    subID(16), process[0xf4]
+      sub_16()   //routine for spin in the air
+      
+      //J       0x14($pc), -0x0, process[0xf4]
+    }
+    else
+    {
+      //RND      static[0x218], 0
+      //ADD      pop(), static[0x224]
+      sndvol = rand(0xCC) + 0x399;
+      
+      //play the 'attempt spin but out of energy' sample
+      SNDB    pop(), 0, 0, 0, 0
+      SNDB    0x90, 0, 0, 1, 1
+      SNDA     static[0x240], static[0x30]
+    }
+  }
+    
+  //PAD     0x040, 2, 0, 8
+  //BEQZ    0x8($pc), -0x0
+  if (ctrl(0x040, 2, 0, 8)) //if >< is being held
+  {
+    //0x1B     static[0x284], process[0xa8]
+    //MOVE     pop(), process[0xa8]
+    process[0xA8] += (0x154E00/1024)*globScale;  //continue to increase jump velocity
+  }
+ 
+  //RTE      (process[0xf4])
+}
+
+sub_0xE18()
+{
+CEQ      0x900, process[0x1a8]
+BEQZ    0xc($pc), -0x0
+NTRY     static[0x27c], static[0x40]
+NTRY     static[0x27c], static[0x10]
+MOVE     0x700, process[0x1a8]
+ BRA    0x0970, 0
+RTE      (process[0xf4])
+}
+
+sub_0xE34_11()  //jumping in place
+{
+  //0x27     0x5a00, process[0x108]
+  setAnim(process, 0x5A);
+  
+  //MOVE     0x1ff00, process[0x10c]
+  process[0x10C] = 0x1FF00;  //i.e -1
+  
+  do
+  {
+    //ADD      0x100, process[0x10c]
+    //ANIF    pop(), 1, 3
+    //ADD      0x100, process[0x10c]
+    process[0x10C] += 0x100;
+    animate(process[0x10C], 1, 3);
+    process[0x10C] += 0x100;
+    
+    //SLE      0x500, pop()
+    //BNEZ    0xfec($pc), -0x0
+  } while (process[0x10C] <= 0x500);   //continue jumping...
+
+  //MOVC    code[0x0e18], process[0xF0]
+  process[0xF0] = &sub_0xE18;
+  
+  //PSHB     static[0x0], static[0x10]
+  //NTRY     static[0x1fc], static[0x27c]
+  freePages = countFreePages({WillC, WillG}, 2);
+              
+  //NTRY     static[0x264], false
+  availablePages = countAvailablePages();
+             
+  //SLE      pop(), pop()
+  //BEQZ    0x4c($pc), -0x0
+  if (freePages <= availablePages);
+  {
+    //MOVE     0x900, process[0x1a8]
+    process[0x1A8] = 0x900;        //
+    
+    //NTRY     static[0x170], static[0x40]
+    //NTRY     static[0x170], static[0x10]
+    process[0xF4] = loadEntry(WiCoV, 0, 1);
+    process[0xF4] = loadEntry(WillG, 0, 1);
+
+    //MOVE     static[0x300], process[0x150]
+    process[0x150] = static[0x300];
+    
+    //ANIS    15, 86, 1, 3
+    changeAnim(15, 86, 1, 3);
+    
+    //NTRY     static[0x318], static[0x10]
+    //NTRY     static[0x318], static[0x40]
+    resultA = removeEntry(WillG, 0);   //is this actually whats happening?
+    resultB = removeEntry(WiCoV, 0);
+  
+    //ANDL     pop(), pop()
+    //BEQZ    0xfec($pc), -0x0
+  } while (!resultA && !resultB)
+  
+  while (true)
+  {
+    //0x27     0x5C00, process[0x108]
+    setAnim(process, 0x5C);
+  
+    //MOVE     0x1ff00, process[0x10c]
+    process[0x10C] = 0x1FF00;  //i.e -1
+  
+    do
+    {
+      //ADD      0x100, process[0x10c]
+      //ANIF    pop(), 1, 3
+      //ADD      0x100, process[0x10c]
+      process[0x10C] += 0x100;
+      animate(process[0x10C], 1, 3);
+      process[0x10C] += 0x100;
+      
+      //SLE      0x400, pop()
+      //BNEZ    0xfec($pc), -0x0
+    } while (process[0x10C] <= 0x400);   //now onto falling...
+    
+    //ANIS    15, 86, 1, 3
+    changeAnim(15, 86, 1, 3);
+      
+    //J       0xfdc($pc), -0x0, process[0xf4]
+  } //continue falling...
+
+//NEVER REACHED?!
+//J       0xc($pc), -0x0, process[0xf4]
+//MOVE     static[0x300], process[0x150]
+//ANIS    15, 86, 63, 3
+//J       0xff4($pc), -0x0, process[0xf4]
+
+  //RTE      (process[0xf4])
+}
+
+sub_0xEC4_12()
+{
+MOVC    code[0x&04x], process[0x6e]
+ANDB     static[0x2a4], process[0xcc]
+MOVE     pop(), process[0xcc]
+0x27     0x5a00, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x500, pop()
+BNEZ    0xfec($pc), -0x0
+MOVE     static[0x300], process[0x150]
+ANIS    15, 86, 63, 3
+J       0xff4($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0xEF8()
+{
+TST      0x20, process[0xc8]
+NOTL     pop(), pop()
+TST      static[0x170], process[0xc8]
+ANDL     pop(), pop()
+BNEZAL  subID(13)
+RTE      (process[0xf4])
+}
+
+sub_0xF14_13()
+{
+MOVC    code[0x0970], process[0xf0]
+MOVE     0x3800, process[0x150]
+ANIS    0, 88, 2, 3
+MOVE     0x2d00, process[0x150]
+ANIS    1, 88, 2, 3
+MOVE     static[0x320], process[0x150]
+ANIS    2, 88, 2, 3
+MOVE     static[0x324], process[0x150]
+ANIS    3, 88, 2, 3
+MOVE     static[0x334], process[0x150]
+ANIS    4, 88, 2, 3
+JALR    subID(1), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0xF48()  //per frame routine for sub_13 (i.e. hit the ground)
+{
+  //SLT      0, process[0xa8]
+  //TST      0x4000, process[0xc8]
+  //ANDL     pop(), pop()
+  //ANDL     pop(), process[0x78]
+  //BEQZ    0x24($pc), -0x0
+  if ((process[0xA8] < 0) && (process[0xC8] & 0x4000) && process[0x78]) //if we have been falling (i.e. neg velocity), we've bounced on a box, and there is a collider
+  { 
+    //SUB      0x5000, link6[0x84]
+    //SGT      pop(), process[0x84]
+    //TST      static[0x1dc], process[0xc8]
+    //NOTL     pop(), pop()
+    //ANDL     pop(), pop()
+    //BEQZ    0xc($pc), -0x0
+    if ((process[0x78][0x84] - 0x5000 > process[0x84]) && (process[0xC8] & ... != 0)) //if at least 0x5000 higher than collider (i.e. crash)
+    {
+      //PSHA     false, static[0x33c]
+      //0x87    0, 0, 1, 6
+      issueEvent(process, process[0x78], 0x0, {process[0x1A0]}); //issue event 0 to link (HIT AT TOP) (this is how we hit objects from the top)
+
+      //BNEZAL  subID(14), process[0xf4]
+      if (process[0xF4]) { sub_14(); }
+    }
+  }
+
+  //MOVE     0, process[0x19c]
+  //MOVE     0, process[0x1a0]
+  //MOVE     0, process[0x1a4]
+  process[0x19C] = 0;
+  process[0x1A0] = 0;
+  process[0x1A4] = 0;
+
+  //MOVE     0, process[0x188]
+  process[0x188] = 0;
+
+  //RND      static[0x218], 0
+  //ADD      pop(), static[0x224]
+  sndvol = rand(0xCC) + 0x399;
+      
+  //play the 'attempt spin but out of energy' sample
+  SNDB    pop(), 0, 0, 0, 0
+  SNDB    0x90, 0, 0, 1, 1
+  SNDA     static[0x348], static[0x44]
+  
+  //-------------the above run only for the first frame of this state--------- 
+  
+  //MOVE     process[0xe0], process[0xe8]
+  process[0xE8] = process[0xE0];  //per-frame routine will now always begin here when we continue at this state
+
+  //PAD     0x040, 3, 0, 8
+  //BNEZAL  subID(4)
+  if (ctrl(0x040, 3, 0, 8)  //if >< is tapped
+    sub_4();                //(switch back to jump)
+
+  //PAD     0x0A0, 3, 0, 8   //if () or [] is pressed
+  //BEQZ    0x28($pc), -0x0
+  {
+    //SUB      process[0x194], process[0xfc]
+    process[0xFC] -= process[0x194];
+    
+    //SGE      static[0x260], pop()
+    if (process[0x194] - process[0xFC] > static[0x260])  //if its been awhile since we've last spun
+    {
+      //BEQZ    0x8($pc), -0x0
+      //JALR    subID(15), process[0xf4]
+      sub_15();  //do spin routine
+        
+      //J       0x14($pc), -0x0, process[0xf4]
+    }
+    else
+    {
+      //RND      static[0x218], 0
+      //ADD      pop(), static[0x224]
+      sndvol = rand(0xCC) + 0x399;
+        
+      //play the 'attempt spin but out of energy' sample
+      SNDB    pop(), 0, 0, 0, 0
+      SNDB    0x90, 0, 0, 1, 1
+      SNDA     static[0x240], static[0x30]
+    }
+  }
+
+  //PAD     0x000, 0, 2, 8
+  //BEQZAL  subID(2)
+  if (ctrl(0x000, 0, 2, 8)  //if directional is held
+    sub_2();                //then continue moving rather than continuing to land
+
+TST      static[0x170], process[0xc8]
+NOTL     pop(), pop()
+SUB      process[0x130], process[0xfc]
+SGE      static[0x34c], pop()
+SUB      static[0x270], process[0x84]
+SLT      pop(), process[0x184]
+ANDL     pop(), pop()
+ANDL     pop(), pop()
+BEQZ    0x18($pc), -0x0
+MOVE     process[0xfc], process[0x130]
+SLE      0, process[0xa8]
+BEQZ    0x8($pc), -0x0
+JALR    subID(11), process[0xf4]
+J       0x4($pc), -0x0, process[0xf4]
+JALR    subID(5), process[0xf4]
+MOVE     0, process[0x124]
+RTE      (process[0xf4])
+}
+
+sub_0x102C_14()
+{
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x40, 0, 0, 1, 1
+SNDA     static[0x240], static[0x28]
+MOVE     static[0x280], process[0xa8]
+MOVC    code[0x&04x], process[0x25c]
+MOVE     0x1a500, process[0x150]
+ANIS    0, 86, 1, 3
+ANDB     static[0x298], process[0xd0]
+MOVE     pop(), process[0xd0]
+MOVE     0x1a500, process[0x150]
+ANIS    0, 86, 63, 3
+J       0xff4($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1068()
+{
+MOVE     0, process[0xf8]
+SNDB    0x90, 0, 0, 1, 1
+RND      static[0x218], 0
+SUB      0x100, process[0x1a0]
+MULT     pop(), static[0x350]
+SHA      static[0x138], pop()
+ADD      pop(), pop()
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x140], static[0x48]
+MOVE     process[0xe0], process[0xe8]
+PAD     static[0x280], 3, 0, 8
+BEQZ    0x28($pc), -0x0
+SUB      process[0x194], process[0xfc]
+SGE      static[0x260], pop()
+BEQZ    0x8($pc), -0x0
+JALR    subID(16), process[0xf4]
+J       0x14($pc), -0x0, process[0xf4]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x90, 0, 0, 1, 1
+SNDA     static[0x240], static[0x30]
+TST      static[0x170], process[0xc8]
+BNEZAL  subID(13)
+PAD     static[0x100], 2, 0, 8
+BEQZ    0x8($pc), -0x0
+0x1B     static[0x284], process[0xa8]
+MOVE     pop(), process[0xa8]
+PAD     static[0x0], 0, 2, 8
+NOTL     pop(), pop()
+BEQZ    0x4($pc), -0x0
+MOVE     0x100, process[0xf8]
+BEQZ    0xc($pc), -0x0, process[0xf8]
+SLT      static[0x288], process[0xa8]
+BNEZAL  subID(10)
+J       0x8($pc), -0x0, process[0xf4]
+SLT      static[0x288], process[0xa8]
+BNEZAL  subID(11)
+RTE      (process[0xf4])
+}
+
+sub_0x1108_15()    //SPIN
+{
+MOVE     process[0xfc], process[0x188]
+SUB      process[0x194], process[0xfc]
+SGE      process[0x198], pop()
+BEQZ    0x10($pc), -0x0
+SUB      static[0x260], process[0x198]
+SUB      pop(), process[0xfc]
+MOVE     pop(), process[0x194]
+J       0x8($pc), -0x0, process[0xf4]
+ADD      static[0x260], process[0x194]
+MOVE     pop(), process[0x194]
+JALR    subID(17), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1138_16()
+{
+MOVE     process[0xfc], process[0x188]
+SUB      process[0x194], process[0xfc]
+SGE      process[0x198], pop()
+BEQZ    0x10($pc), -0x0
+SUB      static[0x260], process[0x198]
+SUB      pop(), process[0xfc]
+MOVE     pop(), process[0x194]
+J       0x8($pc), -0x0, process[0xf4]
+ADD      static[0x260], process[0x194]
+MOVE     pop(), process[0x194]
+JALR    subID(18), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1168_17()
+{
+MOVC    code[0x&04x], process[0x8b]
+ORB      static[0x144], process[0xcc]
+MOVE     pop(), process[0xcc]
+ANDB     static[0x18c], process[0xcc]
+MOVE     pop(), process[0xcc]
+SNDB    0x400, 0, 0, 0, 0
+SNDB    0xa0, 0, 0, 1, 1
+SNDA     static[0x1bc], static[0x24]
+PSHA     false, 0
+0x27     0x3800, process[0x108]
+0x13     0x700, 0xc($fp)
+ANIF    pop(), 1, 3
+SUB      process[0x188], process[0xfc]
+SGE      static[0x278], pop()
+BEQZ    0xfec($pc), -0x0
+J       0x0($pc), -0x1, process[0xf4]
+JALR    subID(19), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x11B0()
+{
+CEQ      0x2a00, -0x8($fp)
+RNNT    subID(2), pop()
+PSHA     false, static[0x170]
+0x87    0x400, 0, 1, 7
+CEQ      0x2800, -0x8($fp)
+RNNT    subID(7), pop()
+PSHA     false, process[0x7c]
+MSC     -0x4($fp), 5, 0x0, 0
+MOVE     pop(), process[0x7c]
+PSHA     false, static[0x170]
+0x87    0x400, 0, 1, 7
+MOVE     0xc($fp), process[0x7c]
+J       0x0($pc), -0x1, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x11E8()
+{
+PSHA     false, process[0x1a4]
+0x87    0x400, 0, 1, 6
+BEQZ    0x28($pc), -0x0, process[0xf4]
+SNDB    0x90, 0, 0, 1, 1
+RND      static[0x218], 0
+MULT     process[0x1a4], static[0x350]
+SHA      static[0x138], pop()
+ADD      pop(), pop()
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x140], static[0x4c]
+ADD      0x100, process[0x1a4]
+MOVE     pop(), process[0x1a4]
+PAD     static[0x100], 3, 0, 8
+BEQZ    0x8($pc), -0x0
+MOVE     0, process[0xf0]
+JALR    subID(18), process[0xf4]
+TST      0x20, process[0xc8]
+BEQZ    0x14($pc), -0x0
+SLT      0, self[0x98]
+BEQZ    0x8($pc), -0x0
+MOVE     static[0x190], process[0x18c]
+J       0x4($pc), -0x0, process[0xf4]
+MOVE     static[0x194], process[0x18c]
+ADD      process[0x18c], process[0x90]
+MOVE     pop(), process[0x90]
+RTE      (process[0xf4])
+}
+
+sub_0x1254_18()
+{
+TST      static[0x170], process[0xc8]
+BEQZ    0x8($pc), -0x0
+MOVE     static[0x280], process[0xa8]
+ANIS    0, 56, 1, 3
+ANDB     static[0x14c], process[0xd0]
+MOVE     pop(), process[0xd0]
+SNDB    0x400, 0, 0, 0, 0
+SNDB    0xa0, 0, 0, 1, 1
+SNDA     static[0x1bc], static[0x24]
+PSHA     false, 0
+0x27     0x3800, process[0x108]
+0x13     0x700, 0xc($fp)
+ANIF    pop(), 1, 3
+SUB      process[0x188], process[0xfc]
+SGE      static[0x150], pop()
+BEQZ    0xfec($pc), -0x0
+J       0x0($pc), -0x1, process[0xf4]
+JALR    subID(20), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x12A0()
+{
+MOVC    code[0x&04x], process[0x8b]
+ORB      static[0x144], process[0xcc]
+MOVE     pop(), process[0xcc]
+ANDB     static[0x18c], process[0xcc]
+MOVE     pop(), process[0xcc]
+ADD      0x100, process[0x19c]
+MOVE     pop(), process[0x19c]
+MOVE     process[0xe0], process[0xe8]
+PSHA     false, process[0x1a4]
+0x87    0x400, 0, 1, 6
+BEQZ    0x28($pc), -0x0, process[0xf4]
+SNDB    0x90, 0, 0, 1, 1
+RND      static[0x218], 0
+MULT     process[0x1a4], static[0x350]
+SHA      static[0x138], pop()
+ADD      pop(), pop()
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x140], static[0x4c]
+ADD      0x100, process[0x1a4]
+MOVE     pop(), process[0x1a4]
+SUB      process[0x100], process[0xfc]
+SGE      static[0x27c], pop()
+TST      static[0x170], process[0xc8]
+ANDL     pop(), pop()
+BNEZAL  subID(17)
+TST      0x20, process[0xc8]
+BEQZ    0x14($pc), -0x0
+SLT      0, self[0x98]
+BEQZ    0x8($pc), -0x0
+MOVE     static[0x154], process[0x18c]
+J       0x4($pc), -0x0, process[0xf4]
+MOVE     static[0x158], process[0x18c]
+ADD      process[0x18c], process[0x90]
+MOVE     pop(), process[0x90]
+PAD     static[0x100], 2, 0, 8
+SGT      0, process[0xa8]
+ANDL     pop(), pop()
+BEQZ    0x8($pc), -0x0
+0x1B     static[0x284], process[0xa8]
+MOVE     pop(), process[0xa8]
+RTE      (process[0xf4])
+}
+
+sub_0x1348_19()
+{
+PAD     static[0x0], 0, 2, 8
+TST      static[0x170], process[0xc8]
+ANDL     pop(), pop()
+BEQZ    0xc($pc), -0x0
+MOVE     0, process[0xa4]
+MOVE     0, process[0xac]
+MOVE     0, process[0x124]
+0x27     0x5e00, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLT      0x500, pop()
+BNEZ    0xfec($pc), -0x0
+JALR    subID(1), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1388()
+{
+MOVE     0, process[0x1a4]
+MOVE     process[0xe0], process[0xe8]
+PAD     static[0x100], 3, 0, 8
+BNEZAL  subID(4)
+RTE      (process[0xf4])
+}
+
+sub_0x139C_20()
+{
+JALR    subID(11), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x13A4()
+{
+MOVE     0, process[0x1a4]
+MOVC    code[0x&04x], process[0x8b]
+MOVE     process[0xe0], process[0xe8]
+RTE      (process[0xf4])
+}
+
+sub_0x13B4()
+{
+PSHA     false, -0x4($fp)
+ADD      -0x4($fp), process[0x160]
+MOVE     pop(), process[0x160]
+SGE      0x6400, process[0x160]
+BEQZ    0x18($pc), -0x0
+0x1F     false, 0x600
+MOVE     pop(), process[0x7c]
+PSHA     false, 0x100
+0x87    0x1100, 0, 1, 7
+SUB      0x6400, process[0x160]
+MOVE     pop(), process[0x160]
+J       0x0($pc), -0x1, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x13E8()
+{
+ADD      -0x4($fp), process[0x164]
+MOVE     pop(), process[0x164]
+SGT      0x6300, process[0x164]
+BEQZ    0x4($pc), -0x0
+MOVE     0x6300, process[0x164]
+RTE      (process[0xf4])
+}
+
+sub_0x1400()
+{
+PSHA     false, 0x400
+0x87    0xf00, 0, 1, 4
+SGE      0x300, process[0xf8]
+BEQZ    0xc($pc), -0x0
+MOVE     static[0x1fc], self[0x128]
+MOVE     process[0xfc], self[0x12c]
+JALR    subID(21), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1420()
+{
+MOVC    code[0x&04x], process[0x6e]
+MOVE     0xa00, process[0xf8]
+ANDB     static[0x14c], process[0xcc]
+MOVE     pop(), process[0xcc]
+ORB      0x60, process[0xcc]
+MOVE     pop(), process[0xcc]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x40, 0, 0, 1, 1
+SNDA     static[0x240], static[0x28]
+MOVE     0, process[0xa4]
+MOVE     0, process[0xac]
+MOVE     0, process[0x124]
+MOVE     static[0x2b0], process[0xa8]
+0x27     0x6000, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x700, pop()
+BNEZ    0xfec($pc), -0x0
+J       0x2c($pc), -0x0, process[0xf4]
+MOVE     0, pop()
+CHLD    1, 4, 5, 0
+ADD      0x100, 0xc($fp)
+MOVE     pop(), 0xc($fp)
+SHA      static[0x274], process[0xf8]
+SLT      pop(), 0xc($fp)
+BNEZ    0xfe8($pc), -0x0
+MOVE     pop(), false
+SUB      0x100, process[0xf8]
+MOVE     pop(), process[0xf8]
+ANIF    0x700, 1, 3
+SGT      0, process[0xa8]
+BNEZ    0xfcc($pc), -0x0
+ANDB     static[0x15c], process[0xcc]
+MOVE     pop(), process[0xcc]
+MOVE     process[0xfc], pop()
+MOVE     0, pop()
+CHLD    1, 4, 5, 0
+ADD      0x100, 0x10($fp)
+MOVE     pop(), 0x10($fp)
+SHA      static[0x274], process[0xf8]
+SLT      pop(), 0x10($fp)
+BNEZ    0xfe8($pc), -0x0
+MOVE     pop(), false
+SGT      0x500, process[0xf8]
+BEQZ    0xc($pc), -0x0
+SUB      0x100, process[0xf8]
+MOVE     pop(), process[0xf8]
+J       0x4($pc), -0x0, process[0xf4]
+MOVE     0, process[0xf8]
+ANIF    0x700, 1, 3
+SUB      0xc($fp), process[0xfc]
+SLT      -0x4($fp), pop()
+BNEZ    0xfb8($pc), -0x0
+MOVE     pop(), false
+RTE      (process[0xf4])
+}
+
+sub_0x150C_21()
+{
+CEQ      0x2700, process[0x13c]
+BEQZ    0x8($pc), -0x0
+MOVE     0x100, process[0x154]
+J       0x4($pc), -0x0, process[0xf4]
+MOVE     0, process[0x154]
+PSHA     false, static[0x160]
+ BRA    0x1420, 4
+BEQZ    0x8($pc), -0x0, process[0x154]
+ANIF    process[0x10c], 63, 3
+J       0xff8($pc), -0x0, process[0xf4]
+MOVE     0, process[0xa8]
+ORB      0x60, process[0xcc]
+MOVE     pop(), process[0xcc]
+JALR    subID(12), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1548()
+{
+CEQ      0x600, -0x8($fp)
+CEQ      0x2800, -0x8($fp)
+ORL      pop(), pop()
+RNNT    subID(0), pop()
+RTE      (process[0xf4])
+}
+
+sub_0x155C() //kill an enemy
+{
+PSHA     false, -0x4($fp)
+CEQ      0x100, 0xc($fp)
+BEQZ    0x18($pc), -0x0
+PSHA     0, 0x4c00
+CHLD    1, 13, 3, 2
+MOVE     link7[0x80], child[0x80]
+MOVE     link7[0x84], child[0x84]
+MOVE     link7[0x88], child[0x88]
+J       0x98($pc), -0x0, process[0xf4]
+CEQ      0x200, 0xc($fp)
+BEQZ    0x18($pc), -0x0
+PSHA     0, 0x5e00
+CHLD    1, 13, 3, 2
+MOVE     link7[0x80], child[0x80]
+MOVE     link7[0x84], child[0x84]
+MOVE     link7[0x88], child[0x88]
+J       0x78($pc), -0x0, process[0xf4]
+CEQ      0x300, 0xc($fp)
+BEQZ    0x18($pc), -0x0
+PSHA     0, 0x5c00
+CHLD    1, 13, 3, 2
+MOVE     link7[0x80], child[0x80]
+MOVE     link7[0x84], child[0x84]
+MOVE     link7[0x88], child[0x88]
+J       0x58($pc), -0x0, process[0xf4]
+CEQ      0x400, 0xc($fp)
+BEQZ    0x18($pc), -0x0
+PSHA     0, 0x6100
+CHLD    1, 13, 3, 2
+MOVE     link7[0x80], child[0x80]
+MOVE     link7[0x84], child[0x84]
+MOVE     link7[0x88], child[0x88]
+J       0x38($pc), -0x0, process[0xf4]
+CEQ      0x6900, 0xc($fp)
+BEQZ    0xc($pc), -0x0
+ADD      0x100, process[0x180]
+MOVE     pop(), process[0x180]
+J       0x24($pc), -0x0, process[0xf4]
+CEQ      0x6700, 0xc($fp)
+BEQZ    0xc($pc), -0x0
+ADD      0x100, process[0x178]
+MOVE     pop(), process[0x178]
+J       0x10($pc), -0x0, process[0xf4]
+CEQ      0x6800, 0xc($fp)
+BEQZ    0x8($pc), -0x0
+ADD      0x100, process[0x17c]
+MOVE     pop(), process[0x17c]
+J       0x0($pc), -0x1, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1620()
+{
+BEQZ    0x78($pc), -0x0, process[0x7c]
+PSHA     false, -0x4($fp)
+CEQ      0, 0xc($fp)
+BEQZ    0x8($pc), -0x0
+MOVE     process[0x16c], link7[0xf8]
+J       0x60($pc), -0x0, process[0xf4]
+CEQ      0x100, 0xc($fp)
+BEQZ    0x8($pc), -0x0
+MOVE     0, link7[0xf8]
+J       0x50($pc), -0x0, process[0xf4]
+CEQ      0x300, 0xc($fp)
+BEQZ    0x14($pc), -0x0
+SGT      0, process[0x1a0]
+BEQZ    0x8($pc), -0x0
+SUB      0x100, process[0x1a0]
+MOVE     pop(), process[0x1a0]
+J       0x34($pc), -0x0, process[0xf4]
+CEQ      0x800, 0xc($fp)
+BEQZ    0x8($pc), -0x0
+MOVE     0, process[0x1a0]
+J       0x24($pc), -0x0, process[0xf4]
+CEQ      0x500, 0xc($fp)
+BEQZ    0xc($pc), -0x0
+PSHA     false, 0x100
+ BRA    0x0000, 4
+J       0x10($pc), -0x0, process[0xf4]
+CEQ      0x600, 0xc($fp)
+BEQZ    0x8($pc), -0x0
+PSHA     false, 0x400
+ BRA    0x0000, 4
+J       0x0($pc), -0x1, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x16A0()
+{
+MOVC    code[0x&04x], process[0x84]
+CEQ      0x2600, process[0x13c]
+NOTL     pop(), pop()
+BEQZ    0xc($pc), -0x0
+PSHA     false, -0x4($fp)
+0x87    0x300, 0, 1, 4
+BNEZAL  subID(9), process[0xf4]
+SUB      -0x4($fp), process[0x104]
+MOVE     pop(), process[0x104]
+ANDB     static[0x164], process[0xcc]
+MOVE     pop(), process[0xcc]
+MOVE     0, process[0xa4]
+MOVE     0, process[0xa8]
+MOVE     0, process[0xac]
+0x1F     false, 0x400
+ANDB     static[0x168], pop()
+0x20     pop(), 0x400
+PSHA     false, 0
+0x87    0x1c00, 0, 1, 7
+RTE      (process[0xf4])
+}
+
+sub_0x16F0()
+{
+0x1F     false, 0x1e00
+ANDB     0x2000, pop()
+BEQZ    0x10($pc), -0x0
+MOVE     0x6400, process[0x104]
+PSHA     false, 0x100
+ BRA    0x0000, 4
+J       0x20($pc), -0x0, process[0xf4]
+MSC     0x4100, 0, 0x0, 3
+BEQZ    0xc($pc), -0x0
+SUB      0x100, process[0x164]
+MOVE     pop(), process[0x164]
+J       0xc($pc), -0x0, process[0xf4]
+0x20     0x20, 0x400
+PSHA     false, 0x200
+ BRA    0x0000, 4
+0x1F     false, 0x4400
+PAD     static[0x10], 2, 0, 8
+ANDL     pop(), pop()
+BEQZ    0x8($pc), -0x0
+0x20     0, 0x6a00
+JALR    subID(9), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1748_22()
+{
+MOVC    code[0x&04x], process[0x84]
+ORB      0x20, process[0x120]
+MOVE     pop(), process[0x120]
+0x1F     false, 0x400
+ANDB     static[0x168], pop()
+0x20     pop(), 0x400
+ANDB     static[0x16c], process[0xcc]
+MOVE     pop(), process[0xcc]
+SNDB    0xc0, 0, 0, 1, 1
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x140], static[0x50]
+SNDB    0, 3b, 0, 1, 0
+0x1F     false, 0
+PSHA     false, pop()
+CEQ      0x1100, 0xc($fp)
+CEQ      0x1e00, 0xc($fp)
+ORL      pop(), pop()
+BEQZ    0x1c($pc), -0x0
+0x20     0x1ff00, 0x6a00
+MOVE     static[0x300], process[0x150]
+ANIF    process[0x10c], 1, 3
+0x1F     false, 0x6a00
+CEQ      static[0x274], pop()
+BEQZ    0xfec($pc), -0x0
+J       0x34($pc), -0x0, process[0xf4]
+0x27     0x5a00, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x500, pop()
+BNEZ    0xfec($pc), -0x0
+0x20     0x1ff00, 0x6a00
+MOVE     static[0x300], process[0x150]
+ANIS    15, 86, 1, 3
+0x1F     false, 0x6a00
+CEQ      static[0x274], pop()
+BEQZ    0xfec($pc), -0x0
+J       0x0($pc), -0x1, process[0xf4]
+ BRA    0x16f0, 0
+MSC     false, 5, 0x1, 12
+JALR    subID(40), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x17FC()
+{
+0x1F     false, 0
+PSHA     false, pop()
+CEQ      0x1c00, 0xc($fp)
+CEQ      0x1d00, 0xc($fp)
+CEQ      0x500, 0xc($fp)
+CEQ      0x2800, 0xc($fp)
+CEQ      0x2a00, 0xc($fp)
+ORL      pop(), pop()
+ORL      pop(), pop()
+ORL      pop(), pop()
+ORL      pop(), pop()
+BEQZ    0x90($pc), -0x0
+PLCV    process[0x60], 21
+PSHA     static[0x1e0], 0
+0x22     true, pop()
+WLCV    pop(), process[0x60], 21
+PLCV    process[0x60], 22
+PSHA     static[0x1e0], 0
+0x22     true, pop()
+WLCV    pop(), process[0x60], 22
+PLCV    process[0x60], 23
+PSHA     static[0x1e0], 0
+0x22     true, pop()
+WLCV    pop(), process[0x60], 23
+PLCV    process[0x60], 21
+WLCV    pop(), process[0x60], 21
+PLCV    process[0x60], 22
+WLCV    pop(), process[0x60], 22
+PLCV    process[0x60], 23
+WLCV    pop(), process[0x60], 23
+PLCV    process[0x60], 21
+WLCV    pop(), process[0x60], 12
+PLCV    process[0x60], 22
+WLCV    pop(), process[0x60], 13
+PLCV    process[0x60], 23
+WLCV    pop(), process[0x60], 14
+PLCV    process[0x60], 21
+WLCV    pop(), process[0x60], 15
+PLCV    process[0x60], 22
+WLCV    pop(), process[0x60], 16
+PLCV    process[0x60], 23
+WLCV    pop(), process[0x60], 17
+PLCV    process[0x60], 21
+WLCV    pop(), process[0x60], 18
+PLCV    process[0x60], 22
+WLCV    pop(), process[0x60], 19
+PLCV    process[0x60], 23
+WLCV    pop(), process[0x60], 20
+J       0x0($pc), -0x1, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x18C4_23()
+{
+PSHA     false, -0x4($fp)
+ BRA    0x16a0, 4
+ANDB     static[0x174], process[0xcc]
+MOVE     pop(), process[0xcc]
+MOVE     0, process[0x8c]
+0x1F     false, 0
+PSHA     false, pop()
+CEQ      0x800, 0xc($fp)
+CEQ      0x1f00, 0xc($fp)
+CEQ      0x1700, 0xc($fp)
+CEQ      0x1b00, 0xc($fp)
+CEQ      0xa00, 0xc($fp)
+CEQ      0x2100, 0xc($fp)
+ORL      pop(), pop()
+ORL      pop(), pop()
+ORL      pop(), pop()
+ORL      pop(), pop()
+ORL      pop(), pop()
+BEQZ    0x20($pc), -0x0
+ORB      static[0x178], process[0xcc]
+MOVE     pop(), process[0xcc]
+0x1F     false, 0x400
+ORB      static[0x27c], pop()
+0x20     pop(), 0x400
+MOVE     0, process[0xa4]
+MOVE     0, process[0xac]
+J       0x28($pc), -0x0, process[0xf4]
+0x20     0, 0xa00
+0x20     process[0x60], 0x2400
+0x20     0x100, 0x3100
+0x20     0x1900, 0x3800
+0x20     static[0x1a4], 0x3900
+0x20     static[0x17c], 0x400
+ANDB     static[0x180], process[0xcc]
+MOVE     pop(), process[0xcc]
+ORB      static[0x184], process[0xcc]
+MOVE     pop(), process[0xcc]
+J       0x0($pc), -0x1, process[0xf4]
+PSHB     static[0x4], static[0x10]
+PSHB     static[0x8], static[0x10]
+PSHB     static[0xc], static[0x10]
+NTRY     static[0x1fc], static[0x24c]
+NTRY     static[0x264], false
+SLE      pop(), pop()
+BEQZ    0x1c($pc), -0x0
+NTRY     static[0x170], static[0x5c]
+NTRY     static[0x170], static[0x10]
+NTRY     static[0x170], static[0x58]
+NTRY     static[0x170], static[0x10]
+NTRY     static[0x170], static[0x54]
+NTRY     static[0x170], static[0x10]
+MOVE     0x800, process[0x1a8]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x198], static[0x60]
+RND      static[0x19c], 0
+ADD      pop(), static[0x1a0]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x1a8], static[0x64]
+0x27     0x6200, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x500, pop()
+BNEZ    0xfec($pc), -0x0
+SLT      0, self[0x98]
+BEQZ    0x8($pc), -0x0
+MOVE     static[0x1ac], process[0xf8]
+J       0x4($pc), -0x0, process[0xf4]
+MOVE     static[0x1b0], process[0xf8]
+ADD      process[0xf8], process[0x90]
+MOVE     pop(), process[0x90]
+ANIF    0x500, 1, 3
+MOVE     0, pop()
+ADD      process[0xf8], process[0x90]
+MOVE     pop(), process[0x90]
+ANIF    0x500, 1, 3
+ADD      0x100, 0xc($fp)
+MOVE     pop(), 0xc($fp)
+SLT      0x1300, 0xc($fp)
+BNEZ    0xfe4($pc), -0x0
+MOVE     pop(), false
+CEQ      0x800, process[0x1a8]
+NOTL     pop(), pop()
+NTRY     static[0x318], static[0x10]
+NTRY     static[0x318], static[0x5c]
+ANDL     pop(), pop()
+ORL      pop(), pop()
+BEQZ    0xfc0($pc), -0x0
+SLT      0, self[0x98]
+BEQZ    0xc($pc), -0x0
+ADD      static[0x1b4], process[0x90]
+MOVE     pop(), process[0x94]
+J       0x8($pc), -0x0, process[0xf4]
+SUB      static[0x1b4], process[0x90]
+MOVE     pop(), process[0x94]
+CEQ      0x800, process[0x1a8]
+BEQZ    0xd8($pc), -0x0
+0x27     0x6400, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x1300, pop()
+BNEZ    0xfec($pc), -0x0
+MOVE     0, pop()
+SUB      static[0x1b8], process[0x8c]
+MOVE     pop(), process[0x8c]
+ANIF    0x1300, 1, 3
+ADD      0x100, 0xc($fp)
+MOVE     pop(), 0xc($fp)
+SLT      0x900, 0xc($fp)
+BNEZ    0xfe4($pc), -0x0
+MOVE     pop(), false
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x1c0], static[0x68]
+0x27     0x6600, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x900, pop()
+BNEZ    0xfec($pc), -0x0
+ANIF    0x900, 12, 3
+0x27     0x6800, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x700, pop()
+BNEZ    0xfec($pc), -0x0
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x1c8], static[0x6c]
+ANIF    0x700, 21, 3
+0x20     0x1ff00, 0x6a00
+ANIF    0x700, 1, 3
+0x1F     false, 0x6a00
+CEQ      static[0x274], pop()
+BEQZ    0xff0($pc), -0x0
+NTRY     static[0x27c], static[0x5c]
+NTRY     static[0x27c], static[0x10]
+NTRY     static[0x27c], static[0x58]
+NTRY     static[0x27c], static[0x10]
+NTRY     static[0x27c], static[0x54]
+NTRY     static[0x27c], static[0x10]
+MOVE     0x700, process[0x1a8]
+ANDB     static[0x1cc], process[0xd0]
+MOVE     pop(), process[0xd0]
+ BRA    0x16f0, 0
+MSC     false, 5, 0x1, 12
+JALR    subID(40), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1B4C_24()
+{
+PSHA     false, -0x4($fp)
+ BRA    0x16a0, 4
+MOVE     0, process[0x154]
+ORB      static[0x1d0], process[0xcc]
+MOVE     pop(), process[0xcc]
+ANDB     static[0x1d4], process[0xcc]
+MOVE     pop(), process[0xcc]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x198], static[0x60]
+PSHB     static[0x4], static[0x70]
+PSHB     static[0x8], static[0x70]
+NTRY     static[0x1fc], static[0x264]
+NTRY     static[0x264], false
+SLE      pop(), pop()
+BEQZ    0x14($pc), -0x0
+NTRY     static[0x170], static[0x78]
+NTRY     static[0x170], static[0x70]
+NTRY     static[0x170], static[0x74]
+NTRY     static[0x170], static[0x70]
+MOVE     0x100, process[0x154]
+MOVE     0, process[0x8c]
+MOVE     0, process[0x94]
+ANIS    0, 98, 21, 3
+BEQZ    0x128($pc), -0x0, process[0x154]
+ANIS    0, 98, 1, 3
+NTRY     static[0x318], static[0x70]
+NTRY     static[0x318], static[0x78]
+ANDL     pop(), pop()
+BEQZ    0xfec($pc), -0x0
+MOVE     static[0x1e4], process[0x98]
+MOVE     static[0x1e4], process[0x9c]
+MOVE     static[0x1e4], process[0xa0]
+ANDB     static[0x1e8], process[0xcc]
+MOVE     pop(), process[0xcc]
+ORB      static[0x1ec], process[0xcc]
+MOVE     pop(), process[0xcc]
+MOVE     0, process[0xa4]
+MOVE     static[0x1f0], process[0xa8]
+MOVE     0, process[0xac]
+MOVE     0x100, process[0xf8]
+MOVE     process[0x84], process[0x11c]
+ADD      static[0x1f4], process[0x84]
+MOVE     pop(), process[0x84]
+ANIS    0, 32, 1, 3
+TST      static[0x170], process[0xc8]
+SLE      process[0x11c], process[0x84]
+ORL      pop(), pop()
+BEQZ    0xfec($pc), -0x0
+RND      static[0x218], 0
+ADD      pop(), static[0x1f8]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    static[0x24c], 0, 0, 1, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x140], static[0x7c]
+RND      static[0x218], 0
+ADD      pop(), static[0x1f8]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    static[0x278], 0, 0, 1, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x200], static[0x7c]
+0x27     0x2000, process[0x108]
+MOVE     0, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x1600, pop()
+BNEZ    0xfec($pc), -0x0
+NTRY     static[0x27c], static[0x78]
+NTRY     static[0x27c], static[0x70]
+RND      static[0x218], 0
+ADD      pop(), static[0x1f8]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    static[0x318], 0, 0, 1, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x204], static[0x7c]
+RND      static[0x218], 0
+ADD      pop(), static[0x1f8]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    static[0x24c], 0, 0, 1, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x240], static[0x7c]
+0x27     0x2200, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x1600, pop()
+BNEZ    0xfec($pc), -0x0
+ANIF    process[0x10c], 18, 3
+0x20     0x1ff00, 0x6a00
+ANIF    process[0x10c], 9, 3
+MOVE     0, process[0xf8]
+ANIF    process[0x10c], 1, 3
+0x1F     false, 0x6a00
+CEQ      static[0x274], pop()
+BEQZ    0xff0($pc), -0x0
+NTRY     static[0x27c], static[0x74]
+NTRY     static[0x27c], static[0x70]
+ BRA    0x16f0, 0
+MSC     false, 5, 0x1, 12
+JALR    subID(40), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1CF0()
+{
+MOVE     0, process[0xf8]
+MOVE     process[0xe0], process[0xe8]
+0x1F     false, 0xf00
+MOVE     pop(), process[0x90]
+BEQZ    0x28($pc), -0x0, process[0xf8]
+RND      static[0x264], 0
+NOTL     pop(), pop()
+BEQZ    0x8($pc), -0x0
+PSHA     false, 0
+CHLD    1, 18, 34, 1
+RND      static[0x264], 0
+NOTL     pop(), pop()
+BEQZ    0x8($pc), -0x0
+PSHA     false, 0x100
+CHLD    1, 18, 34, 1
+RTE      (process[0xf4])
+}
+
+sub_0x1D30_25()
+{
+JALR    subID(26), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1D38_26()
+PSHA     false, -0x4($fp)
+ BRA    0x16a0, 4
+ANDB     static[0x208], process[0xcc]
+MOVE     pop(), process[0xcc]
+PSHA     0x100, 0
+CHLD    3, 11, 9, 2
+PSHA     0x300, 0x200
+CHLD    1, 11, 9, 2
+PSHA     0x500, 0x400
+CHLD    1, 11, 9, 2
+PSHA     0x700, 0x600
+CHLD    1, 11, 9, 2
+PSHA     0x900, 0x800
+CHLD    1, 11, 9, 2
+0x1F     false, 0
+PSHA     false, pop()
+CEQ      0x500, 0xc($fp)
+BEQZ    0x8($pc), -0x0
+MOVE     0x300, process[0xf8]
+J       0x4($pc), -0x0, process[0xf4]
+MOVE     0xa00, process[0xf8]
+J       0x0($pc), -0x1, process[0xf4]
+MOVE     0, pop()
+SUB      0x200, process[0xf8]
+CEQ      pop(), 0xc($fp)
+BEQZ    0x4($pc), -0x0
+0x20     0x1ff00, 0x6a00
+WLCV    static[0x20c], process[0x60], 21
+WLCV    static[0x20c], process[0x60], 22
+WLCV    static[0x20c], process[0x60], 23
+WLCV    static[0x20c], process[0x60], 12
+WLCV    static[0x20c], process[0x60], 13
+WLCV    static[0x20c], process[0x60], 14
+WLCV    static[0x20c], process[0x60], 15
+WLCV    static[0x20c], process[0x60], 16
+WLCV    static[0x20c], process[0x60], 17
+WLCV    static[0x20c], process[0x60], 18
+WLCV    static[0x20c], process[0x60], 19
+WLCV    static[0x20c], process[0x60], 20
+ANIS    0, 18, 1, 3
+WLCV    0x200, process[0x60], 21
+WLCV    0x200, process[0x60], 22
+WLCV    0x200, process[0x60], 23
+WLCV    0x200, process[0x60], 12
+WLCV    0x200, process[0x60], 13
+WLCV    0x200, process[0x60], 14
+WLCV    0x200, process[0x60], 15
+WLCV    0x200, process[0x60], 16
+WLCV    0x200, process[0x60], 17
+WLCV    0x200, process[0x60], 18
+WLCV    0x200, process[0x60], 19
+WLCV    0x200, process[0x60], 20
+ANIS    1, 18, 1, 3
+ANIS    2, 18, 1, 3
+WLCV    static[0x1e0], process[0x60], 21
+WLCV    static[0x1e0], process[0x60], 22
+WLCV    static[0x1e0], process[0x60], 23
+WLCV    static[0x1e0], process[0x60], 12
+WLCV    static[0x1e0], process[0x60], 13
+WLCV    static[0x1e0], process[0x60], 14
+WLCV    static[0x1e0], process[0x60], 15
+WLCV    static[0x1e0], process[0x60], 16
+WLCV    static[0x1e0], process[0x60], 17
+WLCV    static[0x1e0], process[0x60], 18
+WLCV    static[0x1e0], process[0x60], 19
+WLCV    static[0x1e0], process[0x60], 20
+ANIS    0, 18, 1, 3
+ANIS    1, 18, 1, 3
+ANIS    2, 18, 1, 3
+ADD      0x100, 0xc($fp)
+MOVE     pop(), 0xc($fp)
+SLT      process[0xf8], 0xc($fp)
+BNEZ    0xf38($pc), -0x0
+MOVE     pop(), false
+ BRA    0x16f0, 0
+MSC     false, 5, 0x1, 12
+JALR    subID(40), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x1E70_27()
+{
+PSHA     false, -0x4($fp)
+ BRA    0x16a0, 4
+ANDB     static[0x210], process[0xcc]
+MOVE     pop(), process[0xcc]
+0x1F     false, 0x400
+ANDB     static[0x168], pop()
+0x20     pop(), 0x400
+ORB      static[0x170], process[0xcc]
+MOVE     pop(), process[0xcc]
+NTRY     static[0x264], false
+SGE      static[0x318], pop()
+BEQZ    0x10($pc), -0x0
+MOVE     0x100, process[0x154]
+NTRY     static[0x170], static[0x80]
+NTRY     static[0x170], static[0x84]
+J       0x4($pc), -0x0, process[0xf4]
+MOVE     0, process[0x154]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x198], static[0x60]
+SNDB    0xc0, 0, 0, 1, 1
+RND      static[0x218], 0
+ADD      pop(), static[0x21c]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    static[0x220], 0, 0, 1, 0
+SNDB    0, 0, 2, 0, 0
+SNDA     static[0x228], static[0x88]
+ANIS    11, 74, 30, 3
+SNDB    0xc0, 0, 0, 1, 1
+RND      static[0x22c], 0
+ADD      pop(), static[0x230]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x140], static[0x8c]
+ANIS    12, 74, 2, 3
+ANIS    11, 74, 6, 3
+SNDB    0xc0, 0, 0, 1, 1
+RND      static[0x22c], 0
+ADD      pop(), static[0x238]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x1e4], static[0x8c]
+ANIS    12, 74, 2, 3
+ANIS    11, 74, 6, 3
+NOTL     process[0x154], process[0xf4]
+BNEZ    0x18($pc), -0x0, process[0xf4]
+NTRY     static[0x318], static[0x84]
+NTRY     static[0x318], static[0x80]
+ANDL     pop(), pop()
+MOVE     pop(), process[0xf4]
+BNEZ    0x4($pc), -0x0, process[0xf4]
+MOVE     0, process[0xf4]
+BEQZ    0xfc0($pc), -0x0, process[0xf4]
+BEQZ    0x8($pc), -0x0, process[0x154]
+NTRY     static[0x170], static[0x90]
+NTRY     static[0x170], static[0x84]
+ANIS    12, 74, 2, 3
+BEQZ    0x104($pc), -0x0, process[0x154]
+MOVE     0x100, process[0xf8]
+SNDB    static[0x264], 3b, 0, 1, 0
+SNDB    0, 3b, 2, 0, 0
+SNDB    0xc0, 0, 0, 1, 1
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x198], static[0x94]
+0x27     0x2400, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x900, pop()
+BNEZ    0xfec($pc), -0x0
+NTRY     static[0x27c], static[0x80]
+NTRY     static[0x27c], static[0x84]
+NTRY     static[0x170], static[0x98]
+NTRY     static[0x170], static[0x84]
+0x27     0x2600, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x900, pop()
+BNEZ    0xfec($pc), -0x0
+NTRY     static[0x27c], static[0x90]
+NTRY     static[0x27c], static[0x84]
+NTRY     static[0x170], static[0x9c]
+NTRY     static[0x170], static[0x84]
+0x27     0x2800, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x900, pop()
+BNEZ    0xfec($pc), -0x0
+NTRY     static[0x27c], static[0x98]
+NTRY     static[0x27c], static[0x84]
+NTRY     static[0x170], static[0xa0]
+NTRY     static[0x170], static[0x84]
+0x27     0x2a00, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x900, pop()
+BNEZ    0xfec($pc), -0x0
+NTRY     static[0x27c], static[0x9c]
+NTRY     static[0x27c], static[0x84]
+0x27     0x2c00, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x700, pop()
+BNEZ    0xfec($pc), -0x0
+ANIF    process[0x10c], 48, 3
+0x20     0x1ff00, 0x6a00
+ANIF    process[0x10c], 1, 3
+0x1F     false, 0x6a00
+CEQ      static[0x274], pop()
+BEQZ    0xff0($pc), -0x0
+NTRY     static[0x27c], static[0xa0]
+NTRY     static[0x27c], static[0x84]
+BRA    0x16f0, 0
+MSC     false, 5, 0x1, 12
+JALR    subID(40), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x206C()
+{
+MOVE     0x2000, process[0xb0]
+MOVE     0, process[0xf8]
+MOVE     process[0xe0], process[0xe8]
+PLCV    process[0x60], 21
+PSHA     static[0x250], 0
+0x22     true, pop()
+WLCV    pop(), process[0x60], 21
+PLCV    process[0x60], 22
+PSHA     static[0x250], 0
+0x22     true, pop()
+WLCV    pop(), process[0x60], 22
+PLCV    process[0x60], 23
+PSHA     static[0x250], 0
+0x22     true, pop()
+WLCV    pop(), process[0x60], 23
+PLCV    process[0x60], 21
+WLCV    pop(), process[0x60], 21
+PLCV    process[0x60], 22
+WLCV    pop(), process[0x60], 22
+PLCV    process[0x60], 23
+WLCV    pop(), process[0x60], 23
+PLCV    process[0x60], 21
+WLCV    pop(), process[0x60], 12
+PLCV    process[0x60], 22
+WLCV    pop(), process[0x60], 13
+PLCV    process[0x60], 23
+WLCV    pop(), process[0x60], 14
+PLCV    process[0x60], 21
+WLCV    pop(), process[0x60], 15
+PLCV    process[0x60], 22
+WLCV    pop(), process[0x60], 16
+PLCV    process[0x60], 23
+WLCV    pop(), process[0x60], 17
+PLCV    process[0x60], 21
+WLCV    pop(), process[0x60], 18
+PLCV    process[0x60], 22
+WLCV    pop(), process[0x60], 19
+PLCV    process[0x60], 23
+WLCV    pop(), process[0x60], 20
+0x1F     false, 0xf00
+MOVE     pop(), process[0xb4]
+BEQZ    0x14($pc), -0x0, process[0xf8]
+RND      static[0x318], 0
+NOTL     pop(), pop()
+BEQZ    0x8($pc), -0x0
+PSHA     false, 0
+CHLD    1, 18, 34, 1
+RTE      (process[0xf4])
+}
+
+sub_0x212C_28()
+{
+MOVC    code[0x&04x], process[0x84]
+ANDB     static[0x254], process[0xcc]
+MOVE     pop(), process[0xcc]
+SUB      -0x4($fp), process[0x104]
+MOVE     pop(), process[0x104]
+ANDB     static[0x258], process[0xcc]
+MOVE     pop(), process[0xcc]
+0x1F     false, 0x400
+ANDB     static[0x168], pop()
+0x20     pop(), 0x400
+PSHA     false, 0
+0x87    0x1c00, 0, 1, 7
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x198], static[0x60]
+ABS      self[0x98], pop()
+MOVE     pop(), self[0x98]
+CEQ      0x2100, process[0x13c]
+BEQZ    0x44($pc), -0x0
+SNDB    0xc0, 0, 0, 1, 1
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x1a8], static[0xa4]
+SNDB    0, 3b, 0, 1, 0
+PSHA     false, -0x4($fp)
+CHLD    1, 2, 55, 1
+PSHA     -0x4($fp), 0
+CHLD    25, 0, 55, 2
+SUB      static[0x200], process[0x98]
+MOVE     pop(), process[0x98]
+MOVE     process[0x98], process[0x9c]
+MOVE     process[0x98], process[0xa0]
+ANIS    15, 86, 1, 3
+PSHA     -0x4($fp), 0
+CHLD    12, 0, 55, 2
+J       0x14($pc), -0x0, process[0xf4]
+SUB      static[0x200], process[0x98]
+MOVE     pop(), process[0x98]
+MOVE     process[0x98], process[0x9c]
+MOVE     process[0x98], process[0xa0]
+ANIS    15, 86, 1, 3
+SGT      static[0x200], process[0x98]
+BNEZ    0xfe4($pc), -0x0
+ORB      0x100, process[0xcc]
+MOVE     pop(), process[0xcc]
+MOVE     0, process[0x108]
+ANIF    0, 18, 3
+0x20     0x1ff00, 0x6a00
+MOVE     0, process[0x108]
+ANIF    0, 1, 3
+0x1F     false, 0x6a00
+CEQ      static[0x274], pop()
+BEQZ    0xfec($pc), -0x0
+ BRA    0x16f0, 0
+MSC     false, 5, 0x1, 12
+ANDB     static[0x1cc], process[0xd0]
+MOVE     pop(), process[0xd0]
+JALR    subID(40), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x2224_29()
+{
+MOVC    code[0x&04x], process[0x84]
+ BRA    0x16f0, 0
+MSC     false, 5, 0x1, 12
+JALR    subID(40), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x2238_30()
+{
+SNDB    static[0x318], 0, 0, 1, 0
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x240], static[0xa8]
+0x27     0x4800, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLT      0x700, pop()
+BNEZ    0xfec($pc), -0x0
+ANIS    8, 72, 30, 3
+RND      static[0x27c], 0
+NOTL     pop(), pop()
+BEQZ    0x34($pc), -0x0
+ANIS    9, 72, 1, 3
+ANIS    10, 72, 1, 3
+ANIS    11, 72, 1, 3
+ANIS    12, 72, 1, 3
+RND      static[0x27c], 0
+NOTL     pop(), pop()
+BEQZ    0x4($pc), -0x0
+ANIS    13, 72, 15, 3
+ANIS    13, 72, 1, 3
+ANIS    12, 72, 1, 3
+ANIS    11, 72, 1, 3
+ANIS    10, 72, 1, 3
+ANIS    9, 72, 1, 3
+J       0xfb8($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x22B4()
+{
+PAD     static[0x100], 3, 0, 8
+BNEZAL  subID(4)
+PAD     static[0x280], 3, 0, 8
+BEQZ    0x28($pc), -0x0
+SUB      process[0x194], process[0xfc]
+SGE      static[0x260], pop()
+BEQZ    0x8($pc), -0x0
+JALR    subID(15), process[0xf4]
+J       0x14($pc), -0x0, process[0xf4]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x90, 0, 0, 1, 1
+SNDA     static[0x240], static[0x30]
+ABS      process[0x124], pop()
+SHA      static[0x18c], pop()
+NOTL     pop(), pop()
+BEQZAL  subID(2)
+TST      static[0x170], process[0xc8]
+NOTL     pop(), pop()
+SUB      process[0x130], process[0xfc]
+SGE      static[0x34c], pop()
+SUB      static[0x270], process[0x84]
+SLT      pop(), process[0x184]
+ANDL     pop(), pop()
+ANDL     pop(), pop()
+BEQZ    0x18($pc), -0x0
+MOVE     process[0xfc], process[0x130]
+SLE      0, process[0xa8]
+BEQZ    0x8($pc), -0x0
+JALR    subID(11), process[0xf4]
+J       0x4($pc), -0x0, process[0xf4]
+JALR    subID(5), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x233C_31()
+{
+MOVC    code[0x&04x], process[0x84]
+CEQ      0x2500, process[0x13c]
+NOTL     pop(), pop()
+BEQZ    0xc($pc), -0x0
+PSHA     false, -0x4($fp)
+0x87    0x300, 0, 1, 4
+BNEZAL  subID(9), process[0xf4]
+MOVE     static[0x34c], process[0x138]
+MOVE     0x800, process[0x90]
+ANDB     static[0x14c], process[0xcc]
+MOVE     pop(), process[0xcc]
+MOVE     0, process[0xa4]
+MOVE     0, process[0xa8]
+MOVE     0, process[0xac]
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x198], static[0x60]
+0x1F     false, 0
+CEQ      0x700, pop()
+BEQZ    0x18($pc), -0x0
+SNDB    0xc0, 0, 0, 1, 1
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x2ac], static[0xac]
+J       0x14($pc), -0x0, process[0xf4]
+SNDB    0xc0, 0, 0, 1, 1
+RND      static[0x218], 0
+ADD      pop(), static[0x224]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x268], static[0xac]
+ANIS    0, 106, 1, 3
+ANIS    1, 106, 1, 3
+ANIS    2, 106, 1, 3
+ANIS    3, 106, 1, 3
+ANIS    4, 106, 39, 3
+ANIS    5, 106, 1, 3
+ANIS    6, 106, 1, 3
+ANIS    7, 106, 1, 3
+ANIS    8, 106, 1, 3
+ANIS    9, 106, 1, 3
+ANIS    10, 106, 1, 3
+ANIS    11, 106, 1, 3
+ANIS    12, 106, 15, 3
+ANIS    12, 106, 1, 3
+ANIS    9, 106, 1, 3
+ANIS    6, 106, 1, 3
+ANIS    4, 106, 18, 3
+0x20     0x1ff00, 0x6a00
+ANIS    4, 106, 1, 3
+0x1F     false, 0x6a00
+CEQ      static[0x274], pop()
+BEQZ    0xff0($pc), -0x0
+ BRA    0x16f0, 0
+MSC     false, 5, 0x1, 12
+JALR    subID(40), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x2428()
+{
+0x1F     false, 0
+CEQ      0xe00, pop()
+0x1F     false, 0
+CEQ      0x1300, pop()
+ORL      pop(), pop()
+NOTL     pop(), pop()
+BEQZ    0x10($pc), -0x0
+SLT      static[0x26c], process[0x140]
+BEQZ    0x8($pc), -0x0
+ADD      0x2800, process[0x140]
+MOVE     pop(), process[0x140]
+RTE      (process[0xf4])
+}
+
+sub_0x2458()
+{
+PSHA     false, process[0x1a8]
+CEQ      0xa00, 0xc($fp)
+BEQZ    0xc($pc), -0x0
+NTRY     static[0x27c], static[0xb0]
+NTRY     static[0x27c], static[0xb4]
+J       0x48($pc), -0x0, process[0xf4]
+CEQ      0xb00, 0xc($fp)
+BEQZ    0x14($pc), -0x0
+NTRY     static[0x27c], static[0xb0]
+NTRY     static[0x27c], static[0xb4]
+NTRY     static[0x27c], static[0xb8]
+NTRY     static[0x27c], static[0xb4]
+J       0x2c($pc), -0x0, process[0xf4]
+CEQ      0xc00, 0xc($fp)
+BEQZ    0xc($pc), -0x0
+NTRY     static[0x27c], static[0xbc]
+NTRY     static[0x27c], static[0xb4]
+J       0x18($pc), -0x0, process[0xf4]
+CEQ      0xd00, 0xc($fp)
+BEQZ    0x10($pc), -0x0
+NTRY     static[0x27c], static[0xbc]
+NTRY     static[0x27c], static[0xb4]
+NTRY     static[0x27c], static[0xc0]
+NTRY     static[0x27c], static[0xb4]
+J       0x0($pc), -0x1, process[0xf4]
+MOVE     0x700, process[0x1a8]
+ BRA    0x0210, 0
+RTE      (process[0xf4])
+}
+sub_0x24C8()
+{
+PSHB     static[0x8], static[0xb4]
+PSHB     static[0x0], static[0xb4]
+NTRY     static[0x1fc], static[0x264]
+NTRY     static[0x264], false
+SLE      pop(), pop()
+BEQZ    0xd4($pc), -0x0
+NTRY     static[0x170], static[0xb0]
+NTRY     static[0x170], static[0xb4]
+MOVE     0xa00, process[0x1a8]
+0x27     0x1400, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x1300, pop()
+BNEZ    0xfec($pc), -0x0
+NTRY     static[0x170], static[0xb8]
+NTRY     static[0x170], static[0xb4]
+MOVE     0xb00, process[0x1a8]
+SNDB    0x400, 0, 0, 0, 0
+SNDB    static[0x234], 0, 0, 1, 0
+SNDB    0xa0, 0, 0, 1, 1
+SNDA     static[0x198], static[0xc4]
+0x27     0x1600, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x1300, pop()
+BNEZ    0xfec($pc), -0x0
+SNDB    0x400, 0, 0, 0, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDB    static[0x264], 0, 0, 1, 0
+SNDA     static[0x198], static[0xc8]
+MSC     false, 5, 0x5, 12
+0x27     0x1800, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x1300, pop()
+BNEZ    0xfec($pc), -0x0
+MOVE     static[0x28c], process[0xa8]
+0x1F     false, 0x1e00
+ANDB     0x2000, pop()
+NOTL     pop(), pop()
+BEQZ    0x4($pc), -0x0
+MSC     0x1900, 5, 0xa, 12
+MOVE     process[0xfc], pop()
+0x1B     static[0x290], process[0xa8]
+MOVE     pop(), process[0xa8]
+0x1B     process[0xa8], process[0x84]
+MOVE     pop(), process[0x84]
+ANIF    0x1300, 1, 3
+SUB      0xc($fp), process[0xfc]
+SLT      static[0x294], pop()
+BNEZ    0xfe0($pc), -0x0
+MOVE     pop(), false
+ANIF    0x1300, 3, 3
+RTE      (process[0xf4])
+}
+
+sub_0x25B8()
+{
+PSHB     static[0x0], static[0xb4]
+PSHB     static[0xc], static[0xb4]
+NTRY     static[0x1fc], static[0x264]
+NTRY     static[0x264], false
+SLE      pop(), pop()
+BEQZ    0x104($pc), -0x0
+NTRY     static[0x170], static[0xbc]
+NTRY     static[0x170], static[0xb4]
+MOVE     0xc00, process[0x1a8]
+0x27     0x1a00, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0xf00, pop()
+BNEZ    0xfec($pc), -0x0
+NTRY     static[0x170], static[0xc0]
+NTRY     static[0x170], static[0xb4]
+MOVE     0xd00, process[0x1a8]
+0x27     0x1c00, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x1300, pop()
+BNEZ    0xfec($pc), -0x0
+MOVE     -0x4($fp), pop()
+BEQZ    0xac($pc), -0x0
+SNDB    0x400, 0, 0, 0, 0
+SNDB    static[0x264], 0, 0, 1, 0
+SNDB    0xc0, 0, 0, 1, 1
+SNDA     static[0x198], static[0xc8]
+MSC     false, 5, 0x5, 12
+0x27     0x1e00, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SLE      0x1300, pop()
+BNEZ    0xfec($pc), -0x0
+MOVE     static[0x28c], process[0xa8]
+0x1F     false, 0x1400
+SGE      0x20, pop()
+BEQZ    0x1c($pc), -0x0
+0x1F     false, 0x4800
+0x1F     false, 0x1400
+SUB      0x20, pop()
+SHA      pop(), static[0x170]
+ANDB     pop(), pop()
+MOVE     pop(), process[0xf4]
+J       0x14($pc), -0x0, process[0xf4]
+0x1F     false, 0x3f00
+0x1F     false, 0x1400
+SHA      pop(), static[0x170]
+ANDB     pop(), pop()
+MOVE     pop(), process[0xf4]
+BEQZ    0x8($pc), -0x0, process[0xf4]
+MSC     0x1900, 5, 0xa, 12
+J       0x4($pc), -0x0, process[0xf4]
+MSC     0x2d00, 5, 0xa, 12
+MOVE     process[0xfc], pop()
+0x1B     static[0x290], process[0xa8]
+MOVE     pop(), process[0xa8]
+0x1B     process[0xa8], process[0x84]
+MOVE     pop(), process[0x84]
+ANIF    0x1300, 1, 3
+SUB      0xc($fp), process[0xfc]
+SLT      static[0x294], pop()
+BNEZ    0xfe0($pc), -0x0
+MOVE     pop(), false
+ANIF    0x1300, 3, 3
+RTE      (process[0xf4])
+}
+
+sub_0x26D8_32()
+{
+MOVC    code[0x&04x], process[0x916]
+MOVE     static[0x184], process[0xcc]
+0x1F     false, 0x1e00
+ANDB     0x2000, pop()
+0x1F     false, 0x1400
+SGE      0x20, pop()
+ORL      pop(), pop()
+NOTL     pop(), pop()
+BEQZ    0x20($pc), -0x0
+0x1F     false, 0x1400
+ADD      static[0x170], pop()
+0x1F     false, 0x2f00
+SGT      pop(), pop()
+BEQZ    0xc($pc), -0x0
+0x1F     false, 0x1400
+ADD      static[0x170], pop()
+0x20     pop(), 0x2f00
+0x1F     false, 0
+PSHA     false, pop()
+CEQ      0x2100, 0xc($fp)
+CEQ      0x1b00, 0xc($fp)
+CEQ      0x1700, 0xc($fp)
+CEQ      0x1f00, 0xc($fp)
+CEQ      0x800, 0xc($fp)
+CEQ      0xa00, 0xc($fp)
+ORL      pop(), pop()
+ORL      pop(), pop()
+ORL      pop(), pop()
+ORL      pop(), pop()
+ORL      pop(), pop()
+BEQZ    0x20($pc), -0x0
+MOVE     0, process[0x13c]
+SNDB    0x400, 0, 0, 0, 0
+SNDB    0xf0, 0, 0, 1, 1
+SNDA     static[0x2ac], static[0xcc]
+PSHA     false, static[0x29c]
+ BRA    0x1420, 4
+MSC     false, 5, 0x5, 12
+J       0x13c($pc), -0x0, process[0xf4]
+0x1F     false, 0x6c00
+0x1F     false, 0x1e00
+ANDB     0x2000, pop()
+0x1F     false, 0
+CEQ      0x2c00, pop()
+ORL      pop(), pop()
+ORL      pop(), pop()
+BEQZ    0xac($pc), -0x0
+CEQ      0x200, -0x4($fp)
+BEQZ    0xc($pc), -0x0
+PSHA     false, 0
+ BRA    0x25b8, 4
+JALR    subID(33), process[0xf4]
+ BRA    0x24c8, 0
+0x1F     false, 0x6d00
+NOTL     pop(), pop()
+BEQZ    0x84($pc), -0x0
+0x1F     false, 0
+PSHA     false, pop()
+CEQ      0x2400, 0x10($fp)
+CEQ      0x3300, 0x10($fp)
+ORL      pop(), pop()
+BEQZ    0x2c($pc), -0x0
+ORB      0x100, process[0xcc]
+MOVE     pop(), process[0xcc]
+0x20     0, 0x6300
+0x20     static[0x234], 0x100
+CHLD    1, 0, 57, 0
+MOVE     0, process[0x108]
+ANIF    0, 1, 3
+0x1F     false, 0x100
+CEQ      0, pop()
+BEQZ    0xfec($pc), -0x0
+J       0x3c($pc), -0x0, process[0xf4]
+CEQ      0x3400, 0x10($fp)
+BEQZ    0x34($pc), -0x0
+0x1F     false, 0
+CEQ      0x3400, pop()
+0x1F     false, 0x100
+CEQ      0, pop()
+NOTL     pop(), pop()
+ANDL     pop(), pop()
+BEQZ    0x18($pc), -0x0
+CHLD    1, 0, 57, 0
+MOVE     0, process[0x108]
+ANIF    0, 1, 3
+0x1F     false, 0x100
+CEQ      0, pop()
+BEQZ    0xfec($pc), -0x0
+J       0x0($pc), -0x1, process[0xf4]
+J       0x70($pc), -0x0, process[0xf4]
+PSHA     false, 0x100
+ BRA    0x25b8, 4
+0x1F     false, 0x1400
+SGE      0x20, pop()
+BEQZ    0x1c($pc), -0x0
+0x1F     false, 0x4800
+0x1F     false, 0x1400
+SUB      0x20, pop()
+SHA      pop(), static[0x170]
+ANDB     pop(), pop()
+MOVE     pop(), process[0xf4]
+J       0x14($pc), -0x0, process[0xf4]
+0x1F     false, 0x3f00
+0x1F     false, 0x1400
+SHA      pop(), static[0x170]
+ANDB     pop(), pop()
+MOVE     pop(), process[0xf4]
+NOTL     process[0xf4], pop()
+BEQZ    0x24($pc), -0x0
+PSHA     false, 0x500
+ BRA    0x0000, 4
+0x1F     false, 0
+0x20     pop(), 0x4700
+0x1F     false, 0x3e00
+0x20     pop(), 0x4600
+MSC     0x2d00, 5, 0x9, 12
+ANIF    process[0x10c], 63, 3
+J       0xff8($pc), -0x0, process[0xf4]
+J       0x0($pc), -0x1, process[0xf4]
+PSHA     false, 0x300
+ BRA    0x0000, 4
+0x1F     false, 0x1e00
+ANDB     0x2000, pop()
+BEQZ    0x8($pc), -0x0
+MSC     false, 5, 0x1, 12
+J       0x4($pc), -0x0, process[0xf4]
+MSC     0x1900, 5, 0x9, 12
+ANIF    process[0x10c], 63, 3
+J       0xff8($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x28E0_33()
+{
+MOVE     static[0x184], process[0xcc]
+ANIF    process[0x10c], 1, 3
+0x1F     false, 0x1100
+CEQ      0, pop()
+BEQZ    0xff0($pc), -0x0
+MOVE     0, process[0x108]
+ANIF    0, 1, 3
+J       0xfe0($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x2904()
+{
+MOVE     static[0x2a0], process[0x140]
+0x20     process[0xfc], 0x4100
+RTE      (process[0xf4])
+}
+
+sub_0x2910_40()
+{
+  //MOVE     static[0x344], process[0x138]
+  process[0x138] = static[0x344];
+  
+  //MOVE     0, process[0x194]
+  process[0x194] = 0;
+  
+  //MOVE     static[0x308], process[0x198]
+  process[0x198] = static[0x308];
+  
+  //MOVE     0, process[0x188]
+  process[0x188] = 0;
+  
+  //MOVE     0, self[0x128]
+  process[0x128] = 0;
+  
+  //0x1F     false, 0
+  //CEQ      0x1100, pop()
+  //0x1F     false, 0
+  //CEQ      0x1e00, pop()
+  //ORL      pop(), pop()
+  //BEQZ    0x14($pc), -0x0
+  if (global[0] == 0x1100 || global[0] == 0x1E00)
+  {
+    SNDB    0x400, 0, 0, 0, 0
+    SNDB    static[0x27c], 0, 0, 1, 0
+    SNDB    0xa0, 0, 0, 1, 1
+    SNDA     static[0x198], static[0x12c]
+    JALR    subID(35), process[0xf4]
+  }
+  
+  //0x1F     false, 0
+  //CEQ      0x2100, pop()
+  //0x1F     false, 0
+  //CEQ      0x1f00, pop()
+  //0x1F     false, 0
+  //CEQ      0x1700, pop()
+  //0x1F     false, 0
+  //CEQ      0x1b00, pop()
+  //0x1F     false, 0
+  //CEQ      0x800, pop()
+  //0x1F     false, 0
+  //CEQ      0xa00, pop()
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //BEQZ    0x18($pc), -0x0
+  if (global[0] == 0x2100, 0x1F00, 0x1700, 0x1B00, 0x800, 0xA00)
+  {
+    //0x1F     false, 0x500
+    //BEQZ    0x10($pc), -0x0
+    if (global[0x5] != 0)
+    {
+      //PSHA     false, process[0x60]
+      //0x87    0x600, 0, 1, 4
+      issueEvent(process, process[0x70], 0x600, {process[0x60]});
+      
+      //PSHA     false, process[0x60]
+      //0x87    0x600, 0, 1, 4
+      issueEvent(process, process[0x70], 0x600, {process[0x60]});
+    }
+  }
+   
+  //PSHB     static[0x4], static[0x130]    0x040000d9, 0x75002055
+  //NTRY     static[0x1fc], static[0x27c]  5,          2
+  freePages = countFreePages({2001I, Ww10G}, 2); 
+      
+  //NTRY     static[0x264], false          4,          0
+  availablePages = countAvailablePages();
+      
+  //SLE      pop(), pop()
+  //NOTL     pop(), pop()
+  cond = !(freePages <= availablePages);
+  
+  //0x1F     false, 0
+  //CEQ      0x800, pop()
+  //0x1F     false, 0
+  //CEQ      0x2100, pop()
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  if (global[0] == 0x800 || global[0] == 0x2100 || cond)
+  {
+    //BNEZAL  subID(12)
+    sub_12();
+  }
+      
+  //MOVC    code[0x01b8], process[0xf0]
+  process[0xF0] = &sub_0x1B8;
+  
+  //0x1F     false, 0x6900
+  //CEQ      0, pop()
+  //BEQZ    0xc($pc), -0x0
+  if (global[0x69] == 0)
+  {
+    //NTRY     static[0x170], static[0x134]  1, 0x75002073
+    //NTRY     static[0x170], static[0x130]  1, 0x75002050
+    
+    //immediate load these vertices and polygons..
+    process[0xF4] = loadEntry(Ww10V, 0, 1);
+    process[0xF4] = loadEntry(Ww10G, 0, 1);
+    
+    //J       0x8($pc), -0x0, process[0xf4]
+  }
+  else
+  { 
+    //NTRY     static[0x24c], static[0x134]
+    //NTRY     static[0x24c], static[0x130]
+    
+    //schedule a load for these vertices and polygons..
+    process[0xF4] = loadEntry(Ww10V, 1, 1);           //This is the 'willie warp' animation
+    process[0xF4] = loadEntry(Ww10G, 1, 1);
+  }
+    
+  //MOVE     0xe00, process[0x1a8]
+  process[0x1A8] = 0xE00;
+  
+  //ANDB     static[0x31c], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= static[0x13C];
+  
+  //ORB      0x100, process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] |= 0x100;
+  
+  do
+  {
+    //ANIS    0, 74, 1, 3
+    changeAnim(0, 74, 1, 3);    //change to animation 74/frame 0, wait 1 frame and no flip
+
+    //NTRY     static[0x318], static[0x130]
+    //NTRY     static[0x318], static[0x134]
+    resultA = removeEntry(Ww10V, 0);   //is this actually whats happening?
+    resultB = removeEntry(Ww10G, 0);
+  
+    //ANDL     pop(), pop()
+    //BEQZ    0xfec($pc), -0x0
+  } while (!resultA && !resultB)
+
+  //ANIS    0, 74, 10, 3
+  changeAnim(0, 74, 1, 3);    //change to animation 74/frame 0, wait 10 frame and no flip
+
+  //PSHA     static[0x1e4], 0xa000
+  //CHLD    1, 1, 0, 2
+  spawnChild(1, 0, 1, 2);              //spawn a single (1) crash[=code type 0] of type 1 [?] 
+  -init: sub_1(static[0x1E4], 0xA000); //popping 2 words from stack to use as initializing arguments 
+
+  //PSHA     static[0x140], 0x5000
+  //CHLD    1, 1, 0, 2
+  spawnChild(1, 0, 1, 2);              //spawn a single (1) crash[=code type 0] of type 1 [?] 
+  -init: sub_1(static[0x140], 0x5000); //popping 2 words from stack to use as initializing arguments 
+
+  //PSHA     static[0x348], 0x1b000
+  //CHLD    1, 1, 0, 2
+  spawnChild(1, 0, 1, 2);               //spawn a single (1) crash[=code type 0] of type 1 [?] 
+  -init: sub_1(static[0x348], 0x1B000); //popping 2 words from stack to use as initializing arguments 
+
+  //PSHA     static[0x354], 0x16000
+  //CHLD    1, 1, 0, 2
+  spawnChild(1, 0, 1, 2);               //spawn a single (1) crash[=code type 0] of type 1 [?] 
+  -init: sub_1(static[0x354], 0x16000); //popping 2 words from stack to use as initializing arguments 
+
+  //ANDB     static[0x358], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= static[0x358];
+
+  SNDB    0x400, 0, 0, 0, 0
+  SNDB    0xa0, 0, 0, 1, 1
+  SNDA     static[0x198], static[0x12c]
+
+  //MOVC    code[0x01b8], process[0xf0]
+  process[0xF0] = &sub_0x1B8;   //load deinitialization code?
+
+  //ORB      static[0x184], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] |= static[0x184];
+
+  //0x27     0x3600, process[0x108]
+  setAnim(process, 0x36);
+
+  //MOVE     0x1500, process[0x10c]
+  process[0x10C] = 0x1500;
+
+  do
+  {
+    //ADD      0x1ff00, process[0x10c]
+    process[0x10C] -= 0x100;
+
+    //ANIF    pop(), 1, 3
+    animate(process[0x10C], 1, 3);
+
+    //ADD      0x1ff00, process[0x10c]
+    process[0x10C] -= 0x100;
+
+    //SGE      0, pop()    
+    //BNEZ    0xfec($pc), -0x0
+  } while (process[0x10C] >= 0);
+
+  //NTRY     static[0x27c], static[0x134]
+  //NTRY     static[0x27c], static[0x130]
+  process[0xF4] = removeEntry(Ww10V, 1);   //is this actually whats happening?
+  process[0xF4] = removeEntry(Ww10G, 1);
+
+  //MOVE     0x700, process[0x1a8]
+  process[0x1A8] = 0x700;
+
+  //TST      static[0x170], process[0xc8]
+  //BNEZAL  subID(1)
+  if (process[0xC8] & 1)  //if flip flop bit set
+    sub_1();            
+     
+  //JALR    subID(12), process[0xf4]
+  sub_12();
+  
+  //RTE      (process[0xf4])
+}
+
+sub_0x2AA8()
+{
+CEQ      0x1300, -0x8($fp)
+CEQ      0xe00, process[0x1a8]
+ANDL     pop(), pop()
+BEQZ    0xc($pc), -0x0
+NTRY     static[0x27c], static[0x134]
+NTRY     static[0x27c], static[0x130]
+MOVE     0x700, process[0x1a8]
+RTE      (process[0xf4])
+}
+
+sub_0x2AC8()
+{
+TST      0x20, process[0xc8]
+NOTL     pop(), pop()
+BEQZ    0x30($pc), -0x0
+0x1F     false, 0x2b00
+SLT      static[0x35c], pop()
+BEQZ    0xc($pc), -0x0
+PSHA     process[0x60], 0xfa00
+PSHA     false, static[0x360]
+CHLD    1, 3, 5, 3
+0x1F     false, 0x2b00
+SLT      static[0x294], pop()
+BEQZ    0xc($pc), -0x0
+PSHA     process[0x60], 0xfa00
+PSHA     false, static[0x360]
+CHLD    1, 3, 5, 3
+RTE      (process[0xf4])
+}
+
+sub_0x2B08_41()
+{
+MOVE     0x30, process[0x138]
+MOVE     -0x4($fp), process[0x98]
+MOVE     -0x4($fp), process[0x9c]
+MOVE     -0x4($fp), process[0xa0]
+RND      static[0x27c], 0
+NOTL     pop(), pop()
+BEQZ    0x10($pc), -0x0
+RND      static[0x364], 0
+ADD      pop(), static[0x304]
+MOVE     pop(), process[0xb8]
+J       0x10($pc), -0x0, process[0xf4]
+RND      static[0x364], 0
+ADD      pop(), static[0x304]
+SUB      pop(), 0
+MOVE     pop(), process[0xb8]
+RND      static[0x368], 0
+MOVE     pop(), process[0xf8]
+MOVE     0, process[0xa4]
+MOVE     0, process[0xa8]
+MOVE     -0x8($fp), process[0xac]
+RND      static[0x36c], 0x13800
+MOVE     pop(), process[0xbc]
+RND      0xc800, 0
+MOVE     pop(), process[0xc0]
+MOVE     -0x8($fp), process[0xc4]
+MOVE     0, process[0x108]
+ANIF    0, 1, 3
+0x27     0x2e00, process[0x108]
+RND      0x300, 0
+MOVE     pop(), process[0x10c]
+J       0x4($pc), -0x0, process[0xf4]
+ANIF    process[0x10c], 1, 3
+SGT      0, process[0x98]
+BNEZ    0xff4($pc), -0x0
+RTE      (process[0xf4])
+}
+
+sub_0x2B94()
+{
+TST      0x20, process[0xc8]
+NOTL     pop(), pop()
+BEQZ    0x9c($pc), -0x0
+PSHA     process[0xb4], process[0xb0]
+PSHA     false, process[0xb8]
+VECT    0, 6, 4, 5, 4
+ADD      process[0xa4], process[0xb0]
+MOVE     pop(), process[0x80]
+ADD      process[0xa8], process[0xb4]
+MOVE     pop(), process[0x84]
+ADD      process[0xac], process[0xb8]
+MOVE     pop(), process[0x88]
+MOVE     0x14($fp), process[0xb8]
+MOVE     0x10($fp), process[0xb4]
+MOVE     0xc($fp), process[0xb0]
+J       0x0($pc), -0x3, process[0xf4]
+PSHA     0x800, process[0xbc]
+0x22     true, process[0xa4]
+MOVE     pop(), process[0xa4]
+PSHA     0x800, process[0xc0]
+0x22     true, process[0xa8]
+MOVE     pop(), process[0xa8]
+PSHA     0x800, process[0xc4]
+0x22     true, process[0xac]
+MOVE     pop(), process[0xac]
+0x1E     process[0xf8], static[0x368]
+NOTL     pop(), pop()
+BEQZ    0x18($pc), -0x0
+RND      static[0x374], static[0x370]
+MOVE     pop(), process[0xbc]
+RND      static[0x378], 0x16000
+MOVE     pop(), process[0xc0]
+RND      static[0x374], static[0x370]
+MOVE     pop(), process[0xc4]
+ADD      process[0xb8], process[0x94]
+MOVE     pop(), process[0x94]
+TST      0x8000, link4[0x120]
+NOTL     pop(), pop()
+BEQZ    0x8($pc), -0x0
+SUB      static[0x200], process[0x98]
+MOVE     pop(), process[0x98]
+MOVE     process[0x98], process[0x9c]
+RTE      (process[0xf4])
+}

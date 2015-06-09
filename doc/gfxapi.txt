@@ -1,0 +1,99 @@
+CrashPC Graphics API
+--------------------
+
+The purpose of this document is to document the CrashPC Graphics API. 
+It is currently incomplete and provides only a short introduction to
+the scene, context, and render_manager classes.
+
+---|------------------------------------|----------------------------
+|   \(nsf)      GRAPHICS                |        GFX plugins        |
+|    \                                  |                           |
+| render_manager                        |                           |
+|     | |                               |                           |
+|-----V-V-------------------------------|---------------------------|
+|    context <----------------------------> <plugin>                |
+|-------|-------------------------------|   /  |  \                 |
+|       |                               |  .........                |
+|       V                               |                           |
+|     scene--\                          |                           |
+|       | \   \                         |                           |
+|       |  \   \                        |                           |
+|       |   \   \                       |                           |
+|       |    \   ----\                  |                           |
+|       V     V       V                 |                           |
+|     camera model geometry-----------  |                           |
+|                   /                |  |                           |
+|                   V   /model_wld <-|  |                           |
+|            prim_alloc<-model_obj <-|  |                           |
+|        texture_buffer \model_spr <-|  |                           |
+---------------------------------------------------------------------
+
+= 'scene' /include/graphics/scene.h - Essentially the CrashPC gfx api 
+core; composed of objects that can provide an graphics card compatible
+representation of the geometric data present in the binary (.NSF) files
+that compose the Crash game data. This includes all aspects required for 
+an implementation to ultimately render such data.
+
+= 'context' /include/graphics/context.h - Provides an interface for the
+implementation of a context wherein a scene can be rendered and displayed. 
+Such an implementation may include separate graphics system initialization 
+procedures. It may also include 'context plugins' that operate on the scene 
+data itself to extend functionality.
+
+= 'render manager' /include/graphics/render_manager.h - Allows for 
+simultaneous rendering and display of multiple contexts. Handles 
+per-render procedures for context plugins.
+
+...
+
+CREATING A SCENE AND A CONTEXT FOR RENDERING THE SCENE
+------------------------------------------------------
+// where IMP = implementation type for the respective classes
+render_manager *renderer = new render_manager;
+context_IMP *mainContext = new context_IMP;
+scene_IMP     *mainScene = new scene_IMP(nsd, nsf);
+
+mainContext->setScene(mainScene);
+renderer->addContext(mainContext);
+
+//init calls specific to context implementation go here
+mainContext->usePlugins(root of plugin tree);
+
+main loop
+{
+  ...
+  renderer->draw();
+}
+
+
+EX. WIN32 OPENGL IMPLEMENTATION
+-------------------------------
+render_manager *renderer = 0;
+context_wgl *mainContext = 0;
+scene_gl      *mainScene = 0;
+context_editor   *editor = 0;  // subclasses context_plugin of gfx api; defined elsewhere
+
+// onCreate() of window that includes context control
+LRESULT someWindow::onCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+  renderer    = new render_manager;
+  mainContext = new context_wgl;
+  mainScene   = new scene_gl(nsd, nsf);
+  editor      = new context_editor(this, mainContext);
+
+  mainContext->setScene(mainScene);
+  renderer->addContext(mainContext);
+  
+  addChild(mainContext);                // adds mainContext as a control/child window
+  mainContext->create(WS_EX_CLIENTEDGE, // actually creates the control
+      0, 0, 640, 480, IDC_MAINCONTEXT);
+  mainContext->usePlugins(editor);      // sets root plugin as level editor
+  mainContext->setActive();             // sets the active context; wgl requires us to do this
+} 
+
+// program main loop  
+main loop
+{
+  ...
+  renderer->draw();
+}

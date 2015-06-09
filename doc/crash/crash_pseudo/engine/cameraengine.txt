@@ -1,0 +1,1503 @@
+sub_8002B2BC:
+{
+  //CAMERA SUBROUTINE
+
+if (*(0x566B4) == 0) { return 0; }
+
+if (*(0x618B0) & 0x10000 != 0)
+{
+  sub_8002BAB4(0x618B4);
+  return 0;
+}
+
+if (*(0x618B0) & 2 == 0) { return 0; }
+
+v1 = *(0x5791C)[0x20]; //lh
+
+if (v1 > 9) { default case; //returns 1}
+else        { v1 is jumptable case; }
+
+-------------------------
+
+case 5,6:
+
+*(0x618D0) = 0x100;
+
+a0 = 0x566B4;
+a1 =       0;
+sub_8002A82C();
+
+return 1;
+
+---
+
+case 0:
+
+*(0x618D0) = 0x100;
+
+return 1;
+
+-----------------
+
+//simplest case/camera mode
+case 1,3:
+
+curZone       = *(0x57914);
+curZoneHeader = curZone[0x10];
+
+//if forceCheck is true, after traversing through neighbor zones,
+//as soon as one is found that is camera mode/case 1 or 3 it is 
+//forcibly loaded
+forceCheck = 0;
+if  (*(0x5E71C) & 0xF0 != 0)
+{
+  if (curZoneHeader[0x2FC] & 0x810000 == 0) { forceCheck = 1; }
+}
+  
+do
+{
+  //a0 = *(0x618B0);
+  //a1 = *(0x5791C);
+  //a2 = *(0x57920);   //dist from crash to cam
+  
+  curZone      = *(0x57914);
+  item3        = *(0x5791C);
+  zoneProgress = *(0x57920);
+  scaleProgress = ((zoneProgress / 256) + 1;
+  
+  curZoneHeader = curZone[0x10];
+  
+  if (curZoneHeader[0x2FC] & 0x1000 == 0) { *(0x618D0) = 0; }
+  
+  //if the current progress level is not 'at the end of the zone'
+  //i.e. its a value less than the current zone depth - 1 
+  if (scaleProgress < item3[0x1E]) //lh
+  {
+    if (s0 == 0)
+    {
+      //no new zone to load, handle the current
+      sub_80026650(curZone, item3, zoneProgress + 0x100);
+      return 1;
+    }
+  }
+
+  //if this is a zone with no neighboring zones then return
+  //(when is this ever the case? zones always have at least one other
+     zone in respect to itself...)
+  if (struct[8] == 0) { return 1; }
+
+  //use the zone after this one... 
+  //(maybe these zone types specifically have only ONE zone after
+  //them, unless in this case the first is the only significant zone)
+  newZone = EID_PROCESS(curZoneHeader[0x214 + (item3[0xD] * 4)]);
+  
+  //grab the correct item3 for this significant zone
+  neighbItem1 = entry[0x10];  //v1
+  neighbItem3 = entry[0x10 + ((item3[0xE] + neighbItem1[0x204])*4)];
+
+  //check if zone in reverse?
+  if (struct[0xF] & 1 == 0)
+    progress = (neighbItem3[0x1E] - 1) * 256;
+  else
+    progress = 0;
+
+  //load this zone
+  sub_80025A60(newZone, neighbItem3, progress, 0);
+  newZone       = *(0x57914); //optional, check to be sure the new zone was loaded
+  newItem3      = *(0x5791C);
+  newZoneHeader = newZone[0x10];
+  
+  //if zone has this bit set, record new state information about the zone
+  if (newZoneHeader[0x2FC] & 0x1000 == 0)
+  {
+    crash = *(0x566B4);     
+    state = *(0x57974);  
+    sub_80026460(crash, state, 1);
+  }
+
+  if (forceCheck == 0) { return 1; }
+
+} while (newItem3[0x20] != 3 && newItem3[0x20] != 1)
+//after looping the zone is no longer new, appropriate to call the current
+
+return 1;
+ 
+      
+case 8:
+
+found = -1;
+count  = 0;
+struct = *(0x5791C);  //a1
+
+v0 = *(0x61994);
+
+numOf = struct[8];
+
+if (numOf != 0)
+{
+  //find a zone oppposite the previous' flags?
+  a3 = (*(0x61994) & 3) ^ 3;
+  
+  do
+  {
+    if (item3[0xC+(count*4)] & 3 == a3) { found = count; break }
+    count++;
+
+  } while (count < numOf)
+}
+
+
+scaleProgress = (*(0x57920)/256) + 1;
+
+if (*(0x61994) & 1 == 0) 
+{
+  curZone       =  *(0x57914);
+  item3         =  *(0x5791C);
+  progress      =  *(0x57920);
+  curZoneHeader = curZone[0x10];
+  scaleProgress = (*(0x57920)/256) - 1;
+
+  //if current progress 'not at the start of the zone'
+  if (scaleProgress >= 0)
+  {
+    progress =  *(0x57920) - 256;  //back one
+    sub_80025A60(curZone, item3, progress, 0);
+  }
+  else if (found != -1)   
+  {
+    bitfield       = item3[0xC + (found*4)];  //lbu
+    newZoneIndex   = item3[0xD + (found*4)];
+    newZoneI3Index = item3[0xE + (found*4)];
+    
+    newZone = EID_PROCESS(curZoneHeader[0x214 + (newZoneIndex * 4)]);
+    newZoneHeader = newZone[0x10];
+    
+    newZoneItem3 = newZone[0x10 + ((newZoneI3Index + newZoneHeader[0x204])*4)];
+  
+    if (bitfield & 1 == 0)
+    {
+      a2 = (itemN[0x1E] - 1) * 256;
+    }
+    sub_80025A60();
+  }
+}
+else if (val < struct[0x1E]) 
+{  
+
+  a0 =         *(0x57914);
+  a1 =             struct;
+  a2 = *(0x57920) + 0x100;
+  a3 =                  0;
+
+  sub_80025A60();
+  
+}
+else if (found != -1) 
+{ 
+
+  byteA = struct[0xD + (found*4)];  //lbu
+  byteB = struct[0xE + (found*4)];
+  byteC = struct[0xF + (found*4)];
+
+  gInfo = *(0x57914)[0x10];
+  a0    = gInfo[0x214 + (byteA*4)];
+
+  entry = EID_PROCESS(a0); //a3
+
+  item1 = entry[0x10];
+  itemN = entry[0x10 + ((byteB + item1[0x204])*4)];
+  
+  a0 = entry;
+  a1 = itemN;
+  a2 = 0;
+  a3 = 0;
+  if (byteC & 1 == 0)
+  {
+    a2 = (itemN[0x1E] - 1) * 256;
+  }
+  sub_80025A60();
+
+}
+
+
+if (struct[0x20] != 8) 
+{
+  *(0x61994) = 1;
+}
+ 
+return 1; 
+
+
+----
+
+case 7:
+
+if (*(0x61994) == 0) { return 0; }
+
+if (*(0x61994) < 0) 
+{
+  if (*(0x61994) == -1) { 2b7a4 }
+  else                  { 2b7bc }
+}
+else
+{
+  if      (*(0x61994) > 7) { 2b7bc; }
+
+  //s3 = 0x22;   
+  else if (*(0x61994) < 5) { 2b7bc; } 
+ 
+  else                     { 2b810; }
+}
+
+2b7a4:
+
+v0 = *(0x6198C) & 0xFFF;
+
+s4 =   1;
+s3 = -v0;
+
+goto 2b810
+
+--
+
+2b7bc:
+
+a0 = *(0x57874);
+a1 = *(0x6198C);
+rval = sub_800245F0();
+
+v0 = abs(rval);
+
+if (v0 < 0x17) { s3 = 0; }
+else
+{
+
+  if      (rval  > 0) { s3 = 1; }
+  else if (rval <= 0) { s3 = 0; }  //or is it -1 when < 0?
+  
+}
+
+2b810:
+
+s7 = 0xFFFFFFFF;
+
+s6 = s4 + 4
+fp = s4 + 3
+
+struct = *(0x5791C);  //
+a0     = *(0x57920);
+
+do
+{
+  if (s3 == 0) { exit loop to 2ba20; }
+
+  s2 = struct;
+  s5 = *(0x57920);
+
+  v0 = *(0x61994);
+
+  if (*(0x61994) == -1)
+  {
+    offset =  ((*(0x57920)/256)*12;
+    a0     = struct[0x3A + offset];
+    
+    if (s3 >= 0) { a1 = s3; } else { a1 = -s3; }
+    rval = sub_80024F50();
+
+    v0 = abs(rval);
+
+    if (v0 < 0x17) { exit loop to 2ba20; }
+  }
+
+  if (s6 == 0)
+  {
+    a0 = *(0x57920) + 256;
+  }
+  else
+  {
+    a0 = *(0x57920) + 1024;
+  }
+
+  if (a0 < (struct[0x1E]*256))  { 2b9e4; }
+
+  found = -1;
+  if (struct[8] != 0)
+  {
+    count = 0;
+    do
+    {
+      val = struct[0xF + (count*4)];
+
+      if (val == s4 || (found == -1 && (struct[8] == 1 || (val & 3) == fp)))
+      { 
+        found = count;
+      }
+             
+      count++;
+    } while (count < struct[8])
+  }
+
+  if (found == -1)
+  {
+ 
+    if (struct[8] != 0)
+    {
+
+      a1 = struct[8];
+      a0 = struct;
+
+      count = 0;   //v1
+      do
+      {
+        val = struct[0xF + (count*4)];
+
+        if ((val & 4) == 0) { found = count; exit loop; }
+
+        count++;
+      } while (count < struct[8])
+
+    }
+  
+  }
+
+  byteA = struct[0xD + (found*4)];  //a0
+  byteB = struct[0xE + (found*4)];
+  byteC = struct[0xF + (found*4)]; 
+ 
+  pointer = struct[4];  
+
+  offset = (pointer[0x10] + (byteA * 4));
+
+  EID = pointer[0x214 + offset];
+
+  entry = EID_PROCESS(EID);
+
+  item1 = entry[0x10];
+  itemN = entry[0x10 + ((byteB + item1[0x204]) * 4)];  //s1
+
+
+  if (byteC & 1 == 0)
+  {
+    a0 = (itemN[0x1E] - 1) * 256;
+  }
+  else
+  {
+    a0 = 0;
+  }
+
+  if (s6 == 0 && s3 <= 0) 
+  { 
+    if (struct           !=    itemN) { continue looping; }
+    if ((*(0x57920)/256) != (a0/256)) { continue looping; }  
+  }
+
+  s2 = itemN;
+  s5 = a0;
+  
+  2b92c:
+  exit loop to 2ba20
+    
+}
+    
+2ba20:
+
+if (*(0x61994) == -1) { *(0x61994) = s4; }  //this is where 0x61994 is set
+
+if (itemN != 0)                             //if itemN was not null
+{
+
+  if (itemN == struct)                      //then struct this whole time was just an itemN?
+  {
+    if (a0 == *(0x57920))   { return 1; }
+  }
+
+  a0 = struct[4];  //the pointer
+  a1 =    struct;
+  a2 =        s5;
+  a3 =         0;
+  sub_80025A60();
+}
+
+return 1;
+
+==========================================
+
+sub_8002A82C(process, flag)
+{
+  //s5 = process
+  
+  s4 = 0
+  t1 = 0x7FFFFFFF;
+  
+  zone = *(0x57914);
+  item3 = *(0x5791C);
+  zoneZ = *(0x57920);
+  
+  playerY = process[0x84];
+  var_48 = playerY;
+  
+  zoneDepth = item3[0x1E];
+  
+  //0x30 = sample zone depth
+  //0x1700 = sample zone Z
+  
+  //for smaller zones ( < 0x32 ) both flags should set
+  
+  //if at less than halfway but max of 0x32 into zone
+  if (zoneZ/256 < zoneDepth/2 || zoneZ/256 < 0x32)
+    s7 = 1;
+  
+  //if at more than halfway but max of 0x32 from end of zone
+  if (zoneZ/256 > zoneDepth/2 || zoneDepth/2-zoneZ/256 < 0x32)
+    s7 |= 2;
+    
+  
+  zoneHeader = zone[0x10]
+  zoneFlags = zoneHeader[0x2FC];
+ 
+  s6 = 1;
+  fp = 1;
+  
+  
+  if (zoneFlags & 0x80 == 0)
+  {
+    if (0x31FFF < gp[0xAC])
+    {
+      //goto 2a93c
+      if (*(0x5E720) & 0x1000 == 0)
+      {
+        if (*(0x5E720) & 0x4000 == 1)
+          gp[0xB0] = 1;
+        else
+          //nothing
+      }
+      else
+        gp[0xB0] = 0;  
+    }        
+  }
+  else 
+  {
+    if (zoneFlags & 0x8000 == 0)
+      gp[0xB0] = 0;
+    else
+      gp[0xB0] = 1;
+  }
+  
+  if (*(0x5E720) & 0x8000 == 0)
+  {
+    if (*(0x5E720) == 1)
+      gp[0xB4] = 1;
+    else
+      //nothing
+  }
+  else
+    gp[0xB4] = 0;
+    
+      
+  //----
+  
+  //gp[0xA8] seems to be the value used for dist in camera zoom
+  //based on facing forward or backward
+  //gp[0xB0] seems to be the flag set for when face forward = 0 or backward = 1
+  //gp[0xB4] seems to be the flag set for when face left = 0 or right = 1
+  
+  bound = 0;
+  if (gp[0xB0] == 1)
+  {
+    if (*(0x5C53C)[4] == 3) //different dist for cortex power
+    {
+      gp[0xA8] += 0x3200;
+      
+      bound = 0x4B000;
+    }
+    else
+    {
+      gp[0xA8] += 0x3200;
+      
+      bound = 0x12C00;
+    }
+  }
+  else
+  {
+    gp[0xA8] -= 0x3200;
+    
+    bound = 0xFFFED400;
+  }
+  
+  if (gp[0xA8] < bound)
+    gp[0xA8] = bound;
+    
+  //---
+  
+  //guessing this is for the zones of first-person viewed levels
+  //that are to be travelled left to right rather than forward and back
+  
+  if (zoneFlags & 0x4000 == 0) { gp[0xBC] = 0; //2ab40}
+  else if (item3[0x2C] == 0)   { //nothing     //2ab40}
+  else
+  {
+    if (gp[0xB4] == 0)
+    {
+      newVal = gp[0xBC] - 0x6400;
+      
+      if (item3[0x2C] < 0)
+      {
+        if (newVal < 0xFFFB5000)
+        {
+          if (item3[0x2C] < 0)
+            bound = 0xFFFB5000;
+          else
+            bound = 0;
+        }
+        else
+          bound = newVal;
+      }
+      else
+      {
+        if (newVal >= 0)
+          bound = newVal;
+        else
+        {
+          if (item3[0x2C] < 0)
+            bound = 0xFFFB5000;
+          else
+            bound = 0;
+        }
+      }   
+    }
+    else
+    {
+      newVal = gp[0xBC] + 0x6400;
+      
+      if (item3[0x2C] > 0)
+      {
+        if (0x4B000 < newVal)
+        {
+          if (gp[0x2C] > 0)
+            bound = 0x4B000;
+          else
+            bound = 0;
+        }
+        else
+          bound = newVal
+      }
+      else
+      {
+        if (newVal > 0)
+          bound = newVal;
+        else
+        {
+          if (gp[0x2C] > 0)
+            bound = 0x4B000;
+          else
+            bound = 0;
+        }
+      }
+    }
+    
+    gp[0xBC] = bound;
+  }
+  //----------------------------
+  
+  byteStructCount = item3[8];
+  if (byteStructCount != 0)
+  {
+    count = 0;
+    
+    offset = count*4;  //i.e. no offset
+    
+    
+    do
+    {
+      zoneHeader = *(0x57914)[0x10];
+ 
+      bitfieldA = item3[0xC + offset]; //byte
+      neighborIndex = item3[0xD + offset];
+      neighbItem3Index = item3[0xE + offset];
+    
+      //s7 bit one = less than halfway into zone
+      //s7 bit two = more than halfway into zone
+      //(only two bits that will be set)
+      
+      //then this check must determine the zones that are
+      //only more or less than halfway in relation to the current
+      //(based on how far into the current) (i.e. either zones in front or zones behind)      
+      if (bitfieldA & s7 != 0)
+      {
+        neighborEID = zoneHeader[0x214 + (neighborIndex*4)]
+        neighbor = EID_PROCESS(neighborEID);
+        neighbHeader = neighbor[0x10];
+        neighbItem3Offset = neighbHeader[0x204];
+
+        neighbItem3 = neighbor[0x10 + (neighbItem3Offset + neighbItem3Index)];
+      
+        //how much of the progress of the neighbor be determined by Y and Z?
+        flagA = neighbItem3[0x2E]; //lh
+        flagB = neighbItem3[0x30]; //lh
+      
+        //
+        if (flagA != 0)
+          s2 = neighbItem3[0x24] * 256; //lh  
+        if (flagB != 0)
+          s1 = neighbItem3[0x24] * 256; //lh
+      }
+    
+      count++; 
+      offset = count*4;
+    } while (count < byteStructCount)
+  }
+  
+    
+  if (item3[0x2E] != 0)
+  {
+    fp = 0;
+    s2 = item3[0x24] * 256;
+  }
+  if (item3[0x30] != 0)
+  {
+    s6 = 0;
+    s1 = item3[0x24] * 256;
+  }
+  
+  zoneZ = *(0x57920);
+  zoneDepth = item3[0x1E];
+  
+  //maybe s1-s2 is the Z range for the entire zone
+  
+  if (  s1 != 0       && 
+      zoneZ/256 >= 11 &&
+      zoneZ/256 < zoneDepth-10)
+  {
+    //and s6 is first section flag?
+    if (s6 != 0)
+      gp[0xAC] = s1;
+    else
+    //changes gp[0xAC], restricting to max change of 0x1900
+      gp[0xAC] = sub_80024628(gp[0xAC], s1, 0x1900);
+  }
+  
+  if (s2 != 0)
+  {
+    //change in cam Z RELATIVE TO ZONE is calculated based on
+    //-change in cam based on forward or back
+    //-the 0xAC value calculated above
+    //-total zoom relative to a process value [0x140]                                
+    sum = gp[0xAC] + gp[0xA8];  
+    s6 = sum + process[0x140];  
+    
+    //change in cam Y RELATIVE TO ZONE is calculated based on
+    //-the s2 value from the entry, given less than 0x6400 from its previous value
+    //fp is last section flag?
+    if (fp != 0)
+      gp[0xB8] = s2;
+    else
+      gp[0xB8] = sub_80024628(gp[0xB8], s2, 0x6400);
+  }
+ 
+  subInput       = &var_130;
+  subInputOffset = s4 * 0x34;
+  subInputStruct = &subInput[subInputOffset];
+  
+  subInputStruct[0x24] = gp[0xBC];   //change in camera RELATIVE TO ZONE due to zone x offset and face l/r offset
+  subInputStruct[0x2C] = gp[0xB8];   //change in camera RELATIVE TO ZONE due to zone y offset and face f/b offset
+  subInputStruct[0x28] = s6;         
+  
+  if (item3[0x30] != 0)
+  {
+    playerX = process[0x80];
+    playerY = process[0x84];
+    playerZ = process[0x88];
+    
+    transVector = {playerX, playerY, playerZ};
+    
+    //last arg = var_138?
+    retval = sub_8002A3EC(transVector, item3, subInputStruct, 0, 0);
+  }
+  else
+  {
+    //this portion used for parts that seem to 'semi-follow' crash
+    //ex: stairs in n-sanity beach
+    //gp[0xBC] = a1
+    //gp[0xB8] = t0
+    
+    playerX = process[0x80];
+    playerY = process[0x84];
+    playerZ = process[0x88];
+    
+    transVector = {playerX + gp[0xBC], playerY + gp[0xB8], playerZ + s6};
+    
+    
+    retval = sub_002A0C4(transVector, item3, subInputStruct, 0, 0);
+  }
+  
+//struct[0] = item3
+//struct[4] = item3 that is not current
+//struct[8] = zone progress * 256
+//struct[0xC] = ?
+//struct[0x10]
+//struct[0x14] = change in progress from current * 256
+//struct[0x18] = euclidian cam dist from crash
+//struct[0x1C] = change in progress was backward = 1, foreward = 2
+//struct[0x20] = 
+//struct[0x24] = cam adjust X due to face left and right
+//struct[0x28] = cam adjust Z due to face forward and back
+//struct[0x2C] = cam adjust Y due to face forward and back
+//struct[0x30] = progress made flag
+
+  //if progress made or (exceed 'max and min progress' and still same item3)
+  if (retval != 0)
+  {
+    //*(0x57920) is current zone progress value but what differentiates this from
+    //a normal progress value is that it is multiple of 256
+    //subInputStruct[8] has the new progress value at multiple of 256
+    
+    newProgress = subInputStruct[8];
+    oldProgress = *(0x57920);
+    
+    //dist is change in progress
+    dist = abs(newProgress - oldProgress);
+    subInputStruct[0x14] = dist;
+    
+    //was the change forward or backward?
+    if (newProgress < oldProgress)
+      subInputStruct[0x1C] = 1;
+    else
+      subInputStruct[0x1C] = 2;
+      
+    s4++; //new subinputstruct
+
+  }
+ 
+  byteStructCount = item3[8];
+  
+  if (byteStructCount != 0)
+  {
+    countA = 0; //s3
+    countB = 0; //s2
+    
+    newInputStruct = &var_130[0x34*s4];
+
+    do
+    {
+      flag = item3[0xF + s2];
+      
+      if (flag & 4)
+      {
+        elapsed = *(0x60E04);
+        other = *(0x61990);
+        
+        if (elapsed - other >= 0x10) { exit to end of loop }
+      }
+      
+      if (item3[0xC + s2] & s7 == 0) { exit to end of loop }
+      
+      neighborIndex = item3[0xD + s2];
+      neighbItem3Index = item3[0xE + s2];
+      neighborEID = zoneHeader[0x214 + (neighborIndex*4)]
+      neighbor = EID_PROCESS(neighborEID);
+      neighbHeader = neighbor[0x10];
+      neighbItem3Offset = neighbHeader[0x204];
+      neighbItem3 = neighbor[0x10 + (neighbItem3Offset + neighbItem3Index)];
+      
+      item3Val       = abs(item3[0x2E]);
+      neighbitem3Val = abs(neighbItem3[0x2E]);
+     
+      if (item3Val == neighbitem3Val)
+      {
+        item3ValB       = abs(item3[0x30]);
+        neighbitem3ValB = abs(neighbitem3Val[0x30]);
+        
+        if (0 < item3ValB ^ neighbitem3ValB)
+          t0 = 1;
+      }
+         
+      newInputStruct[0x28] = s6;
+      newInputStruct[0x24] = gp[0xBC];
+      newInputStruct[0x2C] = gp[0xB8];
+      
+      //a0 = &var_60
+      if (neighbItem3[0x30] != 0)
+      {
+        playerX = process[0x80];
+        playerZ = process[0x88];
+    
+        transVector = {playerX, var_48, playerZ};
+
+        flag = item3[0xF + s2];
+        
+        retval = sub_8002A3EC(transVector, neighbItem3, newInputStruct, flag, t0);        
+      }
+      else
+      {
+        playerX = process[0x80];
+        playerZ = process[0x88];
+        
+        transVector = {playerX+gp[0xBC],var_48+gp[0xB8],playerZ+s6}
+
+        flag = item3[0xF + s2];
+
+        retval = sub_8002A0C4(transVector, neighbItem3, newInputStruct, flag, t0);
+      }
+      
+      if (retval != 0)
+      {
+        newZ = 0;
+        zoneZ = *(0x57920);
+        if (item3[0xC + s2] & 1 != 0)
+          newInputStruct[0xC] = 0;
+        else
+        {
+          zoneBound = item3[0x1E];
+          newInputStruct[0xC] = ((zoneBound * 256)-1) - zoneZ;
+        }
+          
+        flag = item3[0xF + s2];
+          
+          
+        if (flag & 1)
+        {
+          newInputStruct[0x10] = 0;
+          newInputStruct[0x14] = newInputStruct[8] + 0x100 + zoneZ;
+          newInputStruct[0x20] = 2;
+        }
+        else
+        {
+          newInputStruct[0x10] = ((zoneBound*256)-1)
+          newInputStruct[0x14] = ((zoneBound * 256) - (newInputStruct[8] + 1)) + 0x100 + zoneZ;
+          newInputStruct[0x20] = 1;
+        }
+       
+        newInputStruct[0x1C] = item3[0xC+s2];
+      
+        //next input struct
+        newInputStruct+=0x34;
+        s4++;  //equivalent  
+      }
+      
+      countA++;
+      s2+=4;  //also next bytestruct
+    } while (countA < byteStructCount)
+  }
+      
+  //s0 = &var_130
+  
+  inputStructs = &var_130;
+  sigInputStruct = inputStructs;
+  
+  count = 0; //s3
+  
+  
+  if (s4 == 0) { return; }
+  
+  if (s4 > 0)            
+  {
+    do
+    {
+      inputStruct = inputStruct[count*0x34];
+      
+      linkStruct = inputStruct[0];
+      if (linkStruct[0x20] == 1) //lh
+        break;
+      
+      if (sigInputStruct[0x30] < inputStruct[0x30] ||
+          inputStruct[0x18] < var_50 && sigInputStruct[0x30] < inputStruct[0x30])
+      {
+        var_50 = inputStruct[0x18];
+        sigInputStruct = inputStruct;
+      }
+      
+      count++;
+    } while (count < s4)
+  }
+        
+  if (sigInputStruct[0x14] == 0) { return; }
+  
+  val = item3[0x22] * sigInputStruct[0x14];
+  
+  if (val < 0x7531)
+  {
+    structItem3 = sigInputStruct[0];
+    
+    //use 
+    //- corresponding zone entry for item3 referred to by struct
+    //- item 3 referred to by struct
+    //- field 8 of the struct is then the zone progress position
+    //- (*(0x57920) then would be current zone progress?)
+    
+    sub_80025A60(structItem3[4], structItem3, sigInputStruct[8], 0);
+        
+    gp[0x1C4] = sigInputStruct[0x14];
+  }
+  else
+  {
+    if (sigInputStruct[0x14] < 0x201)
+    {
+      gp[0x1C4] = (sigInputStruct[0x14] + sign(sigInputStruct[0x14]))/2;
+    }
+    else if (sigInputStruct[0x14] < 0x500)
+    {
+      gp[0x1C4] = 0x200;
+    }
+    else
+    {
+      v1 = (sigInputStruct[0x14] + sign(sigInputStruct[0x14]))/2;
+      a0 = gp[0x1C4] + 0x100;
+  
+      if (a0 < v1)
+        v1 = a0;
+        
+      gp[0x1C4] = v1;
+    }
+  }
+  
+  sub_80029F6C(gp[0x1C4], sigInputStruct);     
+}      
+      
+-------------------
+
+sub_80024628(oldZvalue, newZvalue, max)
+{
+  diff = newZvalue - oldZvalue;
+
+  if (max <= 0)
+  {
+    return (diff > 0 ? oldZvalue + max : oldZvalue - max);
+  }
+  else
+  {
+    if (abs(diff) < max) { return newZvalue; }
+    return (diff > 0 ? oldZvalue + max : oldZvalue - max);
+  }
+}
+    
+-----------------------
+
+//transVector = change in x, y, z due to player position and additional cam follow shift
+
+sub_002A0C4(transVector, item3, subInputStruct, bitfield, flag);
+{
+  //t0 = item3
+  //s0 = subInputStruct
+  //a0 = transVector
+  
+  entrywCamItem = item3[0x4];
+  camItem = entrywCamItem[0x14]; //t3
+  
+  subInputStruct[0x30] = 1;
+  
+  transX = transVector[0] / 16;
+  transY = transVector[4] / 16;
+  transZ = transVector[8] / 16;
+  
+  
+  //item 2 index 0-8 is vector describing offset of entire zone, relative to all sections
+  //the item 3's index 0x32-0x36 is additional offset of the particular section that the item3 describes
+  //adding will yield the total section position
+  
+  //and of course, subtracting from the transVector which describes the camera position
+  //will yield the camera's 'progress' into that section (mult of 16 in this case)
+  zoneX = (camItem[0] + item3[0x32]) * 16;
+  var_28 = transX - zoneX;  //mult of 16
+  
+  zoneY = (camItem[4] + item3[0x34]) * 16;
+  var_24 = transY - zoneY;
+  
+  zoneZ = (camItem[8] + item3[0x36]) * 16;
+  var_20 = transZ - zoneZ;
+
+  //the vector at 0x2C concerns (for each dimension) how much is actually considered
+  //'progress' 
+  //(ex. item3[0x30] = 0xF000 at the stairs in nsanity beach, the others are 0 so the vector
+  //<0, 0, 0xF000> says that only the z progress is accounted for when calculating the total
+  
+  totalX = item3[0x2C] * var_28;
+  totalY = item3[0x2E] * var_24;
+  totalZ = item3[0x30] * var_20;
+  
+  //the scale value determines the ratio, so the scale factor for each component is actually
+  //X: item3[0x2C]/item3[0x22]
+  //Y: item3[0x2E]/item3[0x22]
+  //Z: item3[0x30]/item3[0x22]
+  
+  scale = item3[0x22];
+  progScale  = ((totalX + totalY + totalZ)/256)/scale;  //t4
+  progress   = progScale/256;  //a1
+  
+ 
+  //we don't need to save the item if is already the current
+  if (item3 == *(0x5791C))
+    subInputStruct[4] = 0;
+  else
+  {
+    //if some X accounts for progress, and -0x3200 down from section
+    if (item3[0x2C] != 0 &&  var_24 < -0x3200)
+    {
+      if (zoneHeader[0x2FC] & 0x40000 != 0) { return 0; }
+      //no further adjustments if these flags?
+    }
+    
+    subInputStruct[4] = item3;
+  }
+  
+  minProgress = 0;
+  maxProgress = 0;
+  if (flag)
+  {
+    if (bitfield & 1 != 0)
+      minProgress = item3[0x1C];
+      
+    if (bitfield & 2 != 0)
+      maxProgress = item3[0x1D]; //lb
+  }
+  
+  if (progress >= minProgress)
+  {
+    //if we exceed the max progress (2a26c), then force our
+    //progress to the end of the zone
+    if (progress >= item3[0x1E] - maxProgress)
+    {
+      
+      if (item3 != *(0x5791C))
+        return 0;
+      
+      scaleProgress = (item3[0x1E] * 256) - 1;
+      progress      = item3[0x1E] - 1;         
+      
+      subInputStruct[0x30] = 0;
+    }
+  }
+  else
+  {
+    //if we fall under the min progress, then force our
+    //progress to the start of the zone
+    
+    if (progress != 0)
+      return 0;
+
+    if (item3 != *(0x5791C))
+      return 0;
+        
+    scaleProgress = 0;
+    progress = 0;
+      
+    subInputStruct[0x30] = 0;
+  }
+    
+  //progress then determines offset into zone 'camera route' structures
+  //this used to calculate the total distance from crash to the camera
+  //for the given zone progress
+  offset = progress * 12;
+  crash = *(0x566B4);
+  
+  adjustX = (subInputStruct[0x24] + crash[0x80]) / 256;
+  adjustY = (subInputStruct[0x2C] + crash[0x84]) / 256;
+  adjustZ = (subInputStruct[0x28] + crash[0x88]) / 256;
+  
+  zoneX = camItem[0];
+  zoneY = camItem[4];
+  zoneZ = camItem[8];
+  
+  zoneZcamX = item3[0x32 + offset];
+  zoneZcamY = item3[0x34 + offset];
+  zoneZcamZ = item3[0x36 + offset];
+  
+  var_18 = adjustX - (zoneX + zoneZcamX);
+  var_14 = adjustY - (zoneY + zoneZcamY);
+  var_10 = adjustZ - (zoneZ + zoneZcamZ);
+  
+  //can't be this far from camera for each dimension
+  if (abs(var_18) >= 0xC81) { return 0; }
+  if (abs(var_14) >= 0xC81) { return 0; }
+  if (abs(var_10) >= 0xC81) { return 0; }
+  
+  //save the item3 and progress*256
+  subInputStruct[0] = item3;
+  subInputStruct[8] = scaleProgress;
+  
+  //and calculate euclidian distance from crash to camera
+  dist = sqrt(pow(var_18, 2) + pow(var_14, 2) + pow(var_10, 2));
+  subInputStruct[0x18] = dist;
+  
+  return 1;
+}
+  
+//struct[0] = item3
+//struct[4] = item3 that is not current
+//struct[8] = zone progress * 256
+//struct[0xC] = ?
+//struct[0x10]
+//struct[0x14]
+//struct[0x18] = euclidian cam dist from crash
+//struct[0x1C] = 
+//struct[0x20] = 
+//struct[0x24] = cam adjust X due to face left and right
+//struct[0x28] = cam adjust Z due to face forward and back
+//struct[0x2C] = cam adjust Y due to face forward and back
+//struct[0x30] = progress made flag
+    
+sub_8002A3EC(transVector, item3, subInputStruct, bitfield, flag)
+{
+  //s7 = transVector
+  //s2 = item3
+  var_50 = 0;
+  var_48 = 0;
+  
+  //s2 = item3
+  //s4 = subInputStruct
+  //s7 = transVector
+  //s6 = flag?
+  
+  entrywCamItem = item3[0x4];
+  camItem = entrywCamItem[0x14]; //var_40
+  
+  s3 = -1;
+  
+  subInputStruct[0x30] = 1;
+  
+  var_38 = -subInputStruct[0x28]*16;
+  
+  zoneDepth = item3[0x1E];
+  
+  count= 0;
+  
+  if (zoneDepth >= 0)
+  {
+    //s1 = item3
+    do
+    {
+      transX = transVector[0] / 256;
+      transZ = transVector[8] / 256;
+      zoneX   = camItem[0];
+      zoneZ   = camItem[8];
+      camX = transX + zoneX;
+      camZ = transZ + zoneZ;
+      
+      camOffsetX = item3[0x32 + offset];
+      camOffsetZ = item3[0x36 + offset];
+      
+      var_88 = totalCamX = camX - camOffsetX;
+      var_80 = totalCamZ = camZ - camOffsetZ;
+      
+      camRotY    = item3[0x3A + offset];
+      
+      var_68 = sin(camRotY);
+      var_60 = cos(camRotY);
+      
+      a0 = var_88 * sin(camRotY);
+      v0 = var_80 * sin(camRotY);
+      
+      tot = var_38 - (a0 + v0);
+      a1 = abs(tot);
+      
+      //t0 = var_38
+      if (item3[0x30] <= 0)
+      {
+        if (count == 0 && tot >= 0)
+        {
+          s3 = 0;
+          if (tot >= 0xFFFE0C00)
+            subInputStruct[0x30] = 0;
+          
+          exit loop;
+        }
+        else
+        {
+          zoneEnd = item3[0x1E] - 1;
+          if (count == zoneEnd && tot < 0)
+          {
+            if (tot >= 0xFFFE0C00)
+              subInputStruct[0x30] = 0;
+              
+            s3 = item3[0x1E] * 256 - 1;
+            
+            exit loop;
+          }
+        }
+      }
+      else
+      {
+        if (count == 0 && tot > 0)
+        {
+          s3 = 0;
+          if (0x1F400 < tot)
+            subInputStruct[0x30] = 0;
+          
+          exit loop;
+        }
+        else
+        {
+          zoneEnd = item3[0x1E] - 1;
+          if (count == zoneEnd && tot > 0)
+          {
+            if (0x1F400 >= tot)
+              subInputStruct[0x30] = 0;
+              
+            scaleEnd = item3[0x1E] * 256 - 1;
+            
+            exit loop;
+          }
+        }
+      }
+        
+      if (count == 0)         { s3 = count*256; }
+      else if (a1 < s5)       { //.. skip past the other checks }
+      else if (tot ^ fp >= 0) { s3 = count*256; }
+      else                    { s3 += (s5*256)/(s5 + a1);
+            
+      fp = tot;
+      s5 = a1;
+        
+      count++;
+    } while (count < item3[0x1E]) //i.e. zoneDepth
+  }
+      
+  if (item3 == *(0x5791C))
+    subInputStruct[4] = item3;
+  else
+    subInputStruct[4] = 0;
+    
+  if (!flag)
+  {
+    if (bitfield & 1 != 0)      
+      var_50 = item3[0x1C]; //lb
+    if (bitfield & 2 != 0)
+      var_48 = item3[0x1D]; //lb
+  }
+  else
+  {
+    var_50 = 0;
+    var_48 = 0;
+  }
+    
+  if (s3/256 < var_50)
+  {
+    if (var_50 != 0)         { return 0; }
+    if (item3 != *(0x5791C)) { return 0; }
+      
+    s3 = 0;
+    subInputStruct[0x30] = 0;
+  }
+  else if (s3/256 >= item3[0x1E] - var_48)
+  {
+    if (var_50 != 0)         { return 0; }
+    if (item3 != *(0x5791C)) { return 0; }
+
+    s3 = (item3[0x1E]*256) - 1;
+    subInputStruct[0x30] = 0;
+  }
+  
+  offset = s3/256;
+  crash = *(0x566B4);
+  
+  adjustX = subInputStruct[0x24];
+  adjustY = subInputStruct[0x2C];
+  adjustZ = subInputStruct[0x28];
+  
+  zoneX = camX[0];
+  zoneY = camY[0];
+  zoneZ = camZ[0];
+  
+  camX = (crash[0x80] + adjustX)/256;
+  camY = (crash[0x84] + adjustY)/256;
+  camZ = (crash[0x88] + adjustZ)/256;
+ 
+  camOffsetX = item3[0x32 + (offset*12)]; 
+  camOffsetY = item3[0x34 + (offset*12)];
+  camOffsetZ = item3[0x36 + (offset*12)];
+  
+  
+  var_78 = totalX = camX - (zoneX + camOffsetX);
+  var_74 = totalY = camY - (zoneY + camOffsetY);
+  var_70 = totalZ = camZ - (zoneZ + camOffsetZ);
+  
+  subInputStruct[0] = item3;
+  subInputStruct[8] =    s3;
+  
+  dist = sqrt(pow(var_78, 2) + pow(var_74, 2) + pow(var_70, 2));
+  
+  subInputStruct[0x18] = dist;
+  
+  return 1;
+}
+
+sub_800296A8(item, scalar, transRotCam)  //item is an item 3 of a t7 (not the first zone though)
+{
+  scalar = abs(scalar);
+
+  index = (scalar >> 8) * 12;
+  
+  entry = item[4];             //refers to (next?) T7 entity/zone entry? 
+  valA1 = item[0x32 + index];  //lh
+  
+  item2 = entry[0x14];
+  valA2 = item2[0];            //X
+
+
+  transRotCam[0] = (valA1 + valA2) << 8;
+  
+  valB1 = item[0x34 + index];  //lh
+  valB2 = item2[4];            //Y
+
+  transRotCam[4] = (valB1 + valB2) << 8;
+
+  valC1 = item[0x36 + index];  //lh
+  valC2 = item2[8];            //Z
+
+  transRotCam[8] = (valC1 + valC2) << 8;
+
+  valD = item[0x38 + index];   //x rot
+  valE = item[0x3A + index];   //y rot
+  valF = item[0x3C + index];   //z rot
+
+  transRotCam[0xC] = valD;
+  transRotCam[0x10] = valE;
+  transRotCam[0x14] = valF;
+  
+  notfound = 1;
+
+  z = (item[0x1E] - 1);
+
+  lowerHalf = scalar & 0xFF;
+  if (index == z && (lowerHalf != 0) && item[0x8] != 0)
+  {
+    //s0 = item
+
+    item1 = entry[0x10];
+
+    count = 0;
+    do 
+    {
+      if (item[0xC + (count*4)] & 2 != 0)
+      {
+      
+
+
+        EID = item1[0x214 + ((item[0xD + (count*4)])*4)];
+
+        entryB = EID_PROCESS(EID);
+ 
+        entryBitem1 = entryB[0x10];
+
+        //a1
+        entryBitemN = entryB[0x10 + (entryBitem1[0x204] + item[0xE + (count*4)])*4]; 
+        entryBitem2 = entryB[0x14]; //a2
+
+        if (entryBitemN[0x20] != 1)
+        {
+          //if section is behind the current
+          if (item[0xF + (count*4)] & 2 == 2)
+          {
+            indexB = entryBitemN[0x1E] - 1;
+          }
+          else
+          {
+            indexB = 0;
+          }
+
+          othervalA1 = entryBitemN[0x32 + (indexB*12)];
+          var_50 = othervalA1 << 8;
+          othervalB1 = entryBitemN[0x34 + (indexB*12)];
+          var_4C = othervalB1 << 8;
+          othervalC1 = entryBitemN[0x36 + (indexB*12)];
+          var_48 = othervalC1 << 8;
+        
+          var_44 = entryBitemN[0x38 + (indexB*12)];
+          var_40 = entryBitemN[0x3A + (indexB*12)];
+          var_3C = entryBitemN[0x3C + (indexB*12)];
+
+          notfound = 0;
+        }
+        
+                count++; //v1
+        EXIT LOOP
+      }
+      else
+      {
+         count++;
+         continue loop while count < item[0x8]
+      }
+    }
+  }
+
+  if (s3 != 0)
+  {
+    comparez = (scalar >> 8) + 1;
+  
+    z = (item[0x1E] - 1);
+
+    if (z < comparez)
+    {
+      comparez = z;
+    }
+
+    index = (comparez*12);
+    valD1 = item[0x32 + index];    
+    valD2 = item2[0];
+
+    var_50 = (valD1 + valD2) << 8;
+
+    valE1 = item[0x34 + index];    
+    valE2 = item2[4];
+
+    var_4C = (valE1 + valE2) << 8;
+
+    valF1 = item[0x36 + index];    
+    valF2 = item2[8];
+
+    var_48 = (valF1 + valF2) << 8;
+
+    var_44 = item[0x38 + index]
+    var_40 = item[0x3A + index]
+    var_3C = item[0x3C + index]
+  }
+
+  //adjust cam x, y, z 
+  transRotCam[0] = transMatrix[0] + (((var_50 - transMatrix[0]) * lowerHalf) >> 8);
+  transRotCam[4] = transMatrix[4] + (((var_4C - transMatrix[4]) * lowerHalf) >> 8);
+  transRotCam[8] = transMatrix[8] + (((var_48 - transMatrix[8]) * lowerHalf) >> 8);
+
+  //adjust cam rot x, y, z
+  transRotCam[0xC] = transRotCam[0xC] + (((var_44 - transRotCam[0xC]) * lowerHalf) >> 8);
+  result = sub_800245F0(transRotCam[0x10], var_40);
+  transRotCam[0x10] = transRotCam[0x10] + (((result) * lowerHalf) >> 8);
+  transRotCam[0x14] = transRotCam[0x14] + (((var_3C - transRotCam[0x10]) * lowerHalf) >> 8);
+
+  return item[0x1E];
+}
+
+//-----------
+
+sub_8002EBB4(flag)
+{
+  level = *(0x5C53C)[4];
+  
+  switch(level)
+  {
+    //upstream, up the creek
+    case 0xF:
+    case 0x18:
+    gp[0x78] = 0xA;
+    gp[0x7C] = 0x7F;
+    break;
+    
+    //ripper roo
+    case 0x17:
+    gp[0x78] = 0xA;
+    gp[0x7C] = 0x7F;
+    break;
+    
+    //tawna bonus (different in beta), tawna bonus
+    case 0x24:  
+    case 0x33:
+    gp[0x78] = 4;
+    gp[0x7C] = 0x7F;
+    break;
+    
+    default:
+    gp[0x78] = 1;
+    gp[0x7C] = 0x17;
+  }
+  
+  if (flag)
+    sub_80019DE0(0);
+}

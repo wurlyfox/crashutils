@@ -1,0 +1,92 @@
+GOOL SUBSYSTEM OPCODE 0x83 (loc_8002300C):
+
+//CHANGES AN OBJECTS ANIMATION FRAME, (including change x, y, z bounding coordinates)
+  B = word index into instantiating code entry's item 6 (determines a new animation structure to set [referring to a new animation])
+  A = sets process[0x10C] to this << 8 upper 24 bits: animation frame, lower 8 bits: ? 
+  D = 0: FORCE FLIPPED LEFT, 1: FORCE FLIPPED RIGHT, 2: FLIPPED OPPOSITE OF PREVIOUS DIRECTION, 3: NO CHANGE IN FLIP DIRECTION
+      (accomplished by changing x scale values with various abs functions)
+  C = pushed to stack as high byte and low 3 bytes as 0x60E04 value
+      EDIT: this is used as the number of frames to wait until process execution resumes
+            (for interpreter status bit 3 set); this is why it is pushed along with a 
+            timestamp
+            
+  halts process execution for interpreter status bit 3 set
+  
+10000011 DDCCCCCC BBBBBBBB BAAAAAAA
+
+loc_8002300C
+{
+  //v0 = abits
+
+  entry = process[0x20];  //v1
+
+  item6 = entry[0x24];
+
+  process[0x10C] = abits * 256;
+  process[0x108] = item6[bbits * 4];      //so then item 6es are directly related to animation 
+
+  process.push(cbits<<24 | *(0x60E04));
+
+  //--
+  if (dbits == 0) 
+  {
+    process[0x98] = -abs(process[0x98]);  //force negative y scale?
+  }
+  if (dbits == 1) 
+  { 
+    process[0x98] = abs(process[0x98]);   //force positive y scale
+  }
+  if (dbits == 2) 
+  {
+    process[0x98] = -process[0x98];       //reverse y scale
+  }
+  if (dbits == 3) {}                      //no change to y scale
+
+  //--
+  
+  if (process[0xCC] & 0x18 == 0) { next instruction; }
+
+  //checks if the process were to collide with the crash process after translation by its translation vector
+  rval = sub_80029C90(process, process+0x80, gp[0x2B8], 0x7D000, 0xAF000, 0x7D000);
+  
+  if (rval != 0 && process[0xCC] hi bit not set) { next instruction; }
+  
+  //so hi bit 
+  --part of opcode 0x83--
+
+  sub_8001D33C(process, process+0x98);
+
+  if (arg_a1 & 4 == 0) { next instruction; }
+  else                 { end process, return 0xFFFFFF01; }
+}
+
+---
+
+//checks collision given 2 points and a bounding volume [specified as a cube containing all points in range (-maxX, -maxY, -maxZ) : (maxX, maxY, maxZ)] 
+//returns FALSE on collision
+//returns TRUE and sets bit 16 of specified process[0xC8] bitfield when not colliding
+sub_80029C90(process, pointa, pointb, maxX, maxY, maxZ)
+{
+  xDist = pointa[0] - pointb[0];
+
+  if (maxX < xDist && xDist >= -maxX)
+  {
+    yDist = pointa[4] - pointb[4]; 
+
+    if (maxY < yDist && yDist >= -maxY)
+    {
+      zDist = pointa[8] - pointb[8];
+
+      if (maxZ < zDist && zDist >= -maxZ)
+        return 0;
+    }
+  }
+
+  if (process)
+  {
+    process[0xC8] |= 0x8000;
+  }
+
+  return 1;
+}
+       

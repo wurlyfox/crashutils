@@ -1,0 +1,3882 @@
+sub_0_0x44C(arg0, arg1, arg2, arg3, arg4)
+{
+  //ANDB     static[0x54], process[0xc0]
+  //BEQZ    0x44($pc), -0x0
+
+  //actually in object spawning code this field is taken from field normally used to describe proc initial x angle
+  // but shifted left 8 and stored in 0xC0 (and initial x angle not actually recorded) due to the fact that object
+  // spawn flags have bit 1 set. could this bit indicate that in this case the field is used differently?
+
+  // for ex., bit 10 of that field (before being shifted left 8) would indicate the box has potential to change to
+  // a checkpoint
+  if (process[0xC0] & 0x20000 != 0)  //used by vectors for other procs, 0xC0 used as bitfield for boxes
+  {
+    //0x1F     false, 0x2e00
+    //0x1F     false, 0x1400
+    //SLE      pop(), pop()
+    //MSC     self[0xd8], 0x2, 11
+    //ORL      pop(), pop()
+    //BEQZ    0x8($pc), -0x0
+    if (global[0x2E] >= global[0x14] && bitlist[self.ID] & 4 != 0)
+    {
+     //MOVE     static[0x124], process[0xd4]
+      self[0xd4] = 4;   //change box to a checkpoint
+
+      //JALR    subID(11)
+      sub_11();
+
+    }
+
+    //0x1F     false, 0x4300
+    //0x1F     false, 0x4500
+    //CEQ      pop(), process[0xd8]
+    //ANDL     pop(), pop()
+    //BEQZ    0x10($pc), -0x0
+    if (global[0x45] == process[0xD8] || global[0x43] != 0)
+    {  
+      //MSC     self[0xd8], 0x3, 10
+      //MSC     self[0xd8], 0x1, 10
+      bitlist[self.ID] |= 8; 
+      bitlist[self.ID] |= 4;
+
+      //MOVE     static[0x124], process[0xd4]
+      self[0xD4] = 4;   //change box to a checkpoint
+
+      //JALR    subID(11)
+      sub_11();
+    }
+  }
+
+  //CEQ      static[0x70], self[0xd4]
+  //CEQ      static[0x74], self[0xd4]
+  //ORL      pop(), pop()
+  //BEQZ    0x24($pc), -0x0
+  if (self[0xD4] == 17 || self[0xD4] == 20) //?? what are these box types
+  {
+    //MOVE     0x8400, process[0xc0]
+    process[0xC0] = 0x8400;  //y angular velocity... what when does this EVER happen with boxes
+
+    //MOVE     -0x10($fp), process[0x18c]
+    process[0x18C] = arg3;
+
+    //MOVE     0, process[0x8c]
+    //MOVE     0, process[0x90]
+    //MOVE     0, process[0x94]
+    process[0x8C] = 0;
+    process[0x90] = 0;
+    process[0x94] = 0;
+
+    //MOVE     -0xc($fp), process[0x80]
+    //MOVE     -0x8($fp), process[0x84]
+    //MOVE     -0x4($fp), process[0x88]
+    process[0x80] = arg0;
+    process[0x84] = arg1;
+    process[0x88] = arg2;
+    
+    //J       0x4($pc), -0x0
+  }
+  else
+  {
+    //MOVE     0, process[0x18c]
+    process[0x18C] = 0;
+  }
+
+  //CEQ      static[0x6c], self[0xd4]
+  //CEQ      static[0x70], self[0xd4]
+  //ORL      pop(), pop()
+  //BEQZ    0x10($pc), -0x0
+  if (self[0xD4] == 10 || self[0xD4] == 17)  //box type question or??
+  {
+    //0x27     0x1400, process[0x108]
+    setAnim(process, 0x14);
+
+    //MOVE     0, process[0x170]
+    process[0x170] = 0;
+
+    //MOVE     0x6500, process[0xf8]
+    process[0xF8] = 0x6500;
+    
+    //J       0x6c($pc), -0x0
+  }
+  else
+  {
+    //CEQ      static[0x78], self[0xd4]
+    //BEQZ    0x10($pc), -0x0
+    if (self[0xD4] == 9)          //if box type aku aku
+    {
+      //0x27     0x1e00, process[0x108]
+      setAnim(process, 0x1E);
+   
+      //MOVE     0, process[0x170]
+      process[0x170] = 0;         //initial animation frame?
+
+      //MOVE     0x6600, process[0xf8]
+      process[0xF8] = 0x6600;
+
+      //J       0x54($pc), -0x0
+    }
+    //CEQ      static[0x68], self[0xd4]
+    //BEQZ    0x10($pc), -0x0
+    else if (self[0xD4] == 8)      //if box type life
+    {
+      //0x27     0x1200, process[0x108]
+      setAnim(process, 0x12);
+  
+      //MOVE     0, process[0x170]
+      process[0x170] = 0;       //initial animation frame
+
+      //MOVE     0x6100, process[0xf8]
+      process[0xF8] = 0x6100;
+
+      //J       0x3c($pc), -0x0
+    } 
+    //CEQ      static[0x74], self[0xd4]
+    //BEQZ    0x10($pc), -0x0
+    else if (self[0xD4] == 20)
+    {
+      //0x27     0, process[0x108]
+      setAnim(process, 0);
+
+      //MOVE     0, process[0x170]
+      process[0x170] = 0;
+
+      //MOVE     0, process[0xf8]
+      process[0xF8] = 0;
+    
+      //J       0x24($pc), -0x0
+    }
+    //CEQ      static[0x7c], self[0xd4]
+    //BEQZ    0x10($pc), -0x0            box type????
+    else if (self[0xD4] == 21)
+    {
+      //0x27     0x1c00, process[0x108]
+      setAnim(process, 0x1C);
+
+      //MOVE     0, process[0x170]
+      process[0x170] = 0;
+
+      //MOVE     0x6400, process[0xf8]
+      process[0xF8] = 0x6400;
+ 
+      //J       0xc($pc), -0x0
+    }
+    else
+    {
+      //0x27     0, process[0x108]
+      setAnim(process, 0);
+
+      //MOVE     0, process[0x170]
+      process[0x170] = 0;
+
+      //MOVE     0x6400, process[0xf8]
+      process[0xF8] = 0x6400;
+    }
+  }
+
+  //PSHA     false, process[0xf8]
+  //push(0);
+  //push(process[0xF8]);
+
+  //BRA    0x01f0, 4
+  sub_0x1F0(process[0xF8]);
+
+  //CEQ      static[0x70], self[0xd4]
+  //CEQ      static[0x74], self[0xd4]
+  //ORL      pop(), pop()
+  //BEQZ    0x10($pc), -0x0
+  if (self[0xD4] == 17 || self[0xD4] == 20)    //falling box?
+  {
+    //ORB      static[0x80], process[0xcc]
+    //MOVE     pop(), process[0xcc]
+    process[0xCC] |= static[0x80];
+
+    //ADD      -0x14($fp), process[0x84]
+    //MOVE     pop(), process[0x84]
+    process[0x84] += arg_4;
+  }
+     
+  while (true)
+  {
+    //BRA    0x0390, 0
+    sub_0x390();
+
+    //ANIF    process[0x170], 60, 3
+    changeAnim(process, process[0x170], 60, 3);
+
+    //MOVE     process[0x18c], pop()
+    result = process[0x18C];  //****REPLACE data @ current stack
+
+    //BEQZ    0xc($pc), -0x0
+    if (result != 0) 
+    {
+      //SUB      process[0x100], process[0xfc]
+      //SLE      process[0x18c], pop()
+      result = (process[0x18C] >= process[0x100] - process[0xFC])
+        
+      //BNEZAL  subID(23)
+      if (result != 0)
+        sub_23();       //break box, spawn no items
+ 
+      //J       0xfe4($pc), -0x0 //back 7 instructions
+    }
+    else
+      break;
+  } 
+}
+
+//RTE   
+
+
+
+//arg_0 
+sub_0x1f0(arg_0)
+{
+  //ADD      0xc800, process[0x80]
+  //MOVE     pop(), process[0x80]
+  process[0x80] += 0xC800;
+
+  //ADD      0xc800, process[0x88]
+  //MOVE     pop(), process[0x88]
+  process[0x88] += 0xC800;
+
+  //MOVE     static[0x40], process[0xcc]
+  process[0xCC] = 0x04014014;  //static[0x40] = initial box statusB constant
+
+  //misc shading stuff
+  //0x8E    process[0xf8], 5, 4, 6
+  collision(process[0xF8], 5, 4, 6);
+
+  //BEQZ    0x8($pc), -0x0, process[0xBC]
+  if (process[0xBC] != 0)     //determines what item/icon will spawn for overriding box defaults?
+  {
+    //MOVE     process[0xbc], process[0x180]
+    process[0x180] = process[0xBC];
+
+    //J       0x4($pc), -0x0
+  }
+  else
+    //MOVE     -0x4($fp), process[0x180]
+    process[0x180] = arg_0;  //else use default item/icon from flags in arg
+  
+  //MOVE     process[0xc0], process[0x190]
+  //MOVE     process[0xc4], process[0x1a0]
+  process[0x190] = process[0xC0]; 
+  process[0x1A0] = process[0xC4]; 
+
+  //ANDB     0x800, process[0x190]
+  //BEQZ    0x28($pc), -0x0
+  if (process[0x190] & 0x800 != 0)
+  {
+    //MOVE     0, process[0x138]
+    process[0x138] = 0;
+
+    //ANDB     0x1000, process[0x190]
+    //BEQZ    0x18($pc), -0x0
+    if (process[0x190] & 0x1000 != 0)
+    {
+      //SUB      static[0x30], process[0x138]
+      //MOVE     pop(), process[0x138]
+      process[0x138] -= 0x18; //static[0x30]
+
+      //ANDB     static[0x44], process[0x190]
+      //BEQZ    0x8($pc), -0x0
+      if (process[0x190] & 0x40000 != 0)  //static[0x44]
+      {
+        //SUB      static[0x48], process[0x138]
+        //MOVE     pop(), process[0x138]
+        process[0x138] -= 0xC;            //static[0x48]
+      }
+    }
+   
+    //J       0x4($pc), -0x0
+  }
+  else
+    //MOVE     static[0x30], process[0x138]
+    process[0x138] = 0x30;  //static[0x30]
+
+  //MOVE     -0x2800, process[0x148]
+  process[0x148] = -0x2800;
+
+  //ANDB     0x100, process[0x190]
+  //MSC     self[0xd8], 0x2, 11
+  //NOTL     pop(), pop()
+  //ANDL     pop(), pop()
+  if (((process[0x190] & 0x100) && (bitlist[self.ID] & 4)))  ///hidden box??? are these cond. correct
+  {
+    //BEQZ    0x8($pc), -0x0
+    //ORB      0x100, process[0xcc]
+    //MOVE     pop(), process[0xcc]
+    process[0xCC] |= 0x100;     //dont animate or display process?
+  }
+  
+  //MOVE     0, process[0x70]
+  process[0x70] = 0;
+
+  //MOVE     0, process[0x178]
+  process[0x178] = 0;
+
+  //MOVE     process[0x84], process[0x11c]  set current y to max y?
+  process[0x11C] = process[0x84];           
+
+  //MOVE     process[0x84], process[0x184]
+  process[0x184] = process[0x84];           also save current y here
+
+  //RND      static[0x4c], 0
+  //ADD      pop(), static[0x50]
+  //MOVE     pop(), process[0x17c]
+  static[0x17C] = rand(2) + 0x5;    //static[0x4C], static[0x50]
+
+  //MOVE     0, process[0x19c]
+  process[0x19C] = 0;
+
+  //MSC     0x400, 0x2, 12
+  adoptProcess(process, procList[4]);
+
+  //--------
+  //PSHA     process[0xa8], process[0xa4]
+  oldPrevBox = process[0xA4];
+  oldNextBox = process[0xA8];
+
+  //ANDB     0x8000, process[0x190]
+  //NOTL     pop(), pop()
+  //BEQZ    0x14($pc), -0x0
+  if (process[0x190] & 0x8000 == 0)
+  ...
+  {
+
+   
+    //MOVE     0, process[0xa4]
+    //MOVE     0, process[0xa8]
+    process[0xA4] = 0;
+    process[0xA8] = 0;
+
+    //ANIF    process[0x170], 1, 3
+    animate(process[0x170], 1, 3);    //using current animation, animate with animation frame process[0x170] no flip (3) and delay of 1 frame
+
+    //MOVE     0xc($fp), process[0x178]
+    //MOVE     0x10($fp), process[0x70]
+    process[0x178] = oldPrevBox;
+    process[0x70]  = oldNextBox;
+
+  }
+
+  //bit 4 and bit 10 indicate, respectively, when the box
+  //is NOT the first or last in a chain of boxes 
+  //NOTL     process[0x70], pop()
+  //BEQZ    0x8($pc), -0x0
+  if (process[0x70] != 0)
+  {
+    //ORB      static[0x54], process[0xcc]
+    //MOVE     pop(), process[0xcc]
+    process[0xCC] |= static[0x54];
+  }
+
+  //NOTL     process[0x178], pop()
+  //BEQZ    0x8($pc), -0x0
+  if (process[0x178] != 0)
+  {
+    //ORB      static[0x58], process[0xcc]
+    //MOVE     pop(), process[0xcc]
+    process[0xCC] |= static[0x58];
+  }
+
+  //J       0x2000($pc), -0x2
+  popback(0x8);
+  
+  //---------
+
+  //ANDB     0x200, process[0x190]
+  //BEQZ    0x14($pc), -0x0
+  if (process[0x190] & 0x200 != 0)
+  {
+    //MSC     self[0xd8], 0x2, 11
+    //BEQZ    0x8($pc), -0x0
+    if (bitlist[self.ID] & 4 != 0)
+      //JALR    subID(6)
+      sub_6();
+      //J       0x4($pc), -0x0
+    else
+      //JALR    subID(5)
+      sub_5();
+  }
+
+  //ORB      static[0x11c], process[0xc8]
+  //MOVE     pop(), process[0xc8]
+  process[0xC8] |= 0x80000;
+
+}
+//RTE      
+
+
+sub_0x0()
+{
+//TST      static[0xfc], process[0xc8]
+//SGT      0, process[0xa8]
+//CEQ      process[0x11c], process[0x84]
+//ANDL     pop(), pop()
+//ANDL     pop(), pop()
+//BEQZ    0x48($pc), -0x0
+if ((process[0xC8] & 1) && (process[0xA8] > 0) && (process[0x84] == process[0x11C]))
+{
+  //MOVE     process[0x178], pop()
+  //BEQZ    0xc($pc), -0x0
+  if (process[0x178] != 0)
+  {
+    //ANDB     static[0x88], process[0xcc]
+    //MOVE     pop(), process[0xcc]
+    //J       0x8($pc), -0x0
+    process[0xCC] &= 0x9FFFFFF7;
+  }
+  else
+  {
+    //ANDB     static[0xb0], process[0xcc]
+    //MOVE     pop(), process[0xcc]
+    process[0xCC] &= 0x9FFFFFFF;
+  }
+
+  //MOVE     0, process[0x8c]
+  process[0x8C] = 0;
+
+  //MOVE     0, process[0xa8]
+  process[0xA8] = 0;
+
+  //BEQZ    0x20($pc), -0x0, process[0x134]
+  if (process[0x134] != 0)
+  {
+    //RND      static[0xb8], 0
+    //ADD      pop(), static[0xe0]
+    val = rand(0xCC) + 0x399;
+
+    //SNDB    pop(), 0, 0, 0, 0
+    //SNDB    0x40, 0, 0, 1, 1
+    sndb( val, 0, 0, 0, 0);
+    sndb(0x40, 0, 0, 1, 1);
+
+    //SNDA     static[0x108], static[0x4]
+    snda(0x1666, EID(0x2a682049));      //ld10A (sound when a box hits the ground after falling due to boxes underneath
+                                        //       being broken)
+    //MOVE     process[0x178], process[0x7c]
+    process[0x7C] = process[0x178];
+    
+    //--(process[0x134] = velocity at last collision with ground?)
+    //PSHA     false, process[0x134]
+    //0x87     0xe00, 0, 1, 7
+    issueEvent(process, process[0x7C], 0xE00, process[0x134]); 
+  }
+}
+
+//TST     0x20, process[0xcc]
+//BEQZ    0x8($pc), -0x0
+if (process[0xCC] & 0x20 != 0)  //spinning box?
+{
+  //SUB      process[0x17c], process[0x8c]
+  //MOVE     pop(), process[0x8c]
+  process[0x8C] -= process[0x17C];
+}
+
+//BEQZ    0x90($pc), -0x0, process[0x78]
+if (process[0x78] != 0)          //FIX: BOXES REACH HERE ON INIT THUS BREAK IMMEDIATELY
+{
+  //IMP      static[0x11c], process[0xc8]
+  //IMP      0x8000, link5[0x120]
+  //ANDL     pop(), pop()
+  //BEQZ    0x14($pc), -0x0
+  if ((process[0xC8] & 0x80000) && (link5[0x120] & 0x8000))  //if not on the ground or ?
+  {
+    //CEQ      static[0x124], self[0xd4]
+    //BEQZ    0x8($pc), -0x0
+
+    if (process[0xD4] == 4)  //if box is a checkpt?
+    {
+      //JALR    subID(13)
+      sub_13();   
+    
+      //J       0x4($pc), -0x0
+    }
+    else
+    {  
+      //JALR    subID(24)
+      sub_24();    //break box and spawn items
+    }
+  }
+
+  //SUB      process[0x184], process[0x84]
+  //SLT      0, pop()
+  //SLT      0, process[0xa8]
+  //ORL      pop(), pop()
+  //BEQZ    0x44($pc), -0x0
+  
+  if (process[0x184] - process[0x84] < 0 || process[0xA8] < 0)  //if box is falling?
+  {
+    //SUB      link6[0x80], process[0x80]
+    //ABS      pop(), pop()
+    //SGE      0xc800, pop()     
+    //SUB      link6[0x88], process[0x88]
+    //ABS      pop(), pop()
+    //SGE      0xc800, pop()
+    //SLT      process[0x84], link6[0x84]
+    //ANDL     pop(), pop()
+    //ANDL     pop(), pop()
+    //BEQZ    0x1c($pc), -0x0
+
+    if (abs(link6[0x80] - process[0x80]) <= 0xC800 && abs(link6[0x88] - process[0x88]) <= 0xC800 && process[0x84] < link6[0x84])
+    {
+      //ADD      static[0x28], process[0x84]
+      //0x1B     process[0xa8], pop()
+      //PSHA     false, pop()
+      newY = 0x1B(process[0xA8], process[0x84] + 0x19000);  //calculates new Y position based on velocity       
+      flag = false;
+      
+      //SGT      0xc($fp), link6[0x84]
+      //BEQZ    0x4($pc), -0x0
+      //MOVE     0xc($fp), link6[0x84]
+      if (link6[0x84] > newY)
+        link6[0x84] = newY;
+
+      //J       0x1000($pc), -0x1  //back 1, newY not reused, replace
+    }
+  }
+
+  //ANDB     static[0x2c], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= 0xFFFFFEFF;   //reset visibility 
+
+  //ANDB     0x100, process[0x190]
+  //BEQZ    0x4($pc), -0x0
+  if (process[0x190] & 0x100 != 0)
+  {
+    //MSC     self[0xd8], 0x1, 10
+    bitlist[self.ID] |= 4;
+  }
+
+  //MOVE     process[0x84], process[0x184]
+  process[0x184] = process[0x84];
+}
+
+} //RTE     
+      
+sub_0x10C(tag, arg)
+{
+  //MOVE     0, process[0xf4]
+  process[0xF4] = 0;
+
+  //SUB      process[0x19c], process[0xfc]
+  //SLE      static[0x30], pop()
+  //CEQ      0x400, -0x8($fp)
+  //ANDL     pop(), pop()
+  //ANDL     pop(), process[0x7c]
+  //BEQZ    0xc4($pc), -0x0
+  if (0x18 <= process[0xFC] - process[0x19C] && 0x400 == tag && process[0x7C])
+  {
+
+    //TST      0x20, process[0xcc]
+    //ABS      link5[0x124], pop()
+    //SHA      static[0x34], pop()
+    //NOTL     pop(), pop()
+    //ANDL     pop(), pop()
+    //NOTL     pop(), pop()
+    //BEQZ    0xa8($pc), -0x0
+    if (!(process[0xCC] & 0x20) && !(abs(process[0x74][0x124]) << 2))
+    {
+      //PSHA     0, 0
+      cond = false;
+
+      //TST      0x20, process[0xcc]
+      //PAD     static[0x280], 2, 0, 8   (check controller state of 1st/most recent recorded controller bits for pressing any direction considered cancelling or no direction at all)
+      //PAD     static[0x280], 3, 0, 8   (check controller state of 1st/most recent recorded controller bits for pressing any direction considered cancelling or no direction at all for both controllers)
+      //ORL      pop(), pop()
+      //NOTL     pop(), pop()
+      //ANDL     pop(), pop()
+      //ORL      pop(), process[0x178]
+      //BEQZ    0x1c($pc), -0x0
+      if (!(ctrlA() == 8 || ctrlBth() == 8) && process[0xCC] & 0x20 || process[0x178])
+      {
+         //SUB      0x5000, process[0x84] 
+         //SLE      pop(), link5[0x84]
+         //ADD      static[0x38], process[0x84]
+         //SGE      pop(), link5[0x84]
+         //ANDL     pop(), pop()
+         //MOVE     pop(), 0xc($fp)
+         cond = (process[0x84] - 0x5000 >= process[0x74][0x84] && process[0x84] + 0x1B800 <= process[0x74][0x84])
+
+         //J       0x18($pc), -0x0
+      }
+ 
+    }
+    else
+    {
+      //SUB      static[0x3c], process[0x84]
+      //SLE      pop(), link5[0x84]
+      //ADD      static[0x38], process[0x84]
+      //SGE      pop(), link5[0x84]
+      //ANDL     pop(), pop()
+      //MOVE     pop(), 0xc($fp)
+      cond = (process[0x84] - 0x32000 >= process[0x74][0x84] && process[0x84] + 0x1B800 <= process[0x74][0x84])
+    }
+
+    //MOVE     0xc($fp), pop()
+    //BEQZ    0x24($pc), -0x0
+    if (cond)
+    {
+      //MOVE     process[0x178], pop()
+      //BEQZ    0x14($pc), -0x0
+      if (process[0x178])
+      {
+        //MOVE     process[0x7c], 0x10($fp)
+        //MOVE     process[0x178], process[0x7c]
+        oldlink7      = process[0x7C];
+        process[0x7C] = process[0x178];
+ 
+        //MOVE     process[0xfc], pop()
+        //MSC     0x4f00, 7, 0x0, 4             //write to links memory
+        process[0x7C][0x13C] = process[0xFC];
+
+        //MOVE     0x10($fp), process[0x7c]
+        process[0x7C] = oldlink7;             
+      }
+
+      //MOVE     0x100, process[0xf4]
+      process[0xF4] = 0x100;
+
+      //J       0x20($pc), -0x0
+    } 
+    else
+    {
+      //MOVE     process[0x178], pop()
+      //BEQZ    0x18($pc), -0x0
+      if (process[0x178])
+      {
+        //MOVE     process[0x7c], 0x10($fp)
+        //MOVE     process[0x178], process[0x7c]
+        oldlink7      = process[0x7C];
+        process[0x7C] = process[0x178];
+
+        //MSC     -0x4($fp), 5, 0x0, 0
+        //PSHA     false, pop()
+        //0x87     0x400, 0, 1, 7
+        issueEvent(process, process[0x7C], 0x400, { *(arg) }); 
+
+        //MOVE     0x10($fp), process[0x7c]
+        process[0x7C] = oldlink7;
+      }      
+        
+      //J       0x2000($pc), -0x2
+    }
+    
+  }  
+
+  //RTE      
+}
+
+sub_0x308()
+{
+  //0x1F     false, 0x3e00
+  //ADD      0x100, pop()
+  //0x20     pop(), 0x3e00
+  global[0x3E] += 0x100;
+
+  //MSC     0x300, 5, 0x2, 12
+  adoptProcess(process, listProcess[3])
+
+  //BEQZ    0x14($pc), -0x0, process[0x70]
+  if (process[0x70])
+  {
+    //MOVE     process[0x178], pop()
+    //MSC     0x4600, 4, 0x0, 4
+    process[0x70][0x178] = process[0x178]; //0X4600 >> 8 = 0X46 * 4 = 0X118 + 0X60 = 0X178
+
+    //PSHA     false, static[0x5c]
+    //0x87     0x900, 0, 1, 4      //process[0x60+(4*4)] = process[0x70]
+    issueEvent(process, process[0x70], 0x900, { static[0x5C] });    //perhaps 0x900 is a global 'kill' event
+                                                                    //in this context the box is simply broken?
+    //J       0x8($pc), -0x0
+  }
+  else
+  {  
+    //ANDB     static[0x60], process[0xcc]
+    //MOVE     pop(), process[0xcc]
+    process[0xCC] &= 0xFFFFFFFE;  //clear bit 1
+  }
+
+  //MOVE     process[0x178], pop()
+  //BEQZ    0x20($pc), -0x0
+  if (process[0x178] != 0)
+  {
+    //MOVE     process[0x178], process[0x7c]
+    process[0x178] = process[0x7C];
+
+    //MOVE     process[0x70], link7[0x70]
+    process[0x70] = process[0x7C][0x70];
+
+    //NOTL     process[0x70], pop()
+    //ANDL     pop(), process[0x178]
+    //BEQZ    0xc($pc), -0x0
+    if (!process[0x70] && process[0x178])
+    {
+      //MOVE     process[0x178], process[0x7c]
+      process[0x178] = process[0x7C];
+
+      //ORB      static[0x54], link7[0xcc]
+      //MOVE     pop(), link7[0xcc]
+      process[0x7C][0xCC] |= 0x20000;
+    } 
+  }
+  //RTE      
+}
+
+
+sub_0x364()
+{
+  //ANDB     0x2000, process[0x190]
+  //NOTL     pop(), pop()
+  //ANDL     pop(), process[0x1a0]
+  //BEQZ    0x18($pc), -0x0
+  if (!(process[0x190] & 0x2000) && (process[0x1A0]) != 0)
+  {
+    //MSC     process[0x1a0], 0x0, 7
+    //MOVE     pop(), process[0x7c]
+    process[0x7C] = getProcessByPID(process[0x1A0]);
+ 
+    //BEQZ    0x8($pc), -0x0, process[0x7C]
+    if (process[0x7C])
+    {
+      //0x87     0x800, 0, 0, 7  //link7 = process[0x7C]
+      issueEvent(process, process[0x7C], 0x800, 0);
+
+      //J       0x4($pc), -0x0
+    }
+    else
+    {
+      //MSC     process[0x1a0], 0x1, 10
+      bitlist[process[0x1A0]>>8] |= 4;
+    }
+  }
+  //RTE
+}
+
+//0x0($fp) = callee frame interpreter status flags
+//0x4($fp) = callee frame pc at call (to return properly to the instruction following)
+//0x8($fp) = callee frame stack pointer|frame pointer tag
+//0xC($fp) = starts frame memory/stack
+
+sub_0x390()
+{     
+  //PSHA     false, process[0x180]
+  push(false, process[0x180]);
+
+  //CEQ      0x6900, 0xc($fp)
+  //BEQZ    0x20($pc), -0x0
+  if (process[0x180] == 0x6900)
+  {
+    //MSC     self[0xd8], 0x3, 11
+    push(bitlist[self.ID] & 8);
+
+    //0x1F     false, 0x2e00
+    //0x1F     false, 0x1400
+    
+    //SLE      pop(), pop()
+    //ORL      pop(), pop()
+    //BEQZ    0x4($pc), -0x0
+    if (global[0x2E] >= global[0x14] || bitlist[self.ID] & 8)
+    {
+      //MOVE     0x6500, process[0x180]
+      process[0x180] = 0x6500;
+    }
+
+    //J       0x88($pc), -0x0
+  }
+  //CEQ      0x6700, 0xc($fp)
+  //BEQZ    0x40($pc), -0x0
+  else if (process[0x180] == 0x6700)
+  {
+    //MSC     self[0xd8], 0x3, 11
+    //0x1F     false, 0
+    //CEQ      0x2300, pop()
+    //0x1F     false, 0x4800
+    //ANDB     static[0x64], pop()
+    //ANDL     pop(), pop()
+    //0x1F     false, 0
+    //CEQ      0x1d00, pop()
+    //0x1F     false, 0x4800
+    //ANDB     0x400, pop()
+    //ANDL     pop(), pop()
+    //ORL      pop(), pop()
+    //ORL      pop(), pop()
+    //BEQZ    0x4($pc), -0x0
+
+    if (global[0] == 0x2300 && global[0x48] & 0x100000 ||
+        global[0] == 0x1D00 && global[0x48] & 0x400    ||
+        bitlist[self.ID] & 8)
+    {
+      //MOVE     0x6500, process[0x180]
+      process[0x180] = 0x6500;
+    }
+    
+    //J       0x40($pc), -0x0
+  }
+  //CEQ      0x6800, 0xc($fp)
+  //BEQZ    0x10($pc), -0x0
+  else if (process[0x180] == 0x6800)
+  {
+    //MSC     self[0xd8], 0x3, 11
+    //BEQZ    0x4($pc), -0x0
+    if (bitlist[self.ID] & 8)
+    {
+      //MOVE     0x6500, process[0x180]
+      process[0x180] = 0x6500;
+
+      //J       0x28($pc), -0x0
+      break;  //break parent if statement
+    }
+  }
+  //CEQ      0x6100, 0xc($fp)
+  //BEQZ    0x20($pc), -0x0
+  else if (process[0x180] == 0x6100)
+  {
+    //MSC     self[0xd8], 0x3, 11
+    //BEQZ    0x18($pc), -0x0
+    if (bitlist[self.ID] & 8)
+    {
+      //CEQ      static[0x68], self[0xd4]
+      //BEQZ    0xc($pc), -0x0
+      if (self[0xD4] == 0x8)  //if box is a life
+      {
+        //MOVE     static[0x6c], process[0xd4]
+        process[0xD4] = 0xA;  //change it to a question
+      
+        //0x27     0x1400, process[0x108]
+        setAnim(process, 0x14);
+        
+        //MOVE     0, process[0x170]
+        process[0x170] = 0;
+      }
+
+      //MOVE     0x6500, process[0x180]
+      process[0x180] = 0x6500;
+    }
+  }
+
+  //J       0x1000($pc), -0x1
+  popback(1);
+
+  //RTE      
+}
+
+sub_0x5A8()  //normal/life/aku/question/17/20/21 box type event handler
+{
+  //BNEZ    0x24($pc), -0x0
+  //CEQ      0, -0x8($fp)
+  
+NOTL     process[0x70], pop()
+SGE      0, link7[0xa8]
+ADD      static[0x84], process[0x84]
+SLE      pop(), link7[0x84]
+ANDL     pop(), pop()
+ANDL     pop(), pop()
+ANDL     pop(), pop()
+ERR     0x0018, 1f, 1, 1
+CEQ      0xa00, -0x8($fp)
+BNEZ    0x1c($pc), -0x0
+ADD      static[0x84], process[0x84]
+SLT      pop(), link5[0x84]
+BNEZ    0x8($pc), -0x0
+ERR     0x0019, 25, 0, 1
+J       0x4($pc), -0x0
+ERR     0x0018, 25, 0, 1
+J       0x2c($pc), -0x0
+CEQ      0x1d00, -0x8($fp)
+CEQ      0x300, -0x8($fp)
+ORL      pop(), pop()
+BNEZ    0x1c($pc), -0x0
+MSC     -0x4($fp), 0x0, 0
+CEQ      0x300, -0x8($fp)
+ANDL     pop(), pop()
+BNEZ    0x8($pc), -0x0
+ERR     0x0017, 25, 0, 1
+J       0x4($pc), -0x0
+ERR     0x0018, 25, 0, 1
+PSHA     -0x4($fp), -0x8($fp)
+ BRA    0x010c, 8
+BNEZ    0x4($pc), -0x0
+ERR     0x0018, 25, 0, 1
+CEQ      0x1700, -0x8($fp)
+ERR     0x0018, 1f, 1, 1
+RTE   
+}
+ 
+sub_0x63C()
+{  
+ BRA    0x0000, 0
+ RTE      
+}
+
+sub_0x644_1/3/8()   //FRAME ANIMATION LOOP FOR: DEFAULT BOX, IRON BOX, EXCLAMATION TRIGGER
+{
+  //ANIF    process[0x170], 1, 3
+  animate(process[0x170], 1, 3);    //using current animation, animate with animation frame process[0x170] no flip (3) 
+                                    //and delay of 1 frame
+  //MSC     self[0xd8], 0x2, 11
+  //ANDL     pop(), process[0x78]
+  //BNEZAL  subID(24)
+  if ((bitlist[self.ID] & 4) && process[0x78])  
+    sub_24();
+
+  while (true)  //continue animating this frame
+  {
+    //ANIF    process[0x170], 63, 3
+    animate(process[0x170], 63, 3); //using current animation, animate with animation frame process[0x170] no flip (3) 
+                                    //and delay of 1 frame
+    //J       0xff8($pc), -0x0
+  }
+  //RTE      
+}
+
+sub_0x660_2()   //for iron boxes
+{
+  //0x27     0xe00, process[0x108]
+  setAnim(process, 0xe);
+
+  //MOVE     0, process[0x170]
+  process[0x170] = 0;
+
+  //PSHA     false, 0
+  //BRA    0x01f0, 4
+  sub_0x1F0(0);
+
+  //JALR    subID(3)
+  sub_3();
+
+  //RTE      
+}
+
+sub_0x678_4()    //for wireframe boxes
+{
+  //0x27     0x1a00, process[0x108]
+  setAnim(process, 0x1a);
+
+  //MOVE     0, process[0x170]
+  process[0x170] = 0;
+ 
+  //PSHA     false, 0x6400
+  //BRA    0x01f0, 4
+  sub_0x1f0(0x6400);
+
+  //BRA    0x0390, 0
+  sub_0x390();
+
+  //MSC     self[0xd8], 0x2, 11
+  //BNEZAL  subID(6)
+  if (bitlist[self.ID] & 4 != 0)     //(has the box been triggered?)?
+    sub_6();                         //turn into normal box
+
+  //JALR    subID(5)
+  sub_5();                           //else continue display as wireframe
+
+  //RTE      
+}
+
+sub_0x69C_5()   //wireframe box frame anim loop
+{
+  //ANDB     static[0x60], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= 0xFFFFFFEF;    //disable box solidity (is this routine for it having been destroyed?)
+
+  while (true)  //continue animating this frame
+  {
+    //ANIF    process[0x170], 63, 3
+    animate(process[0x170], 63, 3); //using current animation, animate with animation frame process[0x170] no flip (3) 
+                                    //and delay of 1 frame
+    //J       0xff8($pc), -0x0
+  }
+  //RTE      
+}
+
+sub_0x6B0(arg_0, arg_1)
+{  
+  //CEQ      0x800, -0x8($fp)
+  //ANDB     0x2000, process[0x190]
+  //NOTL     pop(), pop()
+  //ANDL     pop(), pop()
+  if (arg_1 == 0x800 && !(process[0x190] & 0x2000))
+  {
+    ERR     0x0006, 1f, 1, 1
+  }
+  //RTE      
+}
+
+sub_0x6C8_6()    //wireframe -> actual box transition
+{
+  //RND      static[0xb8], 0
+  //ADD      pop(), static[0xe0]
+
+  //SNDB    pop(), 0, 0, 0, 0
+  SNDB(rand(0xCC) + 0x399, 0, 0, 0, 0);
+
+  //SNDA     static[0x8c], static[0x8]
+  SNDA(0x1999, 0x16532049);  //bap0A
+
+  //MSC     self[0xd8], 0x1, 10
+  bitlist[self.ID] |= 4;
+
+  //ANIF    process[0x170], 6, 3
+  animate(process[0x170], 6, 3);  //current frame, wait 6 frames, no flip
+
+  //ANDB     static[0x90], process[0x190]
+  //NOTL     pop(), pop()
+  //BEQZ    0x4($pc), -0x0
+  //BRA    0x0364, 0
+  if (!process[0x190] & 0x10000) 
+    sub_0x364();
+
+  //ORB      0x10, process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] |= 0x10;
+
+  //ANDB     static[0x2c], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= 0xFFFFFEFF;
+
+  //BRA    0x0390, 0
+  sub_0x390();
+
+  //CEQ      static[0x94], self[0xd4]
+  //BEQZ    0x60($pc), -0x0
+  if (process[0xD4] == 13)  //box type 13??
+  {
+    //PSHA     false, process[0x180] 
+    push(0, process[0x180]);
+
+    //CEQ      0x6100, 0xc($fp)
+    //BEQZ    0xc($pc), -0x0
+    if (process[0x180] == 0x6100)        //for spawn args A == 0x6100
+    {
+      //0x27     0x1200, process[0x108]
+      setAnim(process, 0x12);            //set box animation to 'life box'
+
+      //MOVE     0, process[0x170]
+      process[0x170] = 0;
+
+      //J       0x40($pc), -0x0
+    }
+    //CEQ      0x6600, 0xc($fp)
+    //BEQZ    0xc($pc), -0x0
+    else if (process[0x180] == 0x6600)  //for spawn args A == 0x6600
+    {
+      //0x27     0x1e00, process[0x108]
+      setAnim(process, 0x1E);           //set box animation to 'aku aku'
+
+      //MOVE     0, process[0x170]
+      process[0x170] = 0;
+
+      //J       0x2c($pc), -0x0
+    }
+    //CEQ      0x6900, 0xc($fp)
+    //CEQ      0x6700, 0xc($fp)
+    //CEQ      0x6800, 0xc($fp)
+    //ORL      pop(), pop()
+    //ORL      pop(), pop()
+    //BEQZ    0xc($pc), -0x0
+    else if (process[0x180] == 0x6900 || process[0x180] == 0x6700 || process[0x180] == 0x6800)  //for spawn args A 0x6700-0x6900
+    {
+      //0x27     0x1400, process[0x108]
+      setAnim(process, 0x14);         //set box animation to 'question'
+
+      //MOVE     0, process[0x170]
+      process[0x170] = 0;
+
+      //J       0x8($pc), -0x0
+    }
+    else
+    {
+      //0x27     0, process[0x108]
+      setAnim(process, 0);          //set box animation to normal
+  
+      //MOVE     0, process[0x170]
+      process[0x170] = 0;
+    }
+
+    //J       0x1000($pc), -0x1
+    popback(1);
+
+    //J       0x10($pc), -0x0
+  }
+  //CEQ      static[0x98], self[0xd4]
+  //BEQZ    0x8($pc), -0x0
+  else if (process[0xD4] == 19)   //box type 19?
+  {
+    //0x27     0xe00, process[0x108]
+    setAnim(process, 0xE);
+
+    //MOVE     0, process[0x170]
+    process[0x170] = 0;
+  }
+  //CEQ      static[0x9c], self[0xd4]
+  //CEQ      static[0xa0], self[0xd4]
+  //ORL      pop(), pop()
+  //BEQZ    0xc($pc), -0x0
+  else if (process[0xD4] == 3 || process[0xD4] == 15)  //if box type arrow or iron arrow
+  {
+    //MOVE     static[0xa4], process[0x1a4]
+    process[0x1A4] = 0x1bf36a; //maybe bounce height since this seemingly subjective to both arrow/bounce boxes
+
+    //JALR    subID(17)
+    sub_17();
+    //J       0x4c($pc), -0x0
+  }
+  //CEQ      static[0x50], self[0xd4]
+  //CEQ      static[0x98], self[0xd4]
+  //ORL      pop(), pop()
+  //BEQZ    0x8($pc), -0x0
+  else if (process[0xD4] == 5 || process[0xD4] == 19)  //if box type iron or (type 19? some iron variant?)
+  {
+    //JALR    subID(3)
+    sub_3();
+  
+    //J       0x34($pc), -0x0
+  }
+  //CEQ      0, self[0xd4]
+  //BEQZ    0x8($pc), -0x0
+  else if (process[0xD4] == 0)                       //if box type TNT
+  {
+    //JALR    subID(27)
+    sub_27();   
+
+    //J       0x24($pc), -0x0
+  }
+  //CEQ      static[0xa8], self[0xd4]
+  //BEQZ    0x8($pc), -0x0
+  else if (process[0xD4] == 7)                       //if box type exclamation/trigger
+  {
+    //JALR    subID(8)
+    sub_8();
+
+    //J       0x14($pc), -0x0
+  }
+  //ANDB     0x4000, process[0x190]
+  //BEQZ    0x8($pc), -0x0
+  else if (process[0x190] & 0x4000)
+  {
+    //JALR    subID(24)
+    sub_24();
+
+    //J       0x4($pc), -0x0
+  }
+  else
+  {
+    //JALR    subID(1)
+    sub_1();
+  }
+
+  //RTE      
+}
+
+sub_0x7E8_7()  //exclamation box
+{
+  //MSC     self[0xd8], 0x2, 11
+  //BNEZAL  subID(2)
+  if (bitlist[self.PID] & 8)
+    sub_2();
+  
+  //0x27     0x1600, process[0x108]
+  setAnim(process, 0x16);
+
+  //MOVE     0, process[0x170]
+  process[0x1700] = 0;
+
+  //PSHA     false, 0x6400
+  //BRA    0x01f0, 4          //pops back 4 (1 word) to delete the 'false' arg since we only wanted to push 1 word and the 
+  sub_0x1F0(0x6400);          //psha must push at least 2 words
+
+  //JALR    subID(8)
+  sub_8();
+
+  //RTE      
+}
+
+sub_0x808(arg_0, arg_1)
+{
+  //BEQZ    0x24($pc), -0x0, process[0x7C]
+  if (process[0x7C])   //if process has the 4th misc link
+  {
+    //CEQ      0, -0x8($fp)
+    //NOTL     process[0x70], pop()
+    //SGE      0, link7[0xa8]
+    //ADD      static[0x84], process[0x84]
+    //SLE      pop(), link7[0x84]
+    //ANDL     pop(), pop()
+    //ANDL     pop(), pop()
+    //ANDL     pop(), pop()
+    if (arg_1 && !process[0x70] && process[0x7C][0xA8] > 0 && process[0x84] + 0x16800 >= process[0x7C][0x84])
+    {
+      ERR     0x0009, 1f, 1, 1
+    }
+  }
+
+  //CEQ      0x300, -0x8($fp)
+  //CEQ      0xa00, -0x8($fp)
+  //CEQ      0x1d00, -0x8($fp)
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  if (arg_1 == 0x300 || arg_1 == 0xA00 || arg_1 == 0x1D00)
+  {
+    ERR     0x0009, 1f, 1, 1
+  }
+
+  //PSHA     -0x4($fp), -0x8($fp)
+  //BRA    0x010c, 8
+  sub_0x10C(arg_0, arg_1);
+
+  //BEQZ    0x4($pc), -0x0, process[0xF4]
+  if (process[0xF4])
+  {
+    ERR     0x000a, 25, 0, 1
+  }
+
+  //CEQ      0x800, -0x8($fp)
+  //ANDB     0x2000, process[0x190]
+  //NOTL     pop(), pop()
+  //ANDL     pop(), pop()
+  if (arg_1 == 0x800 && !(process[0x190] & 0x2000))
+  {  
+    ERR     0x0009, 1f, 1, 1
+  }
+
+  //CEQ      0x1700, -0x8($fp)
+  if (arg_1 == 0x1700)
+  {
+    ERR     0x0009, 1f, 1, 1
+  }
+} //RTE      
+
+
+sub_0x878()
+{
+  //MSC     self[0xd8], 0x1, 10
+  bitlist[self.PID] |= 4;
+
+  //PSHA     0, 0x900
+  //PSHA     0xc800, 0
+  //CHLD    1, 22, 34, 4
+  spawnChild(1, 34, 22, 4);           //spawn a single (1) box[=code type 34] of type 22 [?]
+  -init: sub_22(0, 0x900, 0xC800, 0); //popping 4 words from stack to use as initializing arguments 
+    
+  //PSHA     0xc800, 0x900
+  //PSHA     0, 0
+  //CHLD    1, 22, 34, 4
+  spawnChild(1, 34, 22, 4);
+  -init: sub_22(0xC800, 0x900, 0, 0);
+
+  //PSHA     0, 0x900
+  //PSHA     0x13800, 0
+  //CHLD    1, 22, 34, 4
+  spawnChild(1, 34, 22, 4);
+  -init: sub_22(0, 0x900, 0x13800, 0);
+
+  //PSHA     0x13800, 0x900
+  //PSHA     0, 0
+  //CHLD    1, 22, 34, 4
+  spawnChild(1, 34, 22, 4);
+  -init: sub_22(0x13800, 0x900, 0, 0);
+
+  //PSHA     0, 0x900
+  //PSHA     0, static[0xac]
+  //CHLD    1, 22, 34, 4
+  spawnChild(1, 34, 22, 4);
+  -init: sub_22(0, 0x900, 0, 0x25800);
+
+  //0x27     0xe00, process[0x108]
+  setAnim(process, 0xE);
+
+  //MOVE     0, process[0x170]
+  process[0x170] = 0;
+
+  //JALR    subID(3)
+  sub_3();
+
+  //RTE      
+}
+
+sub_0x8C8_9()
+{
+  //PSHA     false, 0x300
+  //0x87     0xf00, 0, 1, 5      //process[0x60+(5*4)] = process[0x74]
+  issueEvent(process, process[0x74], 0xF00, { 0x300 });    
+                                                                    
+  //RND      static[0xb8], 0
+  //ADD      pop(), static[0xe0]
+  val = rand(0xCC) + 0x399;
+
+  //SNDB    pop(), 0, 0, 0, 0
+  sndb( val, 0, 0, 0, 0);
+
+  //SNDA     static[0xb4], static[0xc]
+  snda(0x1FFF, EID(0x39016049));     //swb0A
+
+  //0x27     0x1600, process[0x108]
+  setAnim(process, 0x16);
+
+  //MOVE     0x1ff00, process[0x10c]
+  process[0x10C] = 0x1FF00;
+
+  do
+  {
+    //ADD      0x100, process[0x10c]
+    //ANIF    pop(), 1, 3
+    animate(process[0x10C] + 0x100, 1, 3);
+
+    //ADD      0x100, process[0x10c]
+    //SGE      0x900, pop()
+    //BNEZ    0xfec($pc), -0x0
+  } while (process[0x10C] + 0x100 < 0x900)
+
+  //BRA    0x0364, 0
+  sub_0x364();
+
+  //0x1F     false, 0
+  //CEQ      0x2900, pop()
+  //NOTL     pop(), pop()
+  //BEQZ    0x4($pc), -0x0
+  if (global[0] != 0x2900)
+  {
+    //BRA    0x0878, 0
+    sub_0x878();
+  }
+
+  //JALR    subID(8)
+  sub_8();
+
+  //RTE      
+}
+
+sub_0x91C_10()  //exclamation box hit routine
+{
+  //PSHA     false, 0x300
+  //0x87     0xf00, 0, 1, 5
+  issueEvent(process, process[0x74], 0xF00, { 0x300 });
+
+  //RND      static[0xb8], 0
+  //ADD      pop(), static[0xe0]
+  val = rand(0xCC) + 0x399;
+
+  //SNDB    pop(), 0, 0, 0, 0
+  sndb( val, 0, 0, 0, 0);
+
+  //SNDA     static[0xb4], static[0xc]
+  snda(0x1FFF, EID(0x39016049));     //swb0A  (sound for exclamation box being hit)
+
+  //0x27     0x1800, process[0x108]
+  setAnim(process, 0x18);
+
+  //MOVE     0x1ff00, process[0x10c]
+  process[0x10C] = 0x1FF00;
+
+  do
+  {
+    //ADD      0x100, process[0x10c]
+    //ANIF    pop(), 1, 3
+    animate(process[0x10C] + 0x100, 1, 3);
+
+    //ADD      0x100, process[0x10c]
+    //SGE      0x900, pop()
+    //BNEZ    0xfec($pc), -0x0
+  } while (process[0x10C] + 0x100 < 0x900)
+
+  //BRA    0x0364, 0
+  sub_0x364();
+
+  //0x1F     false, 0
+  //CEQ      0x2900, pop()
+  //NOTL     pop(), pop()
+  //BEQZ    0x4($pc), -0x0
+  if (global[0] != 0x2900)
+  {
+    //BRA    0x0878, 0
+    sub_0x878();
+  }
+
+  //JALR    subID(8)
+  sub_8();
+
+  //RTE      
+}
+
+sub_0x970_11()  //checkpoint boxes initial routine
+{
+  //MSC     self[0xd8], 0x3, 11
+  //BEQZ    0xc($pc), -0x0
+  if (bitlist[self.PID] & 8)
+  {
+    //0x27     0x2000, process[0x108]
+    setAnim(process, 0x20);
+
+    //MOVE     0xf00, process[0x170]
+    process[0x170] = 0xF00;
+    
+    //J       0x8($pc), -0x0
+  }
+  else
+  {
+    //0x27     0x2000, process[0x108]
+    setAnim(process, 0x20);
+
+    //MOVE     0, process[0x170]
+    process[0x170] = 0;
+  }
+
+  //PSHA     false, 0x6400
+  //BRA    0x01f0, 4
+  sub_0x1F0(0x6400);
+
+  //MSC     self[0xd8], 0x3, 11
+  //ORL      process[0x78], pop()
+  if (bitlist[self.PID] & 8 || process[0x78])
+  {
+    //BNEZAL  subID(13)
+    sub_13();
+  }
+
+  while (true)
+  {
+    //ANIF    process[0x170], 63, 3
+    animate(process[0x170], 63, 3);
+
+    //J       0xff8($pc), -0x0
+  }
+
+  //RTE      
+}
+
+sub_0x9AC(tag, arg)
+{
+  //BEQZ    0x24($pc), -0x0, process[0x7C]
+  if (process[0x7C])
+  {
+    //CEQ      0, -0x8($fp)
+    //NOTL     process[0x70], pop()
+    //SGE      0, link7[0xa8]
+    //ADD      static[0x84], process[0x84]
+    //SLE      pop(), link7[0x84]
+    //ANDL     pop(), pop()
+    //ANDL     pop(), pop()
+    //ANDL     pop(), pop()
+
+    if (((tag == 0) && !(process[0x70]) && process[0x7C][0xA8] > 0 && process[0x84] + 0x16800 >= process[0x7C][0x84]))
+    {
+      //RSNF    subID(12), pop()
+      retSub 12; 
+    }
+  }
+
+  //PSHA     -0x4($fp), -0x8($fp)
+  //BRA    0x010c, 8
+  sub_0x10C(tag, arg);
+
+  //BEQZ    0x4($pc), -0x0, process[0xF4]
+  if (process[0xF4])
+  {
+    //RSRF   subID(12), process[0xF4];
+    retSub 12;
+  }
+
+  //CEQ      0x300, -0x8($fp)
+  //CEQ      0xa00, -0x8($fp)
+  //ORL      pop(), pop()
+  //BEQZ    0x1c($pc), -0x0
+  if (tag == 0x300 || tag == 0xA00)
+  {
+    //MSC     -0x4($fp), 5, 0x0, 0     //arg_0 is gool address/pointer? and MSC0 dereferences gool pointers?
+    //CEQ      0x300, -0x8($fp)
+    //ANDL     pop(), pop()
+    //BEQZ    0x8($pc), -0x0
+    if (*(arg) && tag == 0x300)
+    {
+      //RSRF     subID(23), process[0xF4]
+      retSub 23;   //break box, spawn nothing
+
+      //J       0x4($pc), -0x0
+    }
+    else
+    {
+      //RSRF     subID(12), process[0xF4]
+      retSub 12;
+    }
+  }
+    
+  //CEQ      0x1700, -0x8($fp)
+  if (tag == 0x1700)  
+  {
+    //RSNF     subID(12), pop();
+    retSub 12;
+  }
+} //RTE
+
+sub_0xA1C()
+{
+  //BRA    0x0000, 0
+  sub_0();
+
+  //RTE
+}
+ 
+sub_0xA24_12()  //checkpoint boxes 'break' routine
+{     
+  //0x20     process[0xd8], 0x4500
+  global[0x45] = process[0xD8];   //save PID of checkpoint
+
+  //0x20     process[0x80], 0x6600
+  //0x20     process[0x84], 0x6700
+  //0x20     process[0x88], 0x6800
+  global[0x66] = process[0x80];   //save location of checkpoint
+  global[0x67] = process[0x84];
+  global[0x68] = process[0x88];
+
+  //MSC     false, 5, 0x0, 12
+  saveState(process, 0x57974, 0); //save level state at hit checkpoint
+
+  //0x1F     false, 0x3e00
+  //ADD      0x100, pop()
+  //0x20     pop(), 0x3e00
+  global[0x3E] += 0x100;          //number of checkpoints hit?
+
+  //MSC     self[0xd8], 0x3, 10
+  bitlist[self.PID] |= 8;         //state for destroyed?
+
+  //PSHA     false, static[0x5c]  
+  //0x87     0x900, 0, 1, 4       //
+  issueEvent(process, process[0x70], 0x900, { 0x64000 });
+
+  //NOTL     process[0x70], pop()
+  //BEQZ    0x8($pc), -0x0
+  if (!process[0x70])
+  {
+    //ANDB     static[0x60], process[0xcc]
+    //MOVE     pop(), process[0xcc]
+    process[0xCC] &= 0xFFFFFFEF;
+  }
+
+  //RND      static[0xb8], 0
+  //ADD      pop(), static[0xe0]
+  val = rand(0xCC) + 0x399;
+
+  //SNDB    pop(), 0, 0, 0, 0
+  sndb( val, 0, 0, 0, 0);
+
+  //SNDA     static[0xbc], static[0x10]
+  snda(0x1332, 0x18C2E049);               //conA (sound for checkpoint box unfolding)
+
+  //0x27     0x2000, process[0x108]
+  setAnim(process, 0x20);
+
+  //MOVE     0x1ff00, process[0x10c]
+  process[0x10C] = 0x1FF00;
+
+  do
+  {
+    //ADD      0x100, process[0x10c]
+    //ANIF    pop(), 1, 3
+    animate(process[0x10C] + 0x100, 1, 3);
+
+    //ADD      0x100, process[0x10c]
+    //SGE      0xF00, pop()
+    //BNEZ    0xfec($pc), -0x0
+  } while (process[0x10C] + 0x100 < 0xF00)
+
+  //ANIS    14, 32, 1, 3
+  changeAnim(14, 32, 1, 3);    //change to animation 0x20/frame 14, wait 1 frame and no flip
+  
+  //MOVE     static[0x74], process[0x138]
+  process[0x138] = 0x14;
+
+  //ANDB     static[0x60], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= 0xFFFFFFEF;
+
+  //NOTL     process[0x70], pop()
+  //ANDL     pop(), process[0x178]
+  //BEQZ    0xc($pc), -0x0
+  if (!process[0x70] && process[0x178])
+  {
+    //MOVE     process[0x178], process[0x7c]
+    process[0x7C] = process[0x178];
+
+    //ORB      static[0x54], link7[0xcc]
+    //MOVE     pop(), link7[0xcc]
+    process[0x7C][0xCC] |= 0x20000;
+  }
+  
+  //0x1F     false, 0
+  //CEQ      0x1100, pop()
+  //0x1F     false, 0
+  //CEQ      0x1e00, pop()
+  //ORL      pop(), pop()
+  //NOTL     pop(), pop()
+  //BEQZ    0x74($pc), -0x0
+  if (!(global[0] == 0x1100 || global[0] == 0x1E00))
+  {
+    //PSHA     static[0xc0], 0
+    //CHLD    1, 14, 34, 2
+    spawnChild(1, 34, 14, 2);     //spawn a single (1) box[=code type 34] of type 14 [?]           //C
+    -init: sub_22(0xFFFE2000, 0); //popping 2 words from stack to use as initializing arguments 
+
+    //ANIS    15, 32, 3, 3
+    changeAnim(15, 32, 3, 3);     //change to animation 0x20/frame 15, wait 3 frames and no flip
+
+    //PSHA     0x11000, 0x100
+    //CHLD    1, 14, 34, 2                                                                         //H
+    spawnChild(1, 34, 14, 2);     //spawn a single (1) box[=code type 34] of type 14 [?]
+    -init: sub_22(0x11000, 0x100);//popping 2 words from stack to use as initializing arguments 
+
+    //ANIS    15, 32, 3, 3
+    changeAnim(15, 32, 3, 3);     //change to animation 0x20/frame 15, wait 3 frames and no flip
+
+    //PSHA     0, 0x200
+    //CHLD    1, 14, 34, 2                                                                         //E
+    spawnChild(1, 34, 14, 2);     //spawn a single (1) box[=code type 34] of type 14 [?]
+    -init: sub_22(0, 0x200);      //popping 2 words from stack to use as initializing arguments     
+
+    //ANIS    15, 32, 3, 3
+    //PSHA     0xf000, 0
+    //CHLD    1, 14, 34, 2
+    changeAnim(15, 32, 3, 3);     //change to animation 0x20/frame 15, wait 3 frames and no flip
+    spawnChild(1, 34, 14, 2);     //spawn a single (1) box[=code type 34] of type 14 [?]           //C
+    -init: sub_22(0xF000, 0);     //popping 2 words from stack to use as initializing arguments  
+
+    //ANIS    15, 32, 3, 3
+    //PSHA     static[0xc4], 0x300
+    //CHLD    1, 14, 34, 2
+    changeAnim(15, 32, 3, 3);     //change to animation 0x20/frame 15, wait 3 frames and no flip
+    spawnChild(1, 34, 14, 2);     //spawn a single (1) box[=code type 34] of type 14 [?]           //K
+    -init: sub_22(0x1E000, 0x300);//popping 2 words from stack to use as initializing arguments  
+
+    //ANIS    15, 32, 36, 3
+    //PSHA     static[0xc0], 0x400
+    //CHLD    1, 14, 34, 2
+    changeAnim(15, 32, 36, 3);       //change to animation 0x20/frame 15, wait -36- frames and no flip
+    spawnChild(1, 34, 14, 2);        //spawn a single (1) box[=code type 34] of type 14 [?]        //P
+    -init: sub_22(0xFFFE2000, 0x400);//popping 2 words from stack to use as initializing arguments  
+
+    //ANIS    15, 32, 3, 3
+    //PSHA     0x11000, 0x500
+    //CHLD    1, 14, 34, 2
+    changeAnim(15, 32, 3, 3);     //change to animation 0x20/frame 15, wait 3 frames and no flip
+    spawnChild(1, 34, 14, 2);     //spawn a single (1) box[=code type 34] of type 14 [?]           //O
+    -init: sub_22(0x11000, 0x500);//popping 2 words from stack to use as initializing arguments  
+
+    //ANIS    15, 32, 3, 3
+    //PSHA     0, 0x600
+    //CHLD    1, 14, 34, 2
+    changeAnim(15, 32, 3, 3);     //change to animation 0x20/frame 15, wait 3 frames and no flip
+    spawnChild(1, 34, 14, 2);     //spawn a single (1) box[=code type 34] of type 14 [?]           //I
+    -init: sub_22(0x0, 0x600);    //popping 2 words from stack to use as initializing arguments 
+
+    //ANIS    15, 32, 3, 3
+    //PSHA     0xf000, 0x700
+    //CHLD    1, 14, 34, 2
+    changeAnim(15, 32, 3, 3);     //change to animation 0x20/frame 15, wait 3 frames and no flip
+    spawnChild(1, 34, 14, 2);     //spawn a single (1) box[=code type 34] of type 14 [?]           //N
+    -init: sub_22(0xF000, 0x700); //popping 2 words from stack to use as initializing arguments  
+
+    //ANIS    15, 32, 3, 3
+    //PSHA     static[0xc4], 0x800
+    //CHLD    1, 14, 34, 2
+    changeAnim(15, 32, 3, 3);     //change to animation 0x20/frame 15, wait 3 frames and no flip
+    spawnChild(1, 34, 14, 2);     //spawn a single (1) box[=code type 34] of type 14 [?]           //T
+    -init: sub_22(0x1E000, 0x800);//popping 2 words from stack to use as initializing arguments      
+  }
+
+  while (true)
+  {
+    //ANIS    15, 32, 63, 3
+    changeAnim(15, 32, 63, 3);   //change to animation 0x20/frame 15, wait 63 frames and no flip
+
+    //J       0xff8($pc), -0x0
+    //RTE
+  }
+}
+
+sub_0xB50_13()         //broken checkbox routine
+{      
+  //0x1F     false, 0x4300
+  //0x1F     false, 0x4500
+  //CEQ      pop(), process[0xd8]
+  //ANDL     pop(), pop()
+  //BEQZ    0xc($pc), -0x0
+  if (global[0x43] && global[45] == process[0xD8])
+  {
+    //0x1F     false, 0x3e00
+    //ADD      0x100, pop()
+    //0x20     pop(), 0x3e00
+    global[0x3E] += 0x100;
+  }
+
+  //ANDB     static[0x60], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= 0xFFFFFFEF;
+
+  //MOVE     static[0x74], process[0x138]
+  process[0x138] = 0x14;
+
+  //ANIS    15, 32, 1, 3
+  changeAnim(15, 32, 1, 3); //change to anim 0x20/frame 15 wait 1 frame and no flip
+
+  //PSHA     false, static[0x5c]
+  //0x87     0x900, 0, 1, 4
+  issueEvent(process, process[0x70], 0x900, { 0x64000 });
+
+  //NOTL     process[0x70], pop()
+  //ANDL     pop(), process[0x178]
+  //BEQZ    0xc($pc), -0x0
+  if (!process[0x70] && process[0x178])
+  {
+    //MOVE     process[0x178], process[0x7c]
+    process[0x7c] = process[0x178];
+ 
+    //ORB      static[0x54], link7[0xcc]
+    //MOVE     pop(), link7[0xcc]
+    process[0x7C][0xCC] |= 0x20000;
+  }
+
+  while (true)
+  {
+    //ANIS    15, 32, 63, 3
+    changeAnim(15, 32, 63, 3); //change to anim 0x20/frame 15 wait 63 frames and no flip
+   
+    //J       0xff8($pc), -0x0
+  }
+
+  //RTE
+}
+
+sub_0xBAC_14(arg_0, arg_1, arg_2, arg_3)        //checkpoint font character (not a 'box')
+{ 
+  //MOVE     static[0xc8], process[0x138]
+  process[0x138] = 0x28;
+
+  //MOVE     0x800, process[0x98]
+  //MOVE     0x1000, process[0x9c]
+  //MOVE     0x800, process[0xa0]
+  process[0x98] = 0x800;
+  process[0x9C] = 0x1000;
+  process[0xA0] = 0x800;
+
+  //MOVE     0, process[0x8c]
+  //MOVE     0, process[0x90]
+  //MOVE     0, process[0x94]
+  process[0x8C] = 0;
+  process[0x90] = 0;
+  process[0x94] = 0;
+
+  //0x27     0x7000, process[0x108]
+  setAnim(process, 0x70);
+
+  //ADD      0, -0x10($fp)
+  //MOVE     pop(), process[0x10c]
+  process[0x10C] = 0 + arg_0;
+
+  //ADD      -0xc($fp), process[0x80]
+  //MOVE     pop(), process[0x80]
+  //ADD      -0x8($fp), process[0x84]
+  //MOVE     pop(), process[0x84]
+  //ADD      -0x4($fp), process[0x88]
+  //MOVE     pop(), process[0x88]
+  process[0x80] += arg_1;
+  process[0x84] += arg_2;
+  process[0x88] += arg_3;
+
+  //SHA      static[0xcc], -0xc($fp)
+  //MOVE     pop(), process[0xa4]
+  process[0xA4] = arg_1 >> 6;
+
+  //SHA      static[0xd0], -0x8($fp)
+  //MOVE     pop(), process[0xa8]
+  process[0xA8] = arg_2 << 1;
+
+  //SHA      static[0xcc], -0x4($fp)
+  //MOVE     pop(), process[0xac]
+  process[0xAC] = arg_3 >> 6;
+
+  //MOVE     0x40, process[0xcc]
+  process[0xCC] = 0x40;
+
+  //ANIF    process[0x10c], 60, 3
+  animate(process[0x10C], 60, 3);
+
+  //MOVE     -0x8($fp), pop()
+  //BEQZ    0x30($pc), -0x0
+  if (arg_2 != 0)
+  {
+    //MOVE     0, process[0xcc]
+    process[0xCC] = 0;
+
+    //MOVE     0, pop()
+    counter = 0;
+    
+    do
+    {
+      //MOVE     0, process[0x108]
+      process[0x108] = 0;     // anim 0?
+
+      //ANIF    0, 2, 3
+      animate(0, 2, 3);       //frame 0, wait 2 frames, no flip
+
+      //0x27     0x7000, process[0x108]
+      setAnim(process, 0x70);
+
+      //ADD      0, -0x10($fp)
+      //ANIF    pop(), 2, 3
+      animate(arg_3, 2, 3);
+ 
+      //ADD      0x100, 0xc($fp)
+      //MOVE     pop(), 0xc($fp)
+      //SGT      0x800, 0xc($fp)
+      //BEQZ    0xfdc($pc), -0x0
+    } while ((counter += 0x100) < 0x800);
+
+    //MOVE     pop(), false  (not actually moving anything; cant move to false, just popping the 'counter' variable back)
+  } 
+  //RTE      
+}
+
+sub_0xC48_15(arg_0, arg_1)  //
+{
+  //MOVE     static[0xd4], process[0x138]
+  process[0x138] = 0x19;
+
+  //MOVE     0, process[0x98]
+  //MOVE     0, process[0x9c]
+  //MOVE     0, process[0xa0]
+  process[0x98] = 0;
+  process[0x9C] = 0;
+  process[0xA0] = 0;
+
+  //0x27     0x7000, process[0x108]
+  setAnim(process, 0x70);
+ 
+  //RND      static[0xd8], 0
+  //ADD      pop(), static[0xdc]
+  //SNDB    pop(), 0, 0, 0, 0
+  SNDB(rand(0x51) + 0x3D7, 0, 0, 0, 0);
+
+  //SNDB    0x20, 0, 0, 1, 1
+  SNDB(0x20, 0, 0, 1, 1);
+
+  //SNDA     static[0xe4], static[0x14]
+  SNDA(0x333, 0x26b32049);    //jmp0A  (sound for crash jump? shouldn't crash be making this sound?)
+
+  //MOVE     0, pop()
+  counter = 0;
+  
+  do 
+  {
+    //DIV      static[0x50], -0x4($fp)
+    //ADD      pop(), process[0x80]
+    //MOVE     pop(), process[0x80]
+    process[0x80] += (arg_1 / 5);
+
+    //ADD      static[0xe8], process[0x98]
+    //MOVE     pop(), process[0x98]
+    process[0x98] += 0x1EB;
+
+    //MOVE     process[0x98], process[0x9c]
+    process[0x9C] = process[0x98];
+
+    //ADD      0xa000, process[0x84]
+    //MOVE     pop(), process[0x84]
+    process[0x84] += 0xA000;
+
+    //ANIF    -0x8($fp), 1, 3
+    animate(arg_0, 1, 3);
+
+    //ADD      0x100, 0xc($fp)
+    //MOVE     pop(), 0xc($fp)
+    //SGT      0x500, 0xc($fp)
+    //BNEZ    0xfcc($pc), -0x0
+  } while (counter += 0x100 < 0x500)
+
+  //MOVE     pop(), false
+
+  //MOVE     process[0x84], process[0x11c]
+  process[0x11C] = process[0x84];
+
+  //MOVE     0x5000, process[0xa8]
+  process[0xA8] = 0x5000;
+
+  //MOVE     process[0xfc], pop()
+  aniStamp = process[0xFC];
+ 
+  //PSHA     0x800, 0x5000
+  //0x13     true, process[0xa8]   instruction 0x13 is doing what?
+  
+SUB      0x5000, pop()
+ADD      pop(), process[0x11c]
+MOVE     pop(), process[0x84]
+ANIF    process[0x10c], 1, 3
+SUB      0xc($fp), process[0xfc]
+SGT      static[0x7c], pop()
+BEQZ    0xfdc($pc), -0x0
+MOVE     pop(), false
+MOVE     0x40, process[0xcc]
+MOVE     static[0xec], process[0xa4]
+MOVE     0, process[0xa8]
+MOVE     0, process[0xac]
+RND      static[0xd8], 0
+ADD      pop(), static[0xdc]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x40, 0, 0, 1, 1
+SNDA     static[0xf0], static[0x14]
+MOVE     process[0xfc], pop()
+0x1B     static[0xf4], process[0xa4]
+MOVE     pop(), process[0xa4]
+ANIF    process[0x10c], 1, 3
+SUB      0xc($fp), process[0xfc]
+SGT      static[0xf8], pop()
+BEQZ    0xfe8($pc), -0x0
+MOVE     pop(), false
+RTE
+}
+ 
+sub_0xD28_16()       //for arrow boxes
+{     
+  //CEQ      static[0x9c], self[0xd4]
+  //BEQZ    0xc($pc), -0x0
+  if (self[0xD4] == 3)  //if box type is normal arrow
+  {
+    //0x27     0xc00, process[0x108]
+    setAnim(process, 0xC);  //set anim to 'normal arrow'
+   
+    //MOVE     0, process[0x170]
+    process[0x170] = 0;
+
+    //J       0x8($pc), -0x0
+  }
+  else
+  {
+    //0x27     0x2200, process[0x108]
+    setAnim(process, 0x22); //set anim to 'iron arrow'
+
+    //MOVE     0, process[0x170]
+    process[0x170] = 0;
+  }
+
+  //MOVE     process[0xc4], process[0x1a4]
+  process[0x1A4] = process[0xC4];
+    
+  //PSHA     false, 0x6400
+  //BRA    0x01f0, 4
+  sub_0x1F0(0x6400);
+
+  //ANDB     0x2000, process[0x190]
+  //NOTL     pop(), pop()
+  //NOTL     process[0x1a4], pop()
+  //ORL      pop(), pop()
+  //BEQZ    0x4($pc), -0x0
+  if (!(process[0x190] & 0x2000) || !(process[0x1A4]))
+  {
+    //MOVE     static[0xa4], process[0x1a4]
+    process[0x1A4] = 0x1bf36a;
+  }
+
+  //JALR    subID(17)
+  sub_17();
+
+  //RTE      
+}
+
+sub_0xD70_17/21();   //anim loop routine for initial arrow boxes and initial apple boxes 
+{
+  //CEQ      static[0xa0], self[0xd4]
+  //BEQZ    0x8($pc), -0x0
+  if (self[0xD4] == 15)    //if box is an iron arrow
+  {
+    //ORB      0x800, process[0x120]
+    //MOVE     pop(), process[0x120]
+    process[0x120] |= 0x800;         //?
+  }
+
+  while (true)
+  {
+    //ANIF    process[0x170], 63, 3
+    animate(process[0x170], 63, 3);
+   
+    //J       0xff8($pc), -0x0
+  }
+
+  //RTE      
+}
+
+sub_0xD8C(tag, arg)   //event handler routine for arrow boxes
+{
+  //ADD      0xc800, process[0x84]
+  //SLT      pop(), link5[0x84]
+  //CEQ      process[0x74], process[0x7c]
+  //CEQ      0, -0x8($fp)
+  //NOTL     process[0x70], pop()
+  //ANDL     pop(), pop()
+  //ANDL     pop(), pop()
+  //ANDL     pop(), pop()
+  //BEQZ    0xc($pc), -0x0
+  if (process[0x74][0x84] > process[0x84] + 0xC800 && process[0x74] == process[0x7C] && (tag != 0))
+  {
+    //PSHA     false, process[0x1a4]
+    //0x87     0x1500, 0, 1, 7
+    issueEvent(process, process[0x7C], 0x1500, {process[0x1A4]});
+
+    //RSRT     subID(18), process[0xF4]
+    retSub 18;   //arrow box bounce type A
+  }
+
+  //CEQ      static[0x9c], self[0xd4]
+  //BEQZ    0x68($pc), -0x0
+  if (self[0xD4] == 13)
+  {
+    //PSHA     -0x4($fp), -0x8($fp)
+    //BRA    0x010c, 8
+    sub_0x10C(tag, arg);
+
+    //BEQZ    0x4($pc), -0x0, process[0xF4]
+    if (process[0xF4])
+    {
+      //RSRF     subID(24), process[0xF4]
+      retSub 24;
+    }
+      
+    //CEQ      0xa00, -0x8($fp)
+    //BEQZ    0x1c($pc), -0x0
+    if (tag == 0xA00)
+    {
+      //ADD      static[0x84], process[0x84]
+      //SLT      pop(), link5[0x84]
+      //BEQZ    0x8($pc), -0x0
+      if (process[0x84] + 0x16800 > process[0x74][0x84])
+      {
+        //RSRF     subID(25), process[0xF4]
+        retSub 25;
+
+        //J       0x4($pc), -0x0   ??will never reach here?? probably the default result of compiling if/else 
+      }
+      else
+      {
+        //RSRF     subID(24), process[0xF4]
+        retSub 24;    //break box, spawn items
+      
+        //J       0x2c($pc), -0x0  again, will never reach here, the default result of compiling if/else
+      }
+    }
+
+    //CEQ      0x1d00, -0x8($fp)
+    //CEQ      0x300, -0x8($fp)
+    //ORL      pop(), pop()
+    //BNEZ    0x1c($pc), -0x0
+    if (tag == 0x1D00 || tag == 0x300)
+    {
+      //MSC     -0x4($fp), 5, 0x0, 0
+      //CEQ      0x300, -0x8($fp)
+      //ANDL     pop(), pop()
+      //BEQZ    0x8($pc), -0x0
+      if (*(arg) && tag == 0x300)
+      {
+        //RSRF     subID(23), process[0xF4]
+        retSub 23;     //break box, spawn no items
+
+        //J       0x4($pc), -0x0
+      }
+      else
+      {
+        //RSRF     subID(24), process[0xF4]
+        retSub 24;    //break box, spawn items
+      }
+    }
+
+    //CEQ      0x1700, -0x8($fp)
+    //RSNF     subID(24), pop()
+    if (tag == 0x1700)
+      retSub 24;      //break box, spawn items
+  }
+
+  //CEQ      0xe00, -0x8($fp)
+  //RSNF     subID(19), pop()
+  if (tag == 0xE00)
+    retSub 19;   //arrow box bounce type B
+
+  //RTE
+}
+
+sub_0xE38()   //animate an arrow box bounce
+{      
+  //CEQ      static[0xa0], self[0xd4]
+  //BEQZ    0x28($pc), -0x0
+  if (self[0xD4] == 15)   //if an iron arrow we animate with a different animation 
+  {
+    //0x27     0x2200, process[0x108]
+    setAnim(process, 0x22);
+
+    //MOVE     0x1ff00, process[0x10c]
+    process[0x10C] = 0x1FF00;
+
+    do 
+    {
+      //ADD      0x100, process[0x10c]
+      //ANIF    pop(), 1, 3
+      animate(process[0x10C] + 0x100, 1, 3);
+
+      //ADD      0x100, process[0x10c]
+      //SGE      0x900, pop()
+      //BEQZ    0xfec($pc), -0x0
+    } while (process[0x10C] + 0x100 <= 0x900)
+
+    //ANIS    8, 34, 1, 3
+    changeAnim(8, 34, 1, 3); //change to anim 0x22, frame 8, wait 1 frame, no flip
+
+    //ANIS    9, 34, 1, 3
+    changeAnim(9, 34, 1, 3); //change to anim 0x22, frame 9, wait 1 frame, no flip
+
+    //J       0x24($pc), -0x0
+  }
+  else
+  {
+    //0x27     0xc00, process[0x108]
+    setAnim(process, 0xC);
+
+    //MOVE     0x1ff00, process[0x10c]
+    process[0x10C] = 0x1FF00;
+
+    do 
+    {
+      //ADD      0x100, process[0x10c]
+      //ANIF    pop(), 1, 3
+      animate(process[0x10C] + 0x100, 1, 3);
+
+      //ADD      0x100, process[0x10c]
+      //SGE      0x900, pop()
+      //BEQZ    0xfec($pc), -0x0
+    } while (process[0x10C] + 0x100 <= 0x900)
+
+    //ANIS    8, 12, 1, 3
+    changeAnim(8, 12, 1, 3); //change to anim 0xC, frame 8, wait 1 frame, no flip
+
+    //ANIS    9, 12, 1, 3
+    changeAnim(9, 12, 1, 3); //change to anim 0xC, frame 9, wait 1 frame, no flip
+  }
+
+  //RTE      
+}
+
+sub_0xE90_18()    //one type of arrow box bounce
+{
+  //CEQ      static[0xa0], self[0xd4]
+  //BEQZ    0x8($pc), -0x0
+  if (self[0xD4] == 15)  //if iron arrow
+  {
+    //ORB      0x800, process[0x120]
+    //MOVE     pop(), process[0x120]
+    process[0x120] |= 0x800;    //cannot break???
+  }
+
+  //RND      static[0xb8], 0
+  //ADD      pop(), static[0xe0]
+  val = rand(0xCC) + 0x399;
+
+  //SNDB    pop(), 0, 0, 0, 0
+  //SNDB    0x40, 0, 0, 1, 1
+  sndb( val, 0, 0, 0, 0);
+  sndb(0xA0, 0, 0, 1, 1);
+
+  //SNDA     static[0x8c], static[0x18]
+  snda(0x1999, 0x16b98049);   //bnc0A  - play 'bounce' sample
+ 
+  //BRA    0x0e38, 0
+  sub_0xE38();  //animate bounce
+
+  //JALR    subID(17)
+  sub_17();     //animate normal
+  
+  //RTE      
+}
+
+sub_0xEC0_19()  //event handler for routine 19 = sub_0xEf0
+{
+  //ORB      static[0x54], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] |= 0x20000;
+
+  //RND      static[0xb8], 0
+  //ADD      pop(), static[0xe0]
+  val = rand(0xCC) + 0x399;
+
+  //SNDB    pop(), 0, 0, 0, 0
+  //SNDB    0x40, 0, 0, 1, 1
+  sndb( val, 0, 0, 0, 0);
+  sndb(0xA0, 0, 0, 1, 1);
+
+  //SNDA     static[0xf0], static[0x18]
+  snda(0x999, 0x16b98049);   //bnc0A  - play 'bounce' sample (half volume as bounce type A)
+
+  //PSHA     false, static[0xa4]
+  //0x87     0x1500, 0, 1, 4
+  issueEvent(process, process[0x70], 0x1500, 0x1bf36A);
+
+  //BRA    0x0e38, 0
+  sub_0xE38();
+
+  //JALR    subID(17)
+  sub_17();  
+
+  //RTE      
+}
+
+sub_0xEF0()
+{
+ADD      static[0x100], process[0x84]
+SLT      pop(), link5[0x84]
+BNEZ    0x10($pc), -0x0
+CEQ      0, -0x8($fp)
+TST      static[0x54], process[0xcc]
+ANDL     pop(), pop()
+ERR     0x0012, 1f, 1, 1
+CEQ      static[0x9c], self[0xd4]
+BNEZ    0x68($pc), -0x0
+PSHA     -0x4($fp), -0x8($fp)
+ BRA    0x010c, 8
+BNEZ    0x4($pc), -0x0
+ERR     0x0018, 25, 0, 1
+CEQ      0xa00, -0x8($fp)
+BNEZ    0x1c($pc), -0x0
+ADD      static[0x84], process[0x84]
+SLT      pop(), link5[0x84]
+BNEZ    0x8($pc), -0x0
+ERR     0x0019, 25, 0, 1
+J       0x4($pc), -0x0
+ERR     0x0018, 25, 0, 1
+J       0x2c($pc), -0x0
+CEQ      0x1d00, -0x8($fp)
+CEQ      0x300, -0x8($fp)
+ORL      pop(), pop()
+BNEZ    0x1c($pc), -0x0
+MSC     -0x4($fp), 0x0, 0
+CEQ      0x300, -0x8($fp)
+ANDL     pop(), pop()
+BNEZ    0x8($pc), -0x0
+ERR     0x0017, 25, 0, 1
+J       0x4($pc), -0x0
+ERR     0x0018, 25, 0, 1
+CEQ      0x1700, -0x8($fp)
+ERR     0x0018, 1f, 1, 1
+RTE      
+}
+
+sub_0xF80_20()      //for apple type boxes (type 6)
+{
+  //0x27     0x1000, process[0x108]
+  setAnim(process, 0x10);
+
+  //MOVE     0, process[0x170]
+  process[0x170] = 0;
+
+  //PSHA     false, 0x4c00
+  //BRA    0x01f0, 4
+  sub_0x1f0(0x4C00);
+
+  //BRA    0x0390, 0
+  sub_0x390();
+
+  //MOVE     0, process[0x188]
+  process[0x188] = 0;
+
+  //JALR    subID(21)
+  sub_21();
+
+  //RTE
+}
+
+sub_0xFA0(tag, arg)  //event handler for apple boxes (and 1014)
+{      
+  //ADD      static[0x100], process[0x84]
+  //SLT      pop(), link5[0x84]
+  //BEQZ    0x10($pc), -0x0
+  if (process[0x84] + 0x12C00 > link5[0x84]) //if top of the box is higher than bottom of crash
+  {
+    //CEQ      0, -0x8($fp)
+    //TST      static[0x54], process[0xcc]
+    //ANDL     pop(), pop()
+    //RSNF    subID(22), pop()
+    if (tag == 0 || process[0xCC] & 0x20000)
+      retSub 22;
+  }
+
+  //CEQ      0xa00, -0x8($fp)
+  //BEQZ    0x10($pc), -0x0
+  if (tag == 0xA00)
+  {
+    //CEQ      0x4c00, process[0x180]
+    //BEQZ    0x4($pc), -0x0
+    //MOVE     0x4e00, process[0x180]
+    if (process[0x180] == 0x4C00)
+      process[0x180] = 0x4E00;
+
+    //RSRF    subID(24), process[0xf4]
+    retSub 24;
+  }
+ 
+  //CEQ      0x300, -0x8($fp)
+  //CEQ      0xa00, -0x8($fp)
+  //CEQ      0x1d00, -0x8($fp)
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //RSNF    subID(23), pop()
+  if (tag == 0x300 || tag == 0xA00 || tag = 0x1D00)
+    retSub 23;
+
+  //PSHA     -0x4($fp), -0x8($fp)
+  //BRA    0x010c, 8
+  sub_0x10C(tag, arg);
+
+  //BEQZ    0x4($pc), -0x0, process[0xf4]
+  //RSRF    subID(23), process[0xf4]
+  if (process[0xF4])
+    retSub 23;
+
+  //CEQ      0x1700, -0x8($fp)
+  //BEQZ    0xc($pc), -0x0
+  if (tag == 0x1700)
+  {
+    //TST      0x20, process[0xcc]
+    //RSNF    subID(23), pop()
+    //RSRF    subID(22), process[0xf4]
+    if (process[0xCC] & 0x20)
+      retSub 23;
+    else
+      retSub 22;
+  }
+
+  //RTE      (process[0xf4])
+}
+
+sub_0x1014_22()
+{    
+NOTL     process[0x188], pop()
+BNEZ    0x4($pc), -0x0
+MOVE     process[0xfc], process[0x18c]
+ADD      0x100, process[0x188]
+MOVE     pop(), process[0x188]
+MSC     0x4a00, 0x0, 3
+SLE      0xa00, pop()
+BEQZAL  subID(24)
+SUB      process[0x18c], process[0xfc]
+SLE      static[0x104], pop()
+BEQZAL  subID(23)
+PSHA     0, 0x4c00
+CHLD     
+0x27     0x1000, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SGE      0x900, pop()
+BEQZ    0xfec($pc), -0x0
+ANIS    8, 16, 1, 3
+ANIS    9, 16, 1, 3
+JALR    subID(21)
+RTE      
+}
+
+sub_0x1074_23()   //break box and spawn nothing (i.e. no items in box)
+{
+  //MSC     process[0xd8], 0x0, 8
+  //MSC     self[0xd8], 0x0, 10
+  bitlist[self.ID] &= 0xFFFFFFFB;  //clear bit 3
+  bitlist[self.ID] |= 8;           //set bit 8
+
+  //BRA     0x0308, 0
+  sub_0x308();
+
+  //RND      static[0xb8], 0
+  //ADD      pop(), static[0xe0]
+  val = rand(0xCC) + 0x399;
+
+  //SNDB    pop(), 0, 0, 0, 0
+  //SNDB    0xA0, 0, 0, 1, 1
+  sndb( val, 0, 0, 0, 0);
+  sndb(0xA0, 0, 0, 1, 1);
+  
+  //SNDA    static[0x108], static[0x1c] 
+  snda(0x1666, 0x16da8049);    //brk0A - box breaking sound sample
+
+  //RND      static[0x4c], 0
+  //NOTL     pop(), pop()
+  //BEQZ    0x8($pc), -0x0
+  if (!rand(2))              //1/2 or 1/3 the time flip breaking animation x-wise?
+  {
+    //SUB      self[0x98], 0
+    //MOVE     pop(), self[0x98]
+    self[0x98] = -self[0x98];
+  }
+
+  //ANIS    0, 2, 1, 3
+  //ANIS    1, 2, 1, 3
+  //ANIS    2, 2, 1, 3
+  //ANIS    3, 2, 1, 3
+  changeAnim(0, 2, 1, 3);  //change to animation 2, frame 0, wait 1 frame, no flip
+  changeAnim(1, 2, 1, 3);  //change to animation 2, frame 1, wait 1 frame, no flip 
+  changeAnim(2, 2, 1, 3);  //change to animation 2, frame 2, wait 1 frame, no flip
+  changeAnim(3, 2, 1, 3);  //change to animation 2, frame 3, wait 1 frame, no flip 
+
+  //ANDB     static[0x60], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= 0xFFFFFFEF;
+
+  //MOVE     0x300, process[0x10c]
+  process[0x01C] = 0x300;
+  
+  do
+  {
+    //ADD      0x100, process[0x10c]
+    //ANIF    pop(), 1, 3
+    animate(process[0x10C] + 0x100, 1, 3);  //then do the rest of the anim
+
+    //ADD      0x100, process[0x10c]
+    //SGE      0xd00, pop()
+    //BEQZ    0xfec($pc), -0x0
+  } while (process[0x10C] + 0x100 <= 0xD00)
+
+  //RTE 
+}
+
+sub_0x10DC_24()  //box break and spawn items (box has items in it)
+{     
+  //MSC     process[0xd8], 0x0, 8
+  //MSC     self[0xd8], 0x0, 10
+  bitlist[self.ID] &= 0xFFFFFFFB;  //clear bit 3
+  bitlist[self.ID] |= 8;           //set bit 8
+
+  //BRA     0x0308, 0
+  sub_0x308();
+
+  //MOVE     0, process[0xf8]
+  process[0xF8] = 0;
+
+  //PSHA     false, process[0x180]
+
+  //CEQ      0x6700, 0xc($fp)
+  //CEQ      0x6800, 0xc($fp)
+  //CEQ      0x6900, 0xc($fp)
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //BEQZ    0x18($pc), -0x0
+  if (process[0x180] == 0x6700 || process[0x180] == 0x6800 || process[0x180] == 0x6900)
+  {
+    //MOVE     process[0xd8], process[0xf8]
+    process[0xF8] = process[0xD8];
+
+    //ANDB     static[0x54], process[0x190]
+    //NOTL     pop(), pop()
+    //BEQZ    0x4($pc), -0x0
+    if (!(process[0x190] & 0x20000))
+    {
+      //MSC     self[0xd8], 0x1, 10
+      bilist[self.ID] |= 4;         //set bit 3
+    }
+
+    //J       0x48($pc), -0x0
+  }
+  //CEQ      0x6100, 0xc($fp)
+  //BEQZ    0x8($pc), -0x0
+  else if (process[0x180] == 0x6100)
+  {
+    //MOVE     process[0xd8], process[0xf8]
+    process[0xD8] = process[0xF8];     
+
+    //J       0x38($pc), -0x0
+  }
+  //CEQ      0x6600, 0xc($fp)
+  else if (process[0x180] == 0x6600)
+  {
+    //BEQZ    0x30($pc), -0x0
+    //0x1F     false, 0
+    //CEQ      0x2800, pop()
+    //0x1F     false, 0
+    //CEQ      0x2a00, pop()
+    //ORL      pop(), pop()
+    //BEQZ    0x18($pc), -0x0
+    if (global[0] == 0x2800 || global[0] == 0x2A00)
+    {
+      //0x1F     false, 0x1000
+      //MOVE     pop(), process[0x7c]
+      process[0x7C] = global[0x10];
+
+      //SHA      static[0x10c], process[0x1a0] 
+      //MOVE     pop(), process[0xf8]
+      process[0xF8] = process[0x1A0] << 8;
+
+      //PSHA     false, 0x700
+      //0x87     0xf00, 0, 1, 7
+      issueEvent(process, process[0x7C], 0xF00, { 0x700 });
+    }
+  }
+  
+  //J       0x1000($pc), -0x1
+    
+  //MOVE     process[0x6c], process[0x7c]
+  process[0x7C] = process[0x6C];   //sibling...
+
+  //ANDB     0x400, process[0x190]
+  //CEQ      0x300, process[0x13c]
+  //CEQ      0xa00, process[0x13c]
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //ORL      pop(), process[0x70]
+  //BEQZ    0x14($pc), -0x0
+  if (process[0x190] & 0x400 || process[0x13C] == 0x300 || process[0x13C] == 0xA00 || process[0x70])
+  {
+    //MOVE     process[0x180], pop()
+    //BEQZ    0x8($pc), -0x0
+    if (process[0x180])
+    {
+      //PSHA     process[0xf8], process[0x180]
+      //CHDN     1, 13, 3, 2
+      spawnChildN(1, 3, 13, 2);     //spawn a single (1) fruit[=code type 3] of type 13 [?]  (wumpa fruit?)
+     -init: sub_13(process[0xF8], process[0x180])  //[is code for other fruits still intact? :O]
+          
+      //J       0x10($pc), -0x0
+    }
+  }
+  else
+  {
+    //MOVE     process[0x180], pop()
+    //BEQZ    0x8($pc), -0x0
+    if (process[0x180])
+    {
+      //PSHA     process[0xf8], process[0x180]
+      //CHDN     1, 12, 3, 2
+      spawnChildN(1, 3, 12, 2);     //spawn a single (1) fruit[=code type 3] of type 12 [?]  (wumpa fruit?)
+      -init: sub_13(process[0xF8], process[0x180])  //[is code for other fruits still intact? :O]
+    }
+  }
+
+  //CEQ      process[0x6c], process[0x7c]
+  //BEQZ    0x8($pc), -0x0
+  if (process[0x6C] == process[0x7C])
+  {
+    //PSHA     process[0xf8], process[0x180]
+    //BRA    0x1244, 8
+    sub_0x1244(process[0xF8], process[0x180]);
+  }
+
+  //RND      static[0xb8], 0
+  //ADD      pop(), static[0xe0]
+  val = rand(0xCC) + 0x399;
+
+  //SNDB    pop(), 0, 0, 0, 0
+  //SNDB    0xA0, 0, 0, 1, 1
+  sndb( val, 0, 0, 0, 0);
+  sndb(0xA0, 0, 0, 1, 1);
+  
+  //SNDA    static[0x108], static[0x1c] 
+  snda(0x1666, 0x16da8049);    //brk0A - box breaking sound sample
+
+  //RND      static[0x4c], 0
+  //NOTL     pop(), pop()
+  //BEQZ    0x8($pc), -0x0
+  if (!rand(2))              //1/2 or 1/3 the time flip breaking animation x-wise?
+  {
+    //SUB      self[0x98], 0
+    //MOVE     pop(), self[0x98]
+    self[0x98] = -self[0x98];
+  }
+
+  //ANIS    0, 2, 1, 3
+  //ANIS    1, 2, 1, 3
+  //ANIS    2, 2, 1, 3
+  //ANIS    3, 2, 1, 3
+  changeAnim(0, 2, 1, 3);  //change to animation 2, frame 0, wait 1 frame, no flip
+  changeAnim(1, 2, 1, 3);  //change to animation 2, frame 1, wait 1 frame, no flip 
+  changeAnim(2, 2, 1, 3);  //change to animation 2, frame 2, wait 1 frame, no flip
+  changeAnim(3, 2, 1, 3);  //change to animation 2, frame 3, wait 1 frame, no flip 
+  changeAnim(4, 2, 1, 3);  //change to animation 2, frame 4, wait 1 frame, no flip   //only diff here is we do one extra
+
+  //ANDB     static[0x60], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= 0xFFFFFFEF;
+
+  //MOVE     0x400, process[0x10c]
+  process[0x01C] = 0x400;          //and start one later
+  
+  do
+  {
+    //ADD      0x100, process[0x10c]
+    //ANIF    pop(), 1, 3
+    animate(process[0x10C] + 0x100, 1, 3);  //then do the rest of the anim
+
+    //ADD      0x100, process[0x10c]
+    //SGE      0xd00, pop()
+    //BEQZ    0xfec($pc), -0x0
+  } while (process[0x10C] + 0x100 <= 0xD00) 
+
+  //RTE   
+}
+
+sub_0x1224_25()
+{   
+  do
+  {
+    //MOVE     process[0xfc], pop()
+    prevAniFrame = process[0xFC];
+
+    //ANIF    process[0x170], 1, 3
+    animate(process[0x170], 1, 3);
+
+    //SUB      0xc($fp), process[0xfc]
+    elapsed = process[0xFC] - prevAniFrame;
+
+    //SGT      static[0xa0], pop()
+    //BNEZ    0xff0($pc), -0x0
+  } while (elapsed < 15);
+  
+  //MOVE     pop(), false
+
+  //JALR    subID(24)
+  subID_24();
+
+  //RTE      
+}
+
+sub_0x1244(arg_0, arg_1)
+{
+  //PSHA     false, -0x8($fp)
+  //CEQ      0x6100, 0xc($fp)
+  //BEQZ    0x20($pc), -0x0
+  if (arg_0 == 0x6100)
+  {
+    //PSHA     false, 0x100
+    //0x87     0x500, 0, 1, 5
+    issueEvent(process, process[0x74], 0x500, { 0x100 });
+
+    //0x1F     false, 0x1e00
+    //ANDB     0x2000, pop()
+    //NOTL     pop(), pop()
+    //BEQZ    0x4($pc), -0x0
+    if (!(global[0x1E] & 0x2000))
+    {
+      MSC     -0x4($fp), 05, 0x5, 10       //TODO!
+      
+    }
+
+    //J       0x8($pc), -0x0
+  }
+  else
+  {
+    //PSHA     false, 0x100
+    //0x87     0x200, 0, 1, 5
+    issueEvent(process, process[0x74], 0x200, { 0x100 });
+  }
+
+  //J       0x1000($pc), -0x1
+
+} //RTE      
+
+sub_0x1280_26(arg_0, arg_1, arg_2, arg_3, arg_4) //for TNT type boxes: type 0(0x0), type 11(0xB) and type 16(0x10)
+{
+  //CEQ      0x10, self[0xd4]
+  //BEQZ     0x1c($pc), -0x0
+  if (self[0xD4] == 0x10)    
+  {
+    //MOVE     0x8000, process[0xc0]
+    process[0xC0] = 0x8000;
+
+    //MOVE     0, process[0x8c]
+    //MOVE     0, process[0x90]
+    //MOVE     0, process[0x94]
+    process[0x8C] = 0;
+    process[0x90] = 0;
+    process[0x94] = 0;
+
+    //MOVE     -0xc($fp), process[0x80]
+    //MOVE     -0x8($fp), process[0x84]
+    //MOVE     -0x4($fp), process[0x88]
+    process[0x80] = arg_2;
+    process[0x84] = arg_3;
+    process[0x88] = arg_4;
+  }
+
+  //CEQ      static[0x110], self[0xd4]
+  //BEQZ    0x4($pc), -0x0
+  if (self[0xD4] == static[0x110])
+    //MOVE     0, process[0xd4]
+    process[0xD4] = 0;
+
+  //0x27     0x400, process[0x108]
+  setAnim(process, 0x4);
+
+  //MOVE     0, process[0x170]
+  process[0x170] = 0;
+
+  //MOVE     static[0x114], process[0x194]
+  process[0x194] = static[0x114];
+
+  //RND      static[0x114], 0
+  //MOVE     pop(), process[0x198]
+  process[0x198] = rand(static[0x114]);
+
+  //PSHA     false, 0x6400
+  push(false);
+  push(0x6400);
+ 
+  //BRA    0x01f0, 4
+  sub_0x1f0();
+
+  //CEQ      0x10, self[0xd4]
+  //BEQZ     0x18($pc), -0x0
+  if (self[0xD4] == 0x10)  //countdown and explode on spawn type TNT?
+  {
+    //ORB      static[0x80], process[0xcc]
+    //MOVE     pop(), process[0xcc]
+    process[0xCC] |= static[0x80];
+
+    //ADD      -0x14($fp), process[0x84]
+    //MOVE     pop(), process[0x84]
+    process[0x84] += arg_0;
+
+    //MOVE     -0x10($fp), process[0x194]
+    process[0x194] = arg_1;
+
+    //JALR    subID(28)
+    sub_28();
+  }
+
+
+  //main anim loop
+  do
+  {
+    //
+    //sub_28(); ??
+
+    //ANIF    process[0x170], 63, 3
+    changeAnim(process, process[0x170], 63, 3);
+
+    //J       0xff8($pc), -0x0
+  }
+  //RTE
+}
+
+sub_0x12F8(tag, arg)    //tnt event handler routine
+{
+  //BEQZ    0x24($pc), -0x0, process[0x7C]
+  if (process[0x7C])
+  {
+    //CEQ      0, -0x8($fp)
+    //NOTL     process[0x70], pop()
+    //SGE      0, link7[0xa8]
+    //ADD      static[0x84], process[0x84]
+    //SLE      pop(), link7[0x84]
+    //ANDL     pop(), pop()
+    //ANDL     pop(), pop()
+    //ANDL     pop(), pop()
+    //RSNF     subID(28), pop()
+    if (tag == 0 && !(process[0x70]) && 0 <= process[0x7C][0xA8] && process[0x84] + 0x16800 >= process[0x7C][0x84])
+      retSub 28;
+  }
+
+  //CEQ      0xe00, -0x8($fp)
+  if (tag == 0xE00)
+  {
+    //RSNF     subID(28), pop()
+    retSub 28;
+  }
+  
+  //CEQ      0x1700, -0x8($fp)
+  //BEQZ    0xc($pc), -0x0   
+  if (tag == 0x1700)
+  {
+    //TST      0x20, process[0xcc]
+    if (process[0xCC] & 0x20)
+    {
+      //RSNF     subID(29), pop()
+      retSub 29;
+    }
+    else
+    {
+      //RSRF     subID(28), process[0xF4]
+      retSub 28;
+    }
+  }
+
+  //CEQ      0x300, -0x8($fp)
+  //CEQ      0xa00, -0x8($fp)
+  //CEQ      0x1d00, -0x8($fp)
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //RSNF     subID(29), pop()
+  if (tag == 0x300 || tag == 0xA00 || tag == 0x1D00)
+  { 
+    retSub 29;
+  }
+   
+  //PSHA     -0x4($fp), -0x8($fp)
+  //BRA    0x010c, 8
+  sub_0x10C(tag, arg);
+
+  //BEQZ    0x4($pc), -0x0, process[0xF4]
+  if (process[0xF4])
+  {  
+    //RSRF    subID(29), process[0xF4]
+    retSub 29;
+  }
+
+  //RTE      
+}
+
+sub_0x1368()
+{
+  //BRA    0x0000, 0
+  sub_0x0();
+
+  //TST      0x20, process[0xc8]
+  //NOTL     pop(), pop()
+  //BEQZ    0x6c($pc), -0x0
+  if (!(process[0xC8] & 0x20))
+  {
+    //0x1E     process[0x198], process[0x194]
+    //BEQZ    0x34($pc), -0x0
+    if ((process[0x198] + *(0x57960)) % process[0x194])
+    {
+      //fill color matrices and color vector values
+      //WLCV    static[0x118], process[0x60], 21
+      //WLCV    static[0x118], process[0x60], 22
+      //WLCV    static[0x118], process[0x60], 23
+      process[0x5A] = 255;
+      process[0x5C] = 255;
+      process[0x5E] = 255;
+
+      //WLCV    static[0x118], process[0x60], 12
+      //WLCV    static[0x118], process[0x60], 13
+      //WLCV    static[0x118], process[0x60], 14
+      //WLCV    static[0x118], process[0x60], 15
+      //WLCV    static[0x118], process[0x60], 16
+      //WLCV    static[0x118], process[0x60], 17
+      //WLCV    static[0x118], process[0x60], 18 
+      //WLCV    static[0x118], process[0x60], 19
+      //WLCV    static[0x118], process[0x60], 20
+      process[0x48] = 255;
+      process[0x4A] = 255;
+      process[0x4C] = 255;
+      process[0x4E] = 255;
+      process[0x50] = 255;
+      process[0x52] = 255;
+      process[0x54] = 255;
+      process[0x56] = 255;
+      process[0x58] = 255;
+  
+      //J       0x30($pc), -0x0, process[0xf4]
+    }
+    else
+    {
+      //WLCV    0x200, process[0x60], 21
+      //WLCV    static[0x104], process[0x60], 22
+      //WLCV    static[0x104], process[0x60], 23
+      process[0x5A] = 512;
+      process[0x5C] = 150;
+      process[0x5E] = 150;
+
+      //WLCV    0x200, process[0x60], 12
+      //WLCV    static[0x104], process[0x60], 13 
+      //WLCV    static[0x104], process[0x60], 14
+      //WLCV    0x200, process[0x60], 15
+      //WLCV    static[0x104], process[0x60], 16 
+      //WLCV    static[0x104], process[0x60], 17
+      //WLCV    0x200, process[0x60], 18
+      //WLCV    static[0x104], process[0x60], 19
+      //WLCV    static[0x104], process[0x60], 20
+      process[0x48] = 512;
+      process[0x4A] = 150;
+      process[0x4C] = 150;
+      process[0x4E] = 512;
+      process[0x50] = 150;
+      process[0x52] = 150;
+      process[0x54] = 512;
+      process[0x56] = 150;
+      process[0x58] = 150;
+    }
+  } 
+
+  //RTE 
+}
+
+sub_0x13E8_27()   //FRAME ANIMATION LOOP FOR TNT
+{
+  while (true)
+  {
+    //ANIF    process[0x170], 63, 3
+    animate(process[0x170], 63, 3);  //use current anim, wait 63 frames, no flip
+
+    //J       0xff8($pc), -0x0
+  }
+
+  //RTE      
+}
+
+sub_0x13F4_28()  //routine for countdown tnt
+{
+  //WLCV    0x200, process[0x60], 21
+  //WLCV    static[0x104], process[0x60], 22
+  //WLCV    static[0x104], process[0x60], 23
+  process[0x5A] = 512;
+  process[0x5C] = 150;
+  process[0x5E] = 150;
+
+  //WLCV    0x200, process[0x60], 12
+  //WLCV    static[0x104], process[0x60], 13 
+  //WLCV    static[0x104], process[0x60], 14
+  //WLCV    0x200, process[0x60], 15
+  //WLCV    static[0x104], process[0x60], 16 
+  //WLCV    static[0x104], process[0x60], 17
+  //WLCV    0x200, process[0x60], 18
+  //WLCV    static[0x104], process[0x60], 19
+  //WLCV    static[0x104], process[0x60], 20
+  process[0x48] = 512;
+  process[0x4A] = 150;
+  process[0x4C] = 150;
+  process[0x4E] = 512;
+  process[0x50] = 150;
+  process[0x52] = 150;
+  process[0x54] = 512;
+  process[0x56] = 150;
+  process[0x58] = 150;
+
+  //0x1F     false, 0
+  //CEQ      0x2100, pop()
+  //BEQZ    0xc($pc), -0x0
+  if (global[0] == 0x2100)
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x8c], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x1999, 0x6ee96049);     //Ttb0A   TNT countdown sample
+
+    //J       0x8($pc), -0x0, process[0xf4]
+  }
+  else
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x120], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x3332, 0x6ee96049);   //Ttb0A   TNT countdown sample (louder than prev one)
+  }
+
+  //ANIS    0, 10, 6, 3
+  changeAnim(0, 10, 6, 3);   //change animation to 10, frame 0, wait 6 frames, no flip
+
+  //fill color matrices and color vector values
+  //WLCV    static[0x118], process[0x60], 21
+  //WLCV    static[0x118], process[0x60], 22
+  //WLCV    static[0x118], process[0x60], 23
+  process[0x5A] = 255;
+  process[0x5C] = 255;
+  process[0x5E] = 255;
+
+  //WLCV    static[0x118], process[0x60], 12
+  //WLCV    static[0x118], process[0x60], 13
+  //WLCV    static[0x118], process[0x60], 14
+  //WLCV    static[0x118], process[0x60], 15
+  //WLCV    static[0x118], process[0x60], 16
+  //WLCV    static[0x118], process[0x60], 17
+  //WLCV    static[0x118], process[0x60], 18 
+  //WLCV    static[0x118], process[0x60], 19
+  //WLCV    static[0x118], process[0x60], 20
+  process[0x48] = 255;
+  process[0x4A] = 255;
+  process[0x4C] = 255;
+  process[0x4E] = 255;
+  process[0x50] = 255;
+  process[0x52] = 255;
+  process[0x54] = 255;
+  process[0x56] = 255;
+  process[0x58] = 255;
+  
+  //ANIS    0, 10, 36, 3
+  changeAnim(0, 10, 36, 3);   //change animation to 10, frame 0, wait 36 frames, no flip
+  
+  //WLCV    0x200, process[0x60], 21
+  //WLCV    static[0x104], process[0x60], 22
+  //WLCV    static[0x104], process[0x60], 23
+  process[0x5A] = 512;
+  process[0x5C] = 150;
+  process[0x5E] = 150;
+
+  //WLCV    0x200, process[0x60], 12
+  //WLCV    static[0x104], process[0x60], 13 
+  //WLCV    static[0x104], process[0x60], 14
+  //WLCV    0x200, process[0x60], 15
+  //WLCV    static[0x104], process[0x60], 16 
+  //WLCV    static[0x104], process[0x60], 17
+  //WLCV    0x200, process[0x60], 18
+  //WLCV    static[0x104], process[0x60], 19
+  //WLCV    static[0x104], process[0x60], 20
+  process[0x48] = 512;
+  process[0x4A] = 150;
+  process[0x4C] = 150;
+  process[0x4E] = 512;
+  process[0x50] = 150;
+  process[0x52] = 150;
+  process[0x54] = 512;
+  process[0x56] = 150;
+  process[0x58] = 150;
+
+  //0x1F     false, 0
+  //CEQ      0x2100, pop()
+  //BEQZ    0xc($pc), -0x0
+  if (global[0] == 0x2100)
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x8c], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x1999, 0x6ee96049);     //Ttb0A   TNT countdown sample
+
+    //J       0x8($pc), -0x0, process[0xf4]
+  }
+  else
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x120], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x3332, 0x6ee96049);   //Ttb0A   TNT countdown sample (louder than prev one)
+  }
+
+  //ANIS    0, 8, 6, 3
+  changeAnim(0, 8, 6, 3);   //change animation to 8, frame 0, wait 6 frames, no flip
+
+  //fill color matrices and color vector values
+  //WLCV    static[0x118], process[0x60], 21
+  //WLCV    static[0x118], process[0x60], 22
+  //WLCV    static[0x118], process[0x60], 23
+  process[0x5A] = 255;
+  process[0x5C] = 255;
+  process[0x5E] = 255;
+
+  //WLCV    static[0x118], process[0x60], 12
+  //WLCV    static[0x118], process[0x60], 13
+  //WLCV    static[0x118], process[0x60], 14
+  //WLCV    static[0x118], process[0x60], 15
+  //WLCV    static[0x118], process[0x60], 16
+  //WLCV    static[0x118], process[0x60], 17
+  //WLCV    static[0x118], process[0x60], 18 
+  //WLCV    static[0x118], process[0x60], 19
+  //WLCV    static[0x118], process[0x60], 20
+  process[0x48] = 255;
+  process[0x4A] = 255;
+  process[0x4C] = 255;
+  process[0x4E] = 255;
+  process[0x50] = 255;
+  process[0x52] = 255;
+  process[0x54] = 255;
+  process[0x56] = 255;
+  process[0x58] = 255;
+  
+  //ANIS    0, 8, 15, 3
+  changeAnim(0, 8, 15, 3);   //change animation to 8, frame 0, wait 15 frames, no flip
+  
+  //WLCV    0x200, process[0x60], 21
+  //WLCV    static[0x104], process[0x60], 22
+  //WLCV    static[0x104], process[0x60], 23
+  process[0x5A] = 512;
+  process[0x5C] = 150;
+  process[0x5E] = 150;
+
+  //WLCV    0x200, process[0x60], 12
+  //WLCV    static[0x104], process[0x60], 13 
+  //WLCV    static[0x104], process[0x60], 14
+  //WLCV    0x200, process[0x60], 15
+  //WLCV    static[0x104], process[0x60], 16 
+  //WLCV    static[0x104], process[0x60], 17
+  //WLCV    0x200, process[0x60], 18
+  //WLCV    static[0x104], process[0x60], 19
+  //WLCV    static[0x104], process[0x60], 20
+  process[0x48] = 512;
+  process[0x4A] = 150;
+  process[0x4C] = 150;
+  process[0x4E] = 512;
+  process[0x50] = 150;
+  process[0x52] = 150;
+  process[0x54] = 512;
+  process[0x56] = 150;
+  process[0x58] = 150;
+
+  //0x1F     false, 0
+  //CEQ      0x2100, pop()
+  //BEQZ    0xc($pc), -0x0
+  if (global[0] == 0x2100)
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x8c], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x1999, 0x6ee96049);     //Ttb0A   TNT countdown sample
+
+    //J       0x8($pc), -0x0, process[0xf4]
+  }
+  else
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x120], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x3332, 0x6ee96049);   //Ttb0A   TNT countdown sample (louder than prev one)
+  }
+
+  //ANIS    0, 8, 21, 3
+  changeAnim(0, 8, 21, 3);   //change animation to 8, frame 0, wait 21 frames, no flip
+  
+  //WLCV    0x200, process[0x60], 21
+  //WLCV    static[0x104], process[0x60], 22
+  //WLCV    static[0x104], process[0x60], 23
+  process[0x5A] = 512;
+  process[0x5C] = 150;
+  process[0x5E] = 150;
+
+  //WLCV    0x200, process[0x60], 12
+  //WLCV    static[0x104], process[0x60], 13 
+  //WLCV    static[0x104], process[0x60], 14
+  //WLCV    0x200, process[0x60], 15
+  //WLCV    static[0x104], process[0x60], 16 
+  //WLCV    static[0x104], process[0x60], 17
+  //WLCV    0x200, process[0x60], 18
+  //WLCV    static[0x104], process[0x60], 19
+  //WLCV    static[0x104], process[0x60], 20
+  process[0x48] = 512;
+  process[0x4A] = 150;
+  process[0x4C] = 150;
+  process[0x4E] = 512;
+  process[0x50] = 150;
+  process[0x52] = 150;
+  process[0x54] = 512;
+  process[0x56] = 150;
+  process[0x58] = 150;
+
+  //0x1F     false, 0
+  //CEQ      0x2100, pop()
+  //BEQZ    0xc($pc), -0x0
+  if (global[0] == 0x2100)
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x8c], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x1999, 0x6ee96049);     //Ttb0A   TNT countdown sample
+
+    //J       0x8($pc), -0x0, process[0xf4]
+  }
+  else
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x120], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x3332, 0x6ee96049);   //Ttb0A   TNT countdown sample (louder than prev one)
+  }
+
+  //ANIS    0, 6, 6, 3
+  changeAnim(0, 6, 6, 3);   //change animation to 6, frame 0, wait 6 frames, no flip
+  
+  //fill color matrices and color vector values
+  //WLCV    static[0x118], process[0x60], 21
+  //WLCV    static[0x118], process[0x60], 22
+  //WLCV    static[0x118], process[0x60], 23
+  process[0x5A] = 255;
+  process[0x5C] = 255;
+  process[0x5E] = 255;
+
+  //WLCV    static[0x118], process[0x60], 12
+  //WLCV    static[0x118], process[0x60], 13
+  //WLCV    static[0x118], process[0x60], 14
+  //WLCV    static[0x118], process[0x60], 15
+  //WLCV    static[0x118], process[0x60], 16
+  //WLCV    static[0x118], process[0x60], 17
+  //WLCV    static[0x118], process[0x60], 18 
+  //WLCV    static[0x118], process[0x60], 19
+  //WLCV    static[0x118], process[0x60], 20
+  process[0x48] = 255;
+  process[0x4A] = 255;
+  process[0x4C] = 255;
+  process[0x4E] = 255;
+  process[0x50] = 255;
+  process[0x52] = 255;
+  process[0x54] = 255;
+  process[0x56] = 255;
+  process[0x58] = 255;
+
+  //ANIS    0, 6, 4, 3
+  changeAnim(0, 6, 4, 3);   //change animation to 6, frame 0, wait 4 frames, no flip
+
+  //0x1F     false, 0
+  //CEQ      0x2100, pop()
+  //BEQZ    0xc($pc), -0x0
+  if (global[0] == 0x2100)
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x8c], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x1999, 0x6ee96049);     //Ttb0A   TNT countdown sample
+
+    //J       0x8($pc), -0x0, process[0xf4]
+  }
+  else
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x120], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x3332, 0x6ee96049);   //Ttb0A   TNT countdown sample (louder than prev one)
+  }
+
+  //ANIS    0, 6, 10, 3
+  changeAnim(0, 6, 10, 3);   //change animation to 0x0, frame 6, wait 10 frames, no flip
+
+  //0x1F     false, 0
+  //CEQ      0x2100, pop()
+  //BEQZ    0xc($pc), -0x0
+  if (global[0] == 0x2100)
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x8c], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x1999, 0x6ee96049);     //Ttb0A   TNT countdown sample
+
+    //J       0x8($pc), -0x0, process[0xf4]
+  }
+  else
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x120], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x3332, 0x6ee96049);   //Ttb0A   TNT countdown sample (louder than prev one)
+  }
+  //ANIS    0, 6, 10, 3
+  changeAnim(0, 6, 10, 3);   //change animation to 6, frame 0, wait 10 frames, no flip
+
+  //0x1F     false, 0
+  //CEQ      0x2100, pop()
+  //BEQZ    0xc($pc), -0x0
+  if (global[0] == 0x2100)
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x8c], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x1999, 0x6ee96049);     //Ttb0A   TNT countdown sample
+
+    //J       0x8($pc), -0x0, process[0xf4]
+  }
+  else
+  {
+    //SNDB    0x400, 0, 0, 0, 0
+    //SNDA     static[0x120], static[0x20]
+    SNDB(0x400, 0, 0, 0, 0);
+    SNDA(0x3332, 0x6ee96049);   //Ttb0A   TNT countdown sample (louder than prev one)
+  }
+
+  //ANIS    0, 6, 10, 3
+  changeAnim(0, 6, 10, 3);   //change animation to 6, frame 0 wait 10 frames, no flip
+
+  //JALR    subID(29), process[0xf4]
+  sub_29();
+
+  //RTE      (process[0xf4])   
+}
+
+sub_0x1624(tag, arg)   //event handler for countdown tnt
+{
+  //CEQ      0x300, -0x8($fp)
+  //CEQ      0xa00, -0x8($fp)
+  //CEQ      0x1d00, -0x8($fp)
+  //ORL      pop(), pop()
+  //ORL      pop(), pop()
+  //RSNF     subID(29), pop()
+  if (tag == 0x300 || tag == 0xA00 || tag == 0x1D00)
+    retSub 29;
+
+  //PSHA     -0x4($fp), -0x8($fp)
+  //BRA    0x010c, 8
+  sub_0x10C(tag, arg);
+
+  //BEQZ    0x4($pc), -0x0, process[0xF4]
+  if (process[0xF4])
+  {
+    //RSRF     subID(29), process[0xF4]
+    retSub 29;
+  }
+     
+  //TST      0x20, process[0xcc]
+  //BEQZ    0x8($pc), -0x0
+  if (process[0xCC] & 0x20)
+  {
+    //CEQ      0x1700, -0x8($fp)
+    if (tag == 0x1700)
+    {
+      //RSNF   subID(29), pop()
+      retSub 29;
+    }
+  }
+  //CEQ      0x1a00, -0x8($fp)
+  //BEQZ    0x28($pc), -0x0
+  if (tag == 0x1A00)
+  {
+    //RND      static[0xb8], 0
+    //ADD      pop(), static[0xe0]
+    val = rand(0xCC) + 0x399;
+
+    //SNDB    pop(), 0, 0, 0, 0
+    //SNDB    0xc0, 0, 0, 1, 1
+    sndb( val, 0, 0, 0, 0);
+    sndb(0xC0, 0, 0, 1, 1);
+
+    //SNDA     static[0x128], static[0x24]
+    //SNDB    0, 3b, 0, 1, 0
+    snda(0x3FFF, 0x3ABBA049);   //tnt0A sample - TNT explosion
+    sndb(0, 3b, 0, 1, 0);
+ 
+    //0x1F     false, 0x3e00
+    //ADD      0x100, pop()
+    //0x20     pop(), 0x3e00
+    global[0x3E] += 0x100;
+
+    //MSC     process[0xd8], 0x0, 8
+    bitlist[self.PID] |= 2;
+  }
+  //RTE      
+}
+
+sub_0x1690()
+{
+  //BRA    0x0000, 0
+  sub_0x0();  
+
+  //RTE      
+}
+
+sub_0x1698_29()   //tnt explosion
+{
+  //ANDB     static[0x60], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= 0xFFFFFFEF;
+
+  //MSC     process[0xd8], 0x0, 8
+  //MSC     self[0xd8], 0x0, 10
+  process[0xD8] |= 2;
+  process[0xD8] &= 0xFFFFFFFB; //clear bit 3
+
+  //BRA    0x0308, 0
+  sub_0x308();
+
+  //RND      static[0xb8], 0
+  //ADD      pop(), static[0xe0]
+  val = rand(0xCC) + 0x399;
+
+  //SNDB    pop(), 0, 0, 0, 0
+  //SNDB    0x40, 0, 0, 1, 1
+  sndb( val, 0, 0, 0, 0);
+  sndb(0xC0, 0, 0, 1, 1);
+
+  //SNDA     static[0x128], static[0x24]
+  SNDA(0x3FFF, 0x3ABBA049);   //tnt0A sample - TNT explosion
+
+  //SNDB    0, 3b, 0, 1, 0
+  sndb(0, 0x3B, 0, 1, 0); 
+
+  //ANDB     static[0x12c], process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  //ORB      0x10, process[0xcc]
+  //MOVE     pop(), process[0xcc]
+  process[0xCC] &= 0xF7FCFFFF;
+  process[0xCC] |= 0x10;
+
+  //RND      static[0x4c], 0
+  //NOTL     pop(), pop()
+  //BEQZ    0x8($pc), -0x0
+  if (!rand(2) == 0)
+  {
+    //SUB      self[0x98], 0
+    //MOVE     pop(), self[0x98]
+    self[0x98] = -self[0x98];   //flip x-wise 1/3 of the time
+  }
+
+  //ANIS    0, 2, 1, 3
+  //PSHA     false, static[0xfc]
+  //CHLD    3, 1, 34, 1
+  changeAnim(0, 2, 1, 3);     //change to animation 0x0/frame 2, wait 1 frame and no flip
+  spawnChild(3, 34, 1, 1);     //spawn 3 boxes[=code type 34] of type 1 [?]
+  -init: sub_1(0x1E000);      //popping 1 word from stack to use as initializing arguments  
+
+  //PSHA     false, 0
+  //CHLD    5, 1, 34, 1
+  spawnChild(5, 34, 1, 1);    //spawn 5 boxes[=code type 34] of type 1 [?]
+  -init: sub_1(0);           //popping 1 word from stack to use as initializing arguments  
+
+  //ANIS    1, 2, 1, 3
+  changeAnim(1, 2, 1, 3);  //change to animation 0x1/frame 2, wait 1 frame and no flip
+  
+  //PSHA     false, static[0xfc]
+  //CHLD    2, 1, 34, 1
+  spawnChild(2, 34, 1, 1);     //spawn 2 boxes[=code type 34] of type 1 [?]
+  -init: sub_1(0x1E000);      //popping 1 word from stack to use as initializing arguments  
+
+  //PSHA     false, 0
+  //CHLD    3, 1, 34, 1
+  spawnChild(3, 34, 1, 1);     //spawn 3 boxes[=code type 34] of type 1 [?]
+  -init: sub_1(0);           //popping 1 word from stack to use as initializing arguments    
+
+  //ANIS    2, 2, 1, 3
+  changeAnim(2, 2, 1, 3);  //change to animation 0x2/frame 2, wait 1 frame and no flip
+
+  //PSHA     false, static[0xfc]
+  //CHLD    1, 1, 34, 1
+  spawnChild(1, 34, 1, 1);     //spawn 1 box[=code type 34] of type 1 [?]
+  -init: sub_1(0x1E000);       //popping 1 word from stack to use as initializing arguments    
+
+  //MOVE     0x200, process[0x10c]
+  process[0x10C] = 0x200;
+
+  do
+  {
+    //ADD      0x100, process[0x10c]
+    //ANIF    pop(), 1, 3
+    changeAnim(process[0x10C]+0x100, 1, 3);
+
+    //ADD      0x100, process[0x10c]
+    //SGT      0xd00, pop()
+    //BEQZ    0xfec($pc), -0x0
+  } while (process[0x10C] + 0x100 < 0xD00)
+  
+  //RTE     
+}
+
+sub_0x1738()     //event handler for tnt explosion
+{
+CEQ      0x1c00, -0x8($fp)
+BNEZ    0x28($pc), -0x0
+ORB      static[0x130], process[0xcc]
+MOVE     pop(), process[0xcc]
+0x20     process[0x60], 0x2400
+0x20     0, 0x3100
+0x1F     false, 0x400
+ANDB     static[0x134], pop()
+0x20     pop(), 0x400
+PSHA     false, 0
+0x90     
+ERR     0x001e, 25, 0, 1
+RTE      
+}
+
+sub_0x176C()
+{
+TST      0x20, process[0xc8]
+NOTL     pop(), pop()
+BNEZ    0x1c($pc), -0x0
+PSHA     false, 0x6400
+PSHA     false, 0x400
+0x87     static[0x0], 0xf00
+SGE      0x200, process[0xf8]
+0x87     static[0x7c], 0x1e00
+PSHA     false, static[0xfc]
+0x8F    2685656, 0, 1
+RTE      
+}
+
+sub_0x1798_30()
+{
+ANIS    2, 2, 1, 3
+PSHA     false, static[0xfc]
+CHLD    2, 1, 34, 1
+PSHA     false, 0
+CHLD    3, 1, 34, 1
+ANIS    3, 2, 2, 3
+PSHA     false, static[0xfc]
+CHLD    1, 1, 34, 1
+PSHA     false, 0
+CHLD    2, 1, 34, 1
+ANIS    4, 2, 2, 3
+PSHA     false, static[0xfc]
+CHLD    1, 1, 34, 1
+PSHA     false, 0
+CHLD    2, 1, 34, 1
+MOVE     0x400, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 2, 3
+ADD      0x100, process[0x10c]
+SGT      0x800, pop()
+BEQZ    0xfec($pc), -0x0
+PSHA     false, 0
+CHLD    3, 1, 34, 1
+MOVE     0x800, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 2, 3
+ADD      0x100, process[0x10c]
+SGT      0xd00, pop()
+BEQZ    0xfec($pc), -0x0
+MOVE     0, process[0xe8]
+MOVE     0x100, process[0xcc]
+ANIF    process[0x10c], 63, 3
+J       0xff8($pc), -0x0
+RTE 
+}
+
+sub_0x1820()
+{
+TST      0x20, process[0xc8]
+NOTL     pop(), pop()
+BNEZ    0x8($pc), -0x0
+PSHA     false, static[0xfc]
+0x8F    2685656, 0, 1
+RTE      
+}
+
+sub_0x1838_31()   //tnt explosion fragment (box type of its own)
+{
+MSC     0x300, 0x2, 12
+MOVE     static[0x138], process[0x138]
+MOVE     0, process[0x8c]
+MOVE     0, process[0x90]
+RND      0x1000, 0
+MOVE     pop(), process[0x94]
+ADD      static[0x100], process[0x84]
+MOVE     pop(), process[0x84]
+MOVE     0x40, process[0xcc]
+TST      static[0x130], link4[0xcc]
+BNEZ    0x8($pc), -0x0
+ORB      static[0x130], process[0xcc]
+MOVE     pop(), process[0xcc]
+MOVE     -0x4($fp), process[0xf8]
+PSHA     false, -0x4($fp)
+CEQ      0, 0xc($fp)
+BNEZ    0xd0($pc), -0x0
+MOVE     0x800, process[0x98]
+MOVE     0x800, process[0x9c]
+MOVE     0x800, process[0xa0]
+RND      static[0x4c], 0
+NOTL     pop(), pop()
+BNEZ    0x8($pc), -0x0
+SUB      self[0x98], 0
+MOVE     pop(), self[0x98]
+MOVE     0, process[0x10c]
+RND      static[0x4c], 0
+NOTL     pop(), pop()
+BNEZ    0x10($pc), -0x0
+RND      static[0x13c], 0
+ADD      pop(), static[0x140]
+MOVE     pop(), process[0xa4]
+J       0x10($pc), -0x0
+RND      static[0x13c], 0
+ADD      pop(), static[0x140]
+SUB      pop(), 0
+MOVE     pop(), process[0xa4]
+RND      static[0x140], 0
+ADD      pop(), 0
+MOVE     pop(), process[0xa8]
+RND      static[0x4c], 0
+NOTL     pop(), pop()
+BNEZ    0x10($pc), -0x0
+RND      static[0x13c], 0
+ADD      pop(), static[0x140]
+MOVE     pop(), process[0xac]
+J       0x10($pc), -0x0
+RND      static[0x13c], 0
+ADD      pop(), static[0x140]
+SUB      pop(), 0
+MOVE     pop(), process[0xac]
+CEQ      static[0xfc], self[0xd4]
+BNEZ    0x20($pc), -0x0
+0x27     0x4a00, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SGE      0x1100, pop()
+BEQZ    0xfec($pc), -0x0
+J       0x1c($pc), -0x0
+0x27     0x2400, process[0x108]
+MOVE     0x1ff00, process[0x10c]
+ADD      0x100, process[0x10c]
+ANIF    pop(), 1, 3
+ADD      0x100, process[0x10c]
+SGE      0x1100, pop()
+BEQZ    0xfec($pc), -0x0
+J       0x108($pc), -0x0
+CEQ      static[0xfc], 0xc($fp)
+BNEZ    0x100($pc), -0x0
+MOVE     0x2000, process[0x98]
+MOVE     0x2000, process[0x9c]
+MOVE     0x2000, process[0xa0]
+RND      static[0x4c], 0
+NOTL     pop(), pop()
+BNEZ    0x8($pc), -0x0
+SUB      self[0x98], 0
+MOVE     pop(), self[0x98]
+RND      static[0x144], 0x13800
+ADD      pop(), process[0x80]
+MOVE     pop(), process[0x80]
+RND      static[0x144], 0x13800
+ADD      pop(), process[0x88]
+MOVE     pop(), process[0x88]
+RND      static[0x4c], 0
+NOTL     pop(), pop()
+BNEZ    0x10($pc), -0x0
+RND      static[0x3c], 0
+ADD      pop(), 0
+MOVE     pop(), process[0xa4]
+J       0x10($pc), -0x0
+RND      static[0x3c], 0
+ADD      pop(), 0
+SUB      pop(), 0
+MOVE     pop(), process[0xa4]
+RND      static[0x13c], 0
+ADD      pop(), static[0x3c]
+MOVE     pop(), process[0xa8]
+RND      static[0x4c], 0
+NOTL     pop(), pop()
+BNEZ    0x10($pc), -0x0
+RND      static[0x3c], 0
+ADD      pop(), 0
+MOVE     pop(), process[0xac]
+J       0x10($pc), -0x0
+RND      static[0x3c], 0
+ADD      pop(), 0
+SUB      pop(), 0
+MOVE     pop(), process[0xac]
+CEQ      static[0xfc], self[0xd4]
+BNEZ    0x30($pc), -0x0
+RND      static[0x9c], 0
+SHA      static[0x68], pop()
+ADD      pop(), 0
+MOVE     pop(), process[0x10c]
+0x27     0x4a00, process[0x108]
+J       0xc($pc), -0x0
+ANIF    process[0x10c], 1, 3
+ADD      0x100, process[0x10c]
+MOVE     pop(), process[0x10c]
+SGT      0x1100, process[0x10c]
+BEQZ    0xfec($pc), -0x0
+J       0x2c($pc), -0x0
+RND      static[0x9c], 0
+SHA      static[0x68], pop()
+ADD      pop(), 0
+MOVE     pop(), process[0x10c]
+0x27     0x2400, process[0x108]
+J       0xc($pc), -0x0
+ANIF    process[0x10c], 1, 3
+ADD      0x100, process[0x10c]
+MOVE     pop(), process[0x10c]
+SGT      0x1100, process[0x10c]
+BEQZ    0xfec($pc), -0x0
+J       0x1000($pc), -0x1
+RTE      
+}
+
+sub_0x1A5C()  //event handler for tnt explosion fragments
+{
+CEQ      0x1c00, -0x8($fp)
+ERR     0x0002, 1f, 1, 0
+ORB      static[0x130], process[0xcc]
+MOVE     pop(), process[0xcc]
+RTE      
+}
+
+sub_0x1A70()
+{
+  //TST      0x20, process[0xc8]
+  //NOTL     pop(), pop()
+  //BEQZ    0x8($pc), -0x0
+  if (!process[0xC8] & 0x20)
+  {
+    //ADD      static[0x148], process[0x94]
+    //MOVE     pop(), process[0x94]
+    process[0x94] += 0x71;
+  }
+
+  //RTE      
+}
+
+sub_0x1A88_32()
+{
+MOVE     0, process[0xf8]
+CEQ      0x1ff00, -0x4($fp)
+NOTL     pop(), pop()
+BNEZ    0x4($pc), -0x0
+VECT    -0x4($fp), 6, 0, 5, 4
+MOVE     static[0x14c], process[0x98]
+MOVE     static[0x14c], process[0x9c]
+MOVE     static[0x14c], process[0xa0]
+MOVE     0, process[0x8c]
+MOVE     0, process[0x90]
+RND      0x1000, 0
+MOVE     pop(), process[0x94]
+MOVE     static[0x30], process[0x138]
+TST      static[0x130], link4[0xcc]
+CEQ      process[0x74], process[0x70]
+ORL      pop(), pop()
+BNEZ    0x8($pc), -0x0
+MOVE     static[0x150], process[0xcc]
+J       0x4($pc), -0x0
+MOVE     static[0x154], process[0xcc]
+RND      0x16000, 0
+MOVE     pop(), process[0xa4]
+RND      0xa000, 0
+ADD      pop(), 0xa000
+MOVE     pop(), process[0xa8]
+RND      static[0x158], 0x1b000
+MOVE     pop(), process[0xac]
+0x27     0x4a00, process[0x108]
+MOVE     0xa00, process[0x10c]
+ADD      0x100, process[0x10c]
+MOVE     pop(), process[0x10c]
+BNEZ    0x4($pc), -0x0
+RTE      
+}
+
+sub_0x1B0C()
+{
+
+ANIF    process[0x10c], 15, 3
+ADD      0x100, process[0x10c]
+SGT      0x1100, pop()
+BEQZ    0xfe0($pc), -0x0
+RTE      
+}
+
+sub_0x1B20()  //event handler for sub_32
+{
+CEQ      0x1300, -0x8($fp)
+ERR     0x0001, 1f, 1, 0
+MOVE     0x100, process[0xf8]
+RTE      
+}
+
+sub_0x1B30()
+{
+ADD      static[0x15c], process[0x94]
+MOVE     pop(), process[0x94]
+ADD      static[0xd8], process[0x98]
+MOVE     pop(), process[0x98]
+MOVE     process[0x98], process[0x9c]
+RTE      
+}
+
+//------default event handlers-------
+
+sub_0x1B48()   //called when box issued event 0xF00
+{
+BNEZ    0x60($pc), -0x0
+PSHA     false, -0x4($fp)
+CEQ      0x100, 0xc($fp)
+BNEZ    0x44($pc), -0x0
+SUB      static[0x28], process[0x84]
+SUB      link7[0x84], pop()
+ABS      pop(), pop()
+SGT      0x2800, pop()
+SUB      link7[0x80], process[0x80]
+ABS      pop(), pop()
+SGT      0x2800, pop()
+SUB      link7[0x88], process[0x88]
+ABS      pop(), pop()
+SGT      0x2800, pop()
+ANDL     pop(), pop()
+ANDL     pop(), pop()
+BNEZ    0x8($pc), -0x0
+MOVE     0x100, link7[0xf8]
+J       0x4($pc), -0x0
+MOVE     0, link7[0xf8]
+J       0xc($pc), -0x0
+CEQ      0x200, 0xc($fp)
+BNEZ    0x4($pc), -0x0
+MOVE     process[0x7c], process[0x178]
+J       0x1000($pc), -0x1
+RTE      
+}
+
+sub_0x1BB0()   //called when box issued event 0x900
+{
+SUB      static[0x28], process[0x11c]
+MOVE     pop(), process[0x11c]
+SGT      0, process[0xa8]
+BNEZ    0x4($pc), -0x0
+MOVE     -0x4($fp), process[0xa8]
+ADD      -0x4($fp), process[0xa8]
+MOVE     pop(), process[0xa8]
+MOVE     0, process[0x8c]
+ORB      static[0x80], process[0xcc]
+MOVE     pop(), process[0xcc]
+PSHA     false, -0x4($fp)
+0x87     static[0x0], 0x900
+RTE      
+}
+
+sub_0x1BE4()     //called when box issued event 0x1500
+{
+SGT      0, process[0xa8]
+BNEZ    0x4($pc), -0x0
+MOVE     -0x4($fp), process[0xa8]
+ADD      -0x4($fp), process[0xa8]
+MOVE     pop(), process[0xa8]
+MOVE     0, process[0x8c]
+ORB      static[0x80], process[0xcc]
+MOVE     pop(), process[0xcc]
+PSHA     false, -0x4($fp)
+0x87     static[0x0], 0x1500
+RTE      
+}
+
+sub_0x1C10(arg_0)  //called when box issued event 0x1200  (seems to call throughout the objects linkA chain)
+{
+  //BEQZ    0x8($pc), -0x0, process[0x7C]
+  if (process[0x7C])
+  {
+    //MOVE     link7[0x80], process[0x80]
+    //MOVE     link7[0x88], process[0x88]
+    process[0x7C][0x80] = process[0x80];
+    process[0x7C][0x88] = process[0x88];
+
+    //PSHA     false, -0x4($fp)
+    //0x87     0x1200, 0, 1, 4
+    issueEvent(process, process[0x70], 0x1200, { arg_0 });
+  }
+  
+  //RTE      
+}
+
+sub_0x1C28()   //called when box issued event 0x1700
+{
+BNEZ    0xa4($pc), -0x0
+CEQ      static[0x50], self[0xd4]
+CEQ      static[0xa8], self[0xd4]
+ORL      pop(), pop()
+BNEZ    0x94($pc), -0x0
+TST      0x20, process[0xcc]
+SGT      0, process[0xa8]
+ANDL     pop(), pop()
+BNEZ    0x84($pc), -0x0
+0x1F     false, 0x1000
+MOVE     pop(), process[0x7c]
+PSHA     false, 0x400
+0x87     static[0x0], 0xf00
+BNEZ    0xc($pc), -0x0
+PSHA     false, 0x6400
+0x87     static[0x0], 0x300
+J       0x8($pc), -0x0
+PSHA     false, 0x6400
+0x87     static[0x0], 0x300
+TST      0x20, link5[0x120]
+NOTL     pop(), pop()
+BNEZ    0x50($pc), -0x0
+RND      static[0xb8], 0
+ADD      pop(), static[0xe0]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0x40, 0, 0, 1, 1
+SNDA     static[0x160], static[0x4]
+RND      static[0xb8], 0
+ADD      pop(), static[0xe0]
+SNDB    pop(), 0, 0, 0, 0
+SNDB    0xa0, 0, 0, 1, 1
+SNDA     static[0xb4], static[0x18]
+ADD      static[0x3c], link5[0x84]
+MOVE     pop(), process[0x84]
+SGT      0, process[0xa8]
+BNEZ    0x4($pc), -0x0
+MOVE     static[0x164], process[0xa8]
+ADD      static[0x164], process[0xa8]
+MOVE     pop(), process[0xa8]
+MOVE     0, process[0x8c]
+ORB      static[0x80], process[0xcc]
+MOVE     pop(), process[0xcc]
+RTE      
+}
+   

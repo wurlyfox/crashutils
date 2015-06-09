@@ -1,0 +1,493 @@
+CrashUtils Project detailed requirements and component tracing tables
+---------------------------------------------------------------------
+
+The purposes of this document are as follows:
+
+1) to define the required functionalities and features of the CrashUtils 
+   application
+2) to trace those requirements to their associated software components
+3) to trace each software component to the source/module containing its
+   implementation
+4) to track the status/satisfaction of each requirement, and the progress
+   of implementation for each software component
+5) to provide a brief listing of the tasks to perform in completing 
+   implementation for each software component
+
+1 and 2 are provided in the detailed requirements specifications/tracing
+table; 3 and 5 are provided in the component tracing table. 4 is provided by
+both tables. 
+
+DETAILED REQUIREMENTS SPECIFICATIONS/TRACING TABLE
+
+|----------------------------------------------------------------------------------------------------------
+| Requirement                                                       |  Component         |     Status     |
+|----------------------------------------------------------------------------------------------------------
+| a) Data                                                           | -----              | -----          |
+|    1) Data read                                                   | -----              | -----          |
+|       i)  User should be able to load data from an nsd/nsf file;  | -----              | -----          |
+|           several options for loading                             | -----              | -----          |
+|           A)  Load entire nsf and nsd into memory                 | crash lib          | Complete       |
+|           B)  Extract each chunk in the nsf to an individual file;| crash lib          | Non-existent   |
+|           load only the nsd entry hash tables; page the respective| -----              | -----          |
+|           chunk files as necessary                                | -----              | -----          |
+|           C)  Dedicate each non-texture and non-wavebank chunk in | crash lib          | Non-existent   |
+|           nsf to an individual directory; extract the entries     | -----              | -----          |
+|           within each of these chunks to their respective         | -----              | -----          |
+|           directories; page entries as necessary                  | -----              | -----          |
+|       ii) User should be able to display the hierarchy of chunks, | nsf window         | Partly Complete|
+|           entries, and items within the nsf file for the user to  | -----              | -----          |
+|           perform operations on:                                  | -----              | -----          |
+|           A)  Edit                                                | -----              | -----          |
+|           B)  All other operations listed below                   | -----              | -----          |
+|                                                                   | -----              | -----          |
+|    2) Data write                                                  | -----              | -----          |
+|       i)  User should be able to write data to or compose entirely| crash lib          | Non-existent   |
+|           new nsf/nsd files.                                      | -----              | -----          |
+|           A)  Insert chunk -> normal, texture, wavebank           | -----              | -----          |
+|           B)  Insert entry                                        | -----              | -----          |
+|           C)  Insert item                                         | -----              | -----          |
+|       ii) User should be able to save changes to the modified nsf/| crash lib          | Non-existent   |
+|           nsd file                                                | -----              | -----          |
+|                                                                   | -----              | -----          |
+|    3) Data export                                                 | crash lib          | Non-existent   |
+|       i)  User should be able to export loaded game data in its   | -----              | -----          |
+|           standard binary format                                  | -----              | -----          |
+|           A)  Export chunk                                        | -----              | -----          |
+|           B)  Export entry                                        | -----              | -----          |
+|           C)  Export item                                         | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       ii) User should be able to export various game data after   | crash lib/various  | -----          |
+|           converting to an alternative format                     | -----              | -----          |
+|           A)  Graphics export                                     | graphics lib       | -----          |
+|               i)  WGEO -> COLLADA                                 | ^                  | Partly complete|
+|               ii) TGEO -> ...? MD3?                               | ^                  | Faulty         |
+|                                                                   | -----              | -----          |
+|           B)  GOOL export                                         | gool disasm        | Non-existent   |
+|               i)  GOOL bytecode and separate metadata ?           | -----              | -----          |
+|                                                                   | -----              | -----          |
+|    4) Data import                                                 | -----              | -----          |
+|        i) User should be able to import files of various types and| various/crash lib  | Non-existent   |
+|           convert them to the equivalent game data representation | -----              | -----          |
+|           A)  Graphics import                                     | -----              | -----          |
+|               COLLADA -> WGEO                                     | -----              | Non-existent   |
+|                                                                   | -----              | -----          |
+|-------------------------------------------------------------------|--------------------|----------------|
+|                                                                   | -----              | -----          |
+| b) Level/Zone Editor                                              | -----              | -----          |
+|                                                                   | -----              | -----          |
+|    1) Graphical Output                                            | -----              | -----          |
+|       i)  Selected zones should include neighbor zones;           | zone selection?    | Non-existent   |
+|           highlight them an alt color?                            | -----              | -----          |
+|                                                                   | -----              | -----          |
+|    2) Graphical Input                                             | -----              | -----          |
+|       ii) Zone move utility                                       | -----              | -----          |
+|          A)  Click = drag/reposition zone                         | zone select        | Non-existent   |
+|          B)  Should snap to adjacent zones                        | zone move^^???     | Non-existent   |
+|       iii) Zone resize utility                                    | -----              | -----          |
+|          A)  Click = drag/resize zone at edges                    | zone select/resize?| Non-existent   |
+|                                                                   | -----              | -----          |
+|    3) Interface Input                                             | -----              | -----          |
+|       i)  When user clicks the neighbor zone entry in the         | zone window        | Non-existent   |
+|           current zone, only zoom camera to that zone;            | camera smooth trans| -----          |
+|       ii) When user double clicks the neighbor zone entry,        | zone window        | Non-existent   |
+|           change current zone to that zone                        | -----              | -----          |
+|       iii)User should be able to *right click in neighbor zones*  | entry menu         | Non-existent   |
+|           and add a new neighbor zone, with menu to choose zone   | zone select        | -----          |
+|           dynamically created based on zones in nsf               | -----              | -----          |
+|                                                                   | -----              | -----          |
+|    ----                                                           | -----              | -----          |
+|    1) Worlds                                                      | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       i) Graphical Input                                          | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          A) User should be able to highlight the worlds           | world selection    | Incomplete     |
+|             within the zone either by clicking in their bound box | -----              | -----          |
+|             or on their geometry                                  | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          B) World move utility                                    | -----              | -----          |
+|             I)  Click = drag/reposition world                     | world edit?        | Non-existent   |
+|             II) Should snap to adjacent worlds/zones              | world edit?        | Non-existent   |
+|                                                                   | -----              | -----          |
+|          C) World resize utility                                  | -----              | -----          |
+|             I)  Click = drag/resize world at edges                | world edit?        | Non-existent   |
+|             II) feature to size to the minimal enclosing bound box| world edit?        | Non-existent   |
+|                                                                   | -----              | -----          |
+|       iii) Interface Input                                        | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          A) User should also be able to highlight the worlds      | zone window        | Incomplete     |
+|             by clicking their entry in the zone's models          | world selection    | -----          |
+|                                                                   | gfx lib            | -----          |
+|          B) When user highlights from under their entry in the    | zone window        | Incomplete     |
+|            zone's models, all other models visible/within the     | world selection    | -----          |
+|            zone should also be highlighted, possibly a different  | gfx lib            | -----          |
+|            color;                                                 | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       ----                                                        | -----              | -----          |
+|       i)  Vertices                                                | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          A) Graphical Input                                       | -----              | -----          |
+|             I)   select                                           | vertex selection   | Partly complete|
+|             II)  reposition                                       | tbd                | Non-existent   |
+|             III) etc.. todo more detail                           | tbd                | Non-existent   |
+|                                                                   | -----              | -----          |
+|       ii)  Polygons                                               | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          A) Graphical Input                                       | -----              | -----          |
+|                                                                   | -----              | -----          |
+|             I)   select                                           | polygon selection  | Non-existent   |
+|             II)  reposition                                       | tbd                | Non-existent   |
+|             III) build                                            | tbd                | Non-existent   |
+|             IV)  generate primitives                              | tbd                | Non-existent   |
+|                                                                   | -----              | -----          |
+|          B) Interface Output                                      | -----              | -----          |
+|                                                                   | -----              | -----          |
+|             I) view & modify texture info                         | tbd                | Non-existent   |
+|        ----                                                       | -----              | -----          |
+|    2) Camera Path Sections/Object Paths                           | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       i) Graphical Output                                         | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          A)  Display the camera path as a connected set of its    | section path vis.  | Incomplete     |
+|              constituent path points, with arrows pointing in the | -----              | -----          |
+|              direction of the path between each pair of adjacent  | -----              | -----          |
+|              points.                                              | -----              | -----          |
+|              -Also dots for each point                            | section path vis.  | Non-existent   |
+|                                                                   | -----              | -----          |
+|          B)  Neighboring sections should be auto-highlighted a    | section path vis.  | Non-existent   |
+|              different color                                      | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          C)  To get a visual of the rotation at camera            | section path vis.  | Non-existent   |
+|              path points, user can still connect the whole path   | -----              | -----          |
+|              by lines, but have a sort of vector field where      | -----              | -----          |
+|              vectors start at the camera path points and point    | -----              | -----          |
+|              in the direction of the rotation at that point       | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          D)  Display of the camera path direction normal          | section path vis.  | Non-existent   |
+|          E)  Display of alt entry and exit points                 | section path vis.  | Non-existent   |
+|                                                                   | -----              | -----          |
+|       ii) Graphical Input                                         | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          A)  When user clicks a camera path point, should jump to | section selection  | Incomplete     |
+|              the camera path window for the containing section    | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       iii) Interface Input                                        | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          A)  Modification of the camera path direction normal     | camera path window | Non-existent   |
+|          B)  Modification of alt entry/exit points                | camera path window | Non-existent   |
+|                                                                   | -----              | -----          |
+|       ----                                                        | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       i) Path Builder                                             | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          A)  Graphical Input                                      | section path edit? | non-existent   |
+|                                                                   | -----              | -----          |
+|             I)  Click to select nodes                             | section path edit? | non-existent   |
+|             II) Click and drag to reposition nodes                | section path edit? | non-existent   |
+|             III)Draw straight or curved line, choose granularity  | section path edit? | non-existent   |
+|                 of generated nodes                                | -----              | -----          |
+|             IV) User should be able to auto-snap to other sections| section path edit? | non-existent   |
+|                 via connecting the end or beginning points;       | -----              | -----          |
+|             V)  User can additionally create a 'split' at the end-| section path edit? | non-existent   |
+|                 point or start point, where either a reference to | -----              | -----          |
+|                 the start/end node of a newly created section, or | -----              | -----          |
+|                 the new start/end node of a specified straight or | -----              | -----          |
+|                 curved line of nodes that would extend a nearby   | -----              | -----          |
+|                 section desired for connection, has its relation  | -----              | -----          |
+|                 to the section determined for proper storage of   | -----              | -----          |
+|                 the reference                                     | -----              | -----          |
+|                                                                   | -----              | -----          |
+|             *not truly 'graphical' input related                  | -----              | -----          |
+|             VI) This should include auto-determining and adding   | section algorithms | non-existent   |
+|                 neighbor zones for sections whose parent zones    | -----              | -----          |
+|                 arent already included in neighbor zones          | -----              | -----          |
+|    ---                                                            | -----              | -----          |
+|    3) Collision Octrees                                           | (currently gfx lib)| incomplete,    |
+|                                                                   | -----              | inefficent impl|
+|       i) Graphical Input                                          | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          A) User should be able to select octree nodes/subdivs.   | octree select      | non-existent   |
+|             by clicking on them                                   | -----              | -----          |             
+|          B) User should be able to manually subdivide selected    | octree edit        | non-existent   |
+|             nodes                                                 | -----              | -----          |
+|                                                                   | -----              | -----          |             
+|       ii) Graphical Output                                        | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          A) Plugins should display octrees by outlining each node | octree visual      | inefficent impl|
+|             /subdivision of 3d space a color representative of its| -----              | -----          |
+|             type                                                  | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       iii) Interface Input                                        | -----              | -----          |
+|          A) User should be able to change the type of selected    | tbd                | Non-existent   |
+|             nodes                                                 | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       iv) Interface Output                                        | -----              | -----          |
+|          A) Application should display zone dimensions, location* | tbd                | Non-existent   |
+|          B) Application should display node dimensions, location, | tbd                | Non-existent   |
+|             type                                                  | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       v)  Features                                                | -----              | -----          |
+|          A) Plugin should be able to generate a new octree for    | octree algorithms  | Non-existent   |
+|             zones on the basis of the world (geometry) they       | -----              | -----          |
+|             contain.                                              | -----              | -----          |
+|          B) Plugin should be able to generate a new octree for a  | octree algorithms  | Non-existent   |
+|             zone after being resized, such that it is the closest | -----              | -----          |
+|             possible match to its previous octree before being    | -----              | -----          |
+|             resized                                               | -----              | -----          |
+|          C) Similarly this should also occur (optionally) when the| octree algorithms  | Non-existent   |
+|             zone is repositioned, assuming that the worlds within | -----              | -----          |
+|             the zone are the basis of the collision tree and that | -----              | -----          |
+|             their position remains unchanged.                     | -----              | -----          |
+|          D) This may also be accounted for when the worlds within | octree algorithms  | Non-existent   |
+|             the zone themselves are moved.                        | -----              | -----          |
+|    -----                                                          | -----              | -----          |
+|    4) Camera Path Section Scenery Lists                           | -----              | Non-existent   |
+|                                                                   | -----              | -----          |
+|       **For future consideration                                  | -----              | -----          |
+|       i) Interface Output                                         | -----              | -----          |
+|           A) Application should show polygon sort order           | section display    | Non-existent   |
+|           B) Application should show nearest polygons to the      | list window?       | Non-existent   |
+|              current selected camera path point in z-order        | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       iii) Features                                               | -----              | -----          |
+|           A) Plugin/(application?) should be able to auto-build   | slst algorithms    | Non-existent   |
+|              SLSTs for sections                                   | -----              | -----          |
+|              - for each camera path point                         | -----              | -----          |
+|                - determine the projected 2d z-ordering of each    | -----              | -----          |
+|                  polygon for each world within the zone given the | -----              | -----          |
+|                  camera position and orientation at that pt.      | -----              | -----          |
+|                - when z-orders of the polygons have been          | -----              | -----          |
+|                  determined for all other path points, determine  | -----              | -----          |
+|                  the most conservative way to encode changes in   | -----              | -----          |
+|                  ordering to and from this point and its previous | -----              | -----          |
+|                  and following points                             | -----              | -----          |
+|                  1) research delta encoding algorithms            | -----              | -----          |
+|                  2) recap on the SLST format                      | -----              | -----          |
+|                  3) implement                                     | -----              | -----          |
+|    5) Entities                                                    | -----              | -----          |
+|       todo                                                        | -----              | -----          |
+|    6) Objects                                                     | -----              | -----          |
+|       todo                                                        | -----              | -----          |
+|-------------------------------------------------------------------|--------------------|----------------|
+|                                                                   | -----              | -----          |
+| c) Level/Zone Editor General                                      | -----              | -----          |
+|                                                                   | -----              | -----          |
+|    1) Graphical Input                                             | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       a) Right click menu                                         | wgl context        | Non-existent   |
+|                                                                   | level editor       | -----          |
+|          i) Should display all possibly clicked nearest items of  | -----              | -----          |
+|          each type, including:                                    | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          -zone                                                    | -----              | -----          |
+|          -camera path point (section) [might refer to more than 1]| -----              | -----          |
+|          -vertex                                                  | -----              | -----          |
+|          -polygon                                                 | -----              | -----          |
+|          -entity (static)                                         | -----              | -----          |
+|          -object (dynamic)                                        | -----              | -----          |
+|          -object path point (only if the object or entity is selected)                 | -----          |
+|          -octree node                                             | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          Detailed menu                                            | -----              | -----          |
+|          -------------                                            | -----              | -----          |
+|          -zone -> properties                                      | -----              | -----          |
+|                   move                                            | -----              | -----          |
+|                   resize                                          | -----              | -----          |
+|                   -copy of properties tree for zone               | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          -(SINGLE) camera path point -> select                    | -----              | -----          |
+|                                        move                       | -----              | -----          |
+|                                        split -> connect an existing section            | -----          |
+|                                                 connect a new section                  | -----          |
+|                                        (END POINTS)               | -----              | -----          |
+|                                        add connection ->          | -----              | -----          |
+|                                        remove connection -> section/neighbor list      | -----          |
+|                                                                   | -----              | -----          |
+|          -(MULTIPLE) camerapath point-> move                      | -----              | -----          |
+|                                         distribute evenly         | -----              | -----          |
+|                                                                   | -----              | -----          |
+|          ...etc                                                   | -----              | -----          |
+|                                         remove                    | -----              | -----          |
+|                                                                   | -----              | -----          |
+|-------------------------------------------------------------------|--------------------|----------------|
+|                                                                   | -----              | -----          |
+| d) Synchronized CrashPC instance                                  | CrashPC            | Functional     |
+|                                                                   | -----              | but incomplete |
+|    An instance of Crash Bandicoot, ported to run on PC platforms, | -----              | -----          |
+|    shall operate concurrently within the application's execution. | (thread lib)       | -----          |
+|    The appropriate inputs shall be provided to allow the control  | crash system       | Functional     |
+|    of several aspects of the instance in real time. The appropri- | ^                  | -----          |
+|    ate outputs shall be provided for the ultimate rendering and/  | ^                  | -----          |
+|    or monitoring of data produced by the instance.                | ^                  | -----          |
+|                                                                   | -----              | -----          |
+|    Ideally, the instance shall operate flawlessly in its execution| -----              | -----          |
+|    and shall perform as close as possible to that of the original,| -----              | -----          |
+|    non-ported PSX binary. This requirements table, however, does  | -----              | -----          |
+|    not include such functional requirements-listed elsewhere.     | -----              | -----          |
+|                                                                   | -----              | -----          |
+|    1) Input                                                       | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       i)  Outgoing requests                                       | -----              | -----          |
+|                                                                   | -----              | -----          |
+|         A)  User should be able to control the instance as        | CrashPC controller | Functional     |
+|             the PSX controller controlled the equivalent PSX game.| -----              | -----          |
+|             Requests for controller port data by the instance must| -----              | -----          |
+|             be satisfied:                                         | -----              | -----          |
+|                                                                   | -----              | -----          |
+|             - If control is active, for now, keystrokes should    | -----              | -----          |
+|               translate to the equivalent controller port data.   | -----              | -----          |
+|                                                                   | -----              | -----          |
+|         B)  Instance request for determining elapsed ticks at any | (timer lib)        | Functional     |
+|             given time must be satisfied                          | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       ii) Incoming requests                                       | -----              | -----          |
+|                                                                   | -----              | -----          |
+|         A)  User should be able to toggle between control of the  | CrashPC controller | Functional     |
+|             Level Editor and control of the CrashPC instance.     | Level Editor       | -----          |
+|                                                                   | -----              | -----          |
+|         B)  User should be able to request the spawning of [GOOL] | CrashPC            | Partly complete|
+|             objects, creation of [GOOL] processes, and issuing of | **                 | (events, procs)|
+|             [GOOL] events.                                        | -----              | -----          |
+|                                                                   | -----              | -----          |
+|         C)  User should be able to debug the execution of a       | CrashPC            | Non-existent/  |
+|             requested GOOL object/process                         | (thread lib)       | old impl.      |
+|                                                                   | -----              | exists!        |
+|         D)  User should be able to monitor the values of various  | CrashPC            | Non-existent   |
+|             game variables.                                       | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       iii) Incoming notifications                                 | -----              | -----          |
+|                                                                   | -----              | -----          |
+|         A)  Level editor can sync current zone/section with the   | Level Editor       | Functional     |
+|             instance.                                             | CrashPC            | (need to make  |
+|                                                                   | -----              |  optional)     |
+|    2) Output                                                      | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       i)  Outgoing requests/notifications                         | -----              | -----          |
+|                                                                   | -----              | -----          |
+|         A)  Model rendering requests produced by the instance     | CrashPC            | Externally dep.|
+|             shall be handled-and those models shall be rendered.  | Level Editor       | -----          |
+|                                                                   | -----              | -----          |
+|         B)  Entry paging requests/nsf/nsd data requests shall be  | CrashPC            | Externally dep.|
+|             handled.                                              | (crash lib)        | -----          |
+|                                                                   | -----              | -----          |
+|         C)  Camera location should be synchronized with a camera  | CrashPC            | Externally dep.|
+|             of the level editor.                                  | Level Editor       | -----          |
+|                                                                   | -----              | -----          |
+|-------------------------------------------------------------------|--------------------|----------------|
+|                                                                   | -----              | -----          |
+| e) GOOL Bytecode Editor                                           | various            | Incomplete     |
+|                                                                   | -----              | -----          |
+|    "When a GOOL entry is selected, the user should be able to:"   | -----              | -----          |
+|                                                                   | -----              | -----          |
+|    1) Input                                                       | GOOL window        | Incomplete     |
+|                                                                   | -----              | -----          |
+|       i)  Disassemble its byte-code into an equivalent GOOL       | GOOL disassembler  | Incomplete     |
+|           assembly language                                       | -----              | Needs refactor |
+|       ii) View its state definitions in an interpretable          | GOOL window        | Poorly designed|
+|           format                                                  | state def. control | -----          |
+|       iii)View the entirety of its static memory                  | GOOL window/Hex edt| Partly complete|
+|       iv) View a mapping of each subtype to state/code address    | GOOL window        | -----          |
+|           and event to state/code address                         | state map. control | Poorly designed|
+|       v)  View miscellaneous parameters such as initial stack     | GOOL window        | Non-existent   |
+|           location                                                | -----              | -----          |
+|       vi) View animation information                              | GOOL window?       | Non-existent   |
+|                                                                   | -----              | -----          |
+|    2) Output                                                      | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       i)  Assemble GOOL assembly language into the equivalent     | GOOL window/       | Non-existent   |
+|           byte-code                                               | GOOL system?       | Non-existent   |
+|       ii) Add new state definitions or modify the current         | GOOL system?       | Non-existent   |
+|       iii)Extend or modify static memory                          | GOOL system?       | Non-existent   |
+|       iv) Add or modify subtype to state/code address and         | GOOL system?       | Non-existent   |
+|           event to state/code address mappings;                   | -----              | -----          |
+|       v)  Modify miscellaneous parameters                         | GOOL system?       | Non-existent   |
+|       vi) Add/modify animations                                   | GOOL system?       | Non-existent   |
+|                                                                   | -----              | -----          |
+|    3) Features                                                    | -----              | -----          |
+|                                                                   | -----              | -----          |
+|       i)  Naming of states, events, subtypes, routines;           | GOOL system?       | Non-existent   |
+|           symbolic names for static variables                     | GOOL system?       | Non-existent   |
+|           XML                                                     | -----              | -----          |
+|       ii) Auto-generate labels for routines and                   | GOOL system?       | Non-existent   |
+|           jump/branch destinations                                | GOOL system?       | Non-existent   |
+|       iii)Commenting                                              | GOOL system?       | Non-existent   |
+|       iv) Highlighting features                                   | GOOL window/       | Non-existent   |
+|          A) highlight static memory word when the cursor          | hex controls       | -----          |
+|             hovers a reference to the location                    | -----              | -----          |
+|                                                                   | -----              | -----          |
+|                                                                   | -----              | -----          |
+|                                                                   | -----              | -----          |
+|----------------------------------------------------------------------------------------------------------
+
+
+COMPONENT TRACING TABLE
+
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Component                         |    Module/Source name                               |  Status          |   Tasks                                                                                                                        |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1. Context/editor                 |                                                     |  Incomplete      | complete implementation, fix issues                                                                                            |
+|    i) Editor:                     |    win32/windows/model_window.cpp                   |  Incomplete      | complete implementation, fix issues                                                                                            |
+|       a) selected item information|    n/a                                              |  Non-existent    | implement the respective 'select' plugin method to acquire selected item information/design window for display the information | 
+|       b) texture information      |    n/a                                              |  Non-existent    | implement this window when necessary                                                                                           |
+|    ii) Plugins:                   |    context-plugins/                                 |  Incomplete      | complete implementation                                                                                                        |
+|       a) camera paths             |    n/a                                              |  Partly non-exs. | reimplement as plugin; rewrite draw implementations to utilize model_mscs                                                      |
+|       b) collision octree         |    n/a                                              |  Partly non-exs. | ^^^^                                                                                                                           |
+|       c) select (rec. close items)|    context-plugins/select.cpp                       |  Partly complete | complete implementation, fix issues                                                                                            |
+|         1. polygon selection      |    context-plugins/polygon_select.cpp               |  Incomplete      | complete implementation, fix issues                                                                                            |
+|         2. zone selection         |    context-plugins/zone_select.cpp                  |  Partly complete | complete implementation, fix issues                                                                                            |
+|         3. world selection        |    n/a                                              |  Non-existent    | implement                                                                                                                      |
+|         4. camera pth sect/pt. sel|    n/a                                              |  Non-existent    | implement                                                                                                                      |
+|         5. vertex selection       |    n/a                                              |  Non-existent    | implement                                                                                                                      |
+|         6. entity (stat) selection|    n/a                                              |  Non-existent    | implement                                                                                                                      |
+|         7. object (dynm) selection|    n/a                                              |  Non-existent    | implement                                                                                                                      |
+|         8. octree node selection  |    n/a                                              |  Non-existent    | implement                                                                                                                      |
+|       d) Move                     |    n/a                                              |  Non-existent    | implement                                                                                                                      |
+|       e) camera (select)          |    context-plugins/camera.cpp                       |  vvv             |                                                                                                                                |
+|         1. camera control         |    context-plugins/camera_control.cpp               |  Functional      | n/a                                                                                                                            |
+|         2. camera synchronization |    context-plugins/camera_sync.cpp                  |  Could be fixed  | get the Y coordinate to sync; also diff views                                                                                  |
+|         3. camera smooth trans.   |    context-plugins/camera_trans.cpp                 |  Faulty          | speed should mimic a complete parabolic curve                                                                                  |
+|    *need comp geometry algorithms |    context-plugins/comp_geom.cpp                    |  Available       | should probably use quicksort over bubblesort                                                                                  |
+|    iii) toolbar and status bar    |    n/a                                              |  Non-existent    | design toolbar, find icons                                                                                                     |
+|                                   |                                                                        |                                                                                                                                |
+| 2. Zone window                    |    win32/windows/zone_window.cpp                    |  Incomplete      | complete implementation                                                                                                        |
+|    i) general window              |    win32/windows/zone_window/general_window.cpp     |  Incomplete      | complete implementation                                                                                                        |
+|       a) statistics               |                                                     |  Non-existent    | implement                                                                                                                      |
+|       b) checkboxes/flags         |                                                     |  Non-functional  | get to change in realtime, write data                                                                                          |
+|       c) location & dimensions    |                                                     |  Non-functional  | get to read data, change realtime, write data                                                                                  |
+|          'spin' vector controls   |                                                     |                  | ..                                                                                                                             |
+|    ii) lighting window            |    n/a                                              |  Non-existent    | design, implement                                                                                                              |
+|       ...                         |                                                     |                  |                                                                                                                                |
+|    iii) shader window             |    win32/windows/zone_window/shader_window.cpp      |  Incomplete      | fix controls, get to change realtime, write data,                                                                              |
+|       ...                         |                                                     |  ..              | also will really show once wgeo shaders implemented                                                                            |
+|    iv) section window             |    n/a                                              |                  |                                                                                                                                |
+|       a) camera properties        |    win32/windows/zone_window/camera_path_window.cpp |                  |                                                                                                                                |
+|          I) camera path editor    |    n/a                                              |  Non-existent    | implement path select plugin; continue from there                                                                              |
+|       b) neighbor sections        |    n/a                                              |  Non-existent    | implement                                                                                                                      |
+|    v) entity window               |    win32/windows/zone_window/entity_window.cpp      |  Incomplete      |                                                                                                                                |
+|       a) code entry               |                                                     |  Incomplete      | complete implementation                                                                                                        |
+|       b) subtype  **              |                                                     |  Need req. 1     |                                                                                                                                |
+|       c) group                    |                                                     |  Incomplete      |                                                                                                                                |
+|       d) flags    **              |    n/a                                              |  Need req. 1     |                                                                                                                                |
+|                                   |                                                     |                  |                                                                                                                                |  
+|       -subtype and flags identifier names can be edited/saved/loaded via xml spec file, specific to code entry type                                                                                                                         |  
+|                                   |                                                     |                  |                                                                                                                                |  
+| 3. Icons                          |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|    *Crashutils icon               |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|    NSF/NSD icon                   |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|    i) Entries                     |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|       a) svtx icon                |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|       b) tgeo/thing geom. icon    |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|       c) wgeo/world geom. icon    |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|       d) zone icon                |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|       e) GOOL icon                |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|    ...                            |                                                     |                  |                                                                                                                                |  
+|    ii) Zone Window                |                                                     |  Non-existent    | find or design                                                                                                                 |  
+|       a) zone icon                |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|       b) camera icon              |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|       c) entity icon (dynamic?)   |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|       d) 'light' icon             |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|       e)  general gfx proprts icon|    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|                                   |                                                     |                  |                                                                                                                                |  
+|    iii) Editor                    |                                                     |  Non-existent    | find or design                                                                                                                 |  
+|       a) toolbar                  |    n/a                                              |  Non-existent    | find or design                                                                                                                 |  
+|          -todo                    |                                                     |                  |                                                                                                                                |  
+|-----------------------------------|-----------------------------------------------------|------------------|--------------------------------------------------------------------------------------------------------------------------------|                                                                      |

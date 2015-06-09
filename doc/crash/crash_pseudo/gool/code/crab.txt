@@ -1,0 +1,231 @@
+//CRAB @ 0x91430 N.Sanity beach
+
+sub_0x0/0()
+{
+PSHA     static[0x20], 0
+PSHA     false, static[0x28]
+CHLD    1, 1, 29, 3
+MOVE     static[0x4c], process[0xcc]
+BEQZ    0x10($pc), -0x0, process[0xbc]
+SUB      0x8000, process[0xbc]
+MULT     process[0x118], pop()
+SHA      static[0x10], pop()
+MOVE     pop(), process[0x114]
+MOVE     0x1400, process[0x148]
+MOVE     0x400, process[0x144]
+MOVE     static[0x14], process[0x138]
+JALR    subID(1), process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0x38/1()
+{
+ANIS    0, 0, 1, 3
+ANIS    1, 0, 1, 3
+ANIS    2, 0, 1, 3
+ANIS    3, 0, 1, 3
+ANIS    4, 0, 1, 3
+ANIS    5, 0, 1, 3
+RND      static[0x18], 0
+ADD      pop(), static[0x1c]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x24], static[0x4]
+ANIS    6, 0, 1, 3
+ANIS    7, 0, 1, 3
+ANIS    8, 0, 1, 3
+ANIS    9, 0, 1, 3
+ANIS    10, 0, 1, 3
+ANIS    11, 0, 1, 3
+ANIS    12, 0, 1, 3
+ANIS    13, 0, 1, 3
+ANIS    14, 0, 1, 3
+ANIS    15, 0, 1, 3
+RND      static[0x18], 0
+ADD      pop(), static[0x1c]
+SNDB    pop(), 0, 0, 0, 0
+SNDA     static[0x24], static[0x8]
+ANIS    16, 0, 1, 3
+ANIS    17, 0, 1, 3
+ANIS    18, 0, 1, 3
+J       0xf90($pc), -0x0, process[0xf4]
+RTE      (process[0xf4])
+}
+
+sub_0xac()  //per-frame sub 1
+{
+  //0x1B     0x400, 0       
+  //ADD      0x1ff00, pop()
+  //ADD      pop(), process[0x118]
+  //0x1B     0x400, 0
+  //PSHA     pop(), pop()
+  p1 = (gvel());                             //path point 0 | at global vel
+  p2 = (0x1FF00 + gvel()) + process[0x118];  //path point (number of paths - 1) | at global vel
+  
+
+  //0x13     true, process[0x114]
+  if (p2 >= 0)  //if p2 specifies we travel forward
+  {
+    if ((process[0x114] + p1) < p2)  //if moving from base pt p1 at its speed would keep current progress before p2
+      process[0x114] += p1;          //progress towards p2 at p1 speed
+    else                             
+      process[0x114] = (p1*2) - process[0x114];  //else weve crossed the end progress, so reverse progress dir and add twice velocity for turnaround
+
+    //push(abs(process[0x114]));
+    prog = abs(process[0x114]);
+  }
+  else
+  {
+    if (p2 >= (process[0x114] - v2))
+      process[0x114] = -(p1*2) - process[0x114];
+    else
+      process[0x114] -= p1;
+
+    //push(-abs(process[0x114]));
+    prog = -abs(process[0x114]);
+  }
+
+  //recalculate p1,p2 since used by 0x13
+  //0x1B     0x400, 0
+  //ADD      0x1ff00, pop()
+  //ADD      pop(), process[0x118]
+  //0x1B     0x400, 0
+  
+  //SUB      pop(), pop()
+  distp1 = prog - p1;
+
+  //0x1D     pop(), pop()
+  veldir = angvel(distp1, p2);
+
+  //VECT    pop(), 0, 0, 5, 0
+  //translate/modify angular velocity
+
+
+TST      0x1000, process[0xc8]
+BEQZ    0xc($pc), -0x0
+PSHA     false, 0x6400
+TST      static[0x2c], link5[0xc8]
+0x87    0x300, 31, 1, 6
+RTE      (process[0xf4])
+}
+
+sub_0xF8/2()
+{
+MSC     process[0xd8], 5, 0x0, 8
+PSHA     false, -0x4($fp)
+0x87    0x1000, 0, 1, 5
+ANDB     static[0x30], process[0xcc]
+MOVE     pop(), process[0xcc]
+ORB      0x2000, process[0xcc]
+MOVE     pop(), process[0xcc]
+MOVE     0x800, process[0xb8]
+MOVE     0x2000, process[0x144]
+J       0x4($pc), -0x0, process[0xf4]
+ANIS    0, 2, 1, 3
+SGT      static[0x34], process[0x98]
+BNEZ    0xff4($pc), -0x0
+RTE      (process[0xf4])
+}
+
+sub_0x130()   //per-frame sub 2
+{
+MOVE     0x1000, process[0xf8]
+MOVE     process[0xe0], process[0xe8]
+PSHA     static[0x3c], static[0x38]
+0x13     true, process[0xf8]
+MOVE     pop(), process[0x98]
+MOVE     process[0x98], process[0x9c]
+MOVE     process[0x98], process[0xa0]
+ADD      static[0x40], process[0x90]
+MOVE     pop(), process[0x90]
+MOVE     process[0x90], process[0x94]
+RTE      (process[0xf4])
+}
+
+sub_0x15C/3()
+{
+MSC     process[0xd8], 5, 0x0, 8
+ADD      0x100, -0x4($fp)
+MOVE     pop(), process[0x104]
+PSHA     false, -0x4($fp)
+0x87    0x1000, 0, 1, 5
+RND      static[0x18], 0
+ADD      pop(), static[0x1c]
+SNDB    pop(), 0, 0, 0, 0
+RND      static[0x44], 0
+ADD      pop(), static[0x48]
+SNDA     pop(), static[0xc]
+MSC     link5[0x80], 0, 0x0, 2
+0x1F     false, 0xf00
+SUB      pop(), 0
+ADD      pop(), 0x800
+ADD      pop(), pop()
+ADD      0x100, pop()
+ANDB     0x1fe00, pop()
+ANDB     static[0x50], pop()
+0x1F     false, 0xf00
+ADD      pop(), pop()
+MOVE     pop(), process[0xb4]
+MOVE     0, process[0xa8]
+MOVE     static[0x54], process[0x124]
+MOVE     0x40, process[0xcc]
+ORB      0x2000, process[0xcc]
+MOVE     pop(), process[0xcc]
+MOVE     0x800, process[0xb8]
+MOVE     0x2000, process[0x144]
+J       0x4($pc), -0x0, process[0xf4]
+ANIS    0, 2, 1, 3
+ABS      process[0x98], pop()
+SGT      0, pop()
+SGT      0, process[0x9c]
+SGT      0, process[0xa0]
+ANDL     pop(), pop()
+ANDL     pop(), pop()
+BNEZ    0xfe0($pc), -0x0
+RTE      (process[0xf4])
+}
+
+sub_0x1F8()   //per-frame sub 3
+{
+TST      0x20, process[0xc8]
+NOTL     pop(), pop()
+BEQZ    0x98($pc), -0x0
+MSC     0x1d00, 0, 0x18, 13
+MOVE     pop(), process[0x7c]
+BEQZ    0x14($pc), -0x0, process[0x7c]
+PSHA     false, process[0x104]
+MSC     false, 7, 0x0, 1
+SLT      static[0x58], pop()
+0x87    0x1d00, 31, 1, 7
+J       0x4($pc), -0x0, process[0xf4]
+MOVE     0, process[0xf4]
+BEQZ    0x8($pc), -0x0, process[0xf4]
+ADD      0x100, process[0x104]
+MOVE     pop(), process[0x104]
+SUB      static[0x5c], process[0x84]
+MOVE     pop(), process[0xc0]
+ADD      static[0x5c], process[0xc0]
+MOVE     pop(), process[0x84]
+0x8E     static[0x14], process[0xf8]
+NOTL     process[0xf4], pop()
+ADD      static[0x5c], process[0xc0]
+SGE      pop(), process[0x84]
+ORL      pop(), pop()
+BEQZ    0xfe0($pc), -0x0
+SUB      static[0x60], process[0x98]
+MOVE     pop(), process[0x98]
+SUB      static[0x60], process[0x9c]
+MOVE     pop(), process[0x9c]
+SUB      static[0x60], process[0xa0]
+MOVE     pop(), process[0xa0]
+ADD      static[0x64], process[0x124]
+MOVE     pop(), process[0x124]
+SLT      static[0x68], process[0x124]
+BEQZ    0x10($pc), -0x0
+ADD      static[0x64], process[0x124]
+MOVE     pop(), process[0x124]
+MOVE     process[0x124], pop()
+J       0x4($pc), -0x0, process[0xf4]
+MOVE     static[0x68], pop()
+VECT    pop(), 2, 3, 5, 0
+RTE      (process[0xf4])
+}

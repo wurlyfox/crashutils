@@ -1,0 +1,171 @@
+//struct = 
+//{
+//  word EIDorlistEntryPtrcount;
+    word CIDcount;
+ 
+    word listEntryPtrs[8];
+    word CIDs[32];
+  }
+
+
+//use the specified struct to clear various chunkinfos in the CIDlist referred to by listEntry's entry's container chunk
+//also clear the chunkinfos in the CIDlist with the CID's in struct (under certain conditions: see sub_80014E34...)
+
+//TODO: what is chunkinfo field 6
+        what is chunkinfo field 0xA
+        what are counters 5CFAC and 5CFA8 
+
+sub_8001495C(struct)
+{
+  //s2 = struct
+
+  if (struct == 0) { return; }
+
+  if (struct[0] != 0)  //count
+  {  
+    count = 0;
+
+    //index = 0;  //9e9dc
+
+    //the listEntryPtrs then refer to some specific listentrys that refer to entrys
+    //contained within chunks that have chunkinfos whose positions need to be cleared
+    //in the CIDlist
+
+    //apparently field 0x6 when 0 says to clear the place in the CIDlist along with decrementing field 0xA
+    //when not 0 says to just decrement field 0xA
+    do
+    {
+      chunkinfo = sub_80015034(struct[8 + (count*4)]);
+
+      if (chunkinfo >= 0xFFFFFF01)
+      {
+        numEntries = chunkinfo[0xA];
+
+        if (numEntries > 0)
+        {
+          chunkinfo[0xA]--;   //decrement num of entries
+
+          if (chunkinfo[0x6] == 0)   //chunk type? or not initialized?
+          {
+            CHUNKINFO_CLEARENTRY(chunkinfo)  //clear its entry in CID list
+          
+            *(0x5CFAC)--;                    //decrement CID list count
+          }
+        }
+      }
+
+      count++;
+    } while (count < struct[0])
+  }
+     
+  //additionally clear all chunkinfos (under certain conditions: see sub_80014E34) 
+    at their position in CIDlist for each of 32 CIDs in the struct    
+  if (struct[4] > 0)
+  {
+    count = 0;
+
+    do
+    {
+      CID = struct[0x28 + (count*4)];
+      sub_80014E34(CID, 1);
+      
+      count++;
+    } while (count < struct[4])
+  }
+}
+
+-----------
+
+//1) If argument is an EID: finds corresponding listEntry and replaces over EID in memory
+     (otherwise argument is already the listEntry we want)
+  2) A) If listEntry refers to  a   CID/EID pair:
+        -return the chunkinfo at the CID's place in the CIDlist
+     B) If listEntry refers to an entry/EID pair:
+        -return the chunkinfo in the mainList whose chunk contains the entry (if one can be found)
+
+sub_80015034(*(EIDorlistEntry))
+{
+  
+  if (*(EIDorlistEntry) & 1 == 1)
+  {
+    *(EIDorlistEntry) = EID_FINDLISTENTRY(*(EIDorlistEntry));
+  }
+
+  listEntry = *(EIDorlistEntry);
+
+  //listEntry[0] is a  CID   before  process by HANDLECHUNKENTRIES
+  //---
+  if (listEntry[0] & 1 == 1)    //if entry hasnt yet been retrieved for the EID (by calling handlechunkentries   {                             //for its parent chunk)
+    CID = listEntry[0];
+
+    chunkinfo = CIDList[(CID>>1)*4];
+
+    return chunkinfo;
+  }
+ 
+  //listEntry[0] is an entry after   process by HANDLECHUNKENTRIES  
+  //---                                     
+  else
+  {
+    entry = listEntry[0];
+    if (entry & 2 != 0) { return 0xFFFFFF01; }  //if refers to an entry that is NOT word aligned...
+
+    count = 0;
+    numChunkinfos = *(0x5C550);
+    chunkSize = 0x10000;
+
+    do
+    {
+      chunkinfo = 0x5C554[count * 0x2C];
+      chunk     = chunkinfo[0];
+
+      if (entry >= chunk && entry < chunk)
+        return chunkinfo;
+      else
+        count++;
+    } while (count < numChunkinfos)
+
+    return 0xFFFFFF01;
+  }
+}       
+         
+      
+
+//is chunkinfo[0xA] some sort of interrupt count field or something
+//im confused
+sub_80014E34(CID, numCIDListClear)
+{
+  chunkinfo = CIDList[(CID>>1)*4];
+
+  if (chunkinfo > 0xFFFFFF01)
+    return 0;
+  else if (chunkinfo == 0xFFFFFF01)
+    return 1;
+
+  if (chunkinfo[6] == 2 || 3)
+    return 1;
+
+  if (numCIDListClear > 0)
+  {
+    count = 0;
+
+    do
+    {
+      if (chunkinfo[0xA] > 0)  //if entries left to process
+      {
+        chunkinfo[0xA]--;      //maybe this is num entries the chunkinfo has in the cid list
+
+        if (chunkinfo[0xA] == 0 && chunkinfo[0x6] == 0)
+        {
+          CHUNKINFO_CLEARENTRY(chunkinfo);
+
+          *(0x5CFA8)--;
+        }
+      }       
+      
+      count++;
+    } while (count < numCIDListClear)
+  }
+
+  return chunkinfo[0xA] + 1;  //return number of entries chunkinfo has in cid list (0=1, so always at least 1)
+}

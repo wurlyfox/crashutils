@@ -1,0 +1,2346 @@
+=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+*       Intro to Game Engines with Interpreted AI       *
+=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+
+Preface: this guide assumes you have a general knowledge of game loops/event loops, understand the process of
+sequentially reading data, and can infer from a piece of pseudocode its semantics and its intended flow of 
+execution on some abstract platform.
+
+The simplest game engine that involves interpreted object code could have the following flow of execution:
+
+Fig A: simple game engine that involves interpreted object code
+
+-initialize hardware and paging
+-create the initial objects
+-(MAIN LOOP) do:
+-{
+  -for each existing object:
+     interpret the object's code
+
+  -render all existing objects
+ }
+
+Where an object's 'code' consists of a set of data that composes a series of 'instructions' for the object to 
+follow. 
+
+When an object's code is 'interpreted,' instructions from that code are read sequentially (i.e. one after another)
+by the game's 'interpreter', which then performs various operations for that object based on the kinds of each 
+instruction read. The interpreter begins by reading or 'fetching' an instruction from an object's code, performing
+the operation for that instruction, and repeating this process for each of the sequentially following 
+instructions-until an instruction is fetched that indicates the interpreter should 'suspend' its process of
+'interpreting' [i.e. fetching instructions and performing operations]. This process of 'interpretation' occurs 
+once for each existing game object in a single iteration of the main game loop; in a single iteration of the 
+main game loop, when the interpreter suspends its operation of interpreting the first existing object's code, 
+the interpreter then begins to interpret the second existing object's code until it suspends, and so on with 
+all the remaining existing objects.
+
+Thus, a single iteration of the main loop may be described like so:
+
+Fig B: simple illustration of the interpreter's operation in a single iteration of the main loop
+       in a game that involves interpreted object code
+       
+interpreting object 1:
+
+  object 1's code:
+  ----------------
+  ...
+    N
+    N
+    S        
+  > N
+    N
+    N
+    N
+    S
+    N
+  ...
+  ----------------
+  interpreter status: fetching N instruction...
+
+  object 1's code:
+  ----------------
+  ...
+    N
+    N
+    S        
+  O N
+  > N
+    N
+    N
+    S
+    N
+  ...
+  ----------------
+  interpreter status: performing operation for currently fetched N instruction (indicated with O on left)
+  
+  continue: (performing operation for fetched N instruction does not cause interpreter to suspend)
+
+  object 1's code:
+  ----------------
+  ...
+    N
+    N
+    S        
+    N
+  > N
+    N
+    N
+    S
+    N
+  ...
+  ----------------
+  interpreter status: fetching N instruction...
+
+  object 1's code:
+  ----------------
+  ...
+    N
+    N
+    S        
+    N
+  O N
+  > N
+    N
+    S
+    N
+  ...
+  ----------------
+  interpreter status: performing operation for currently fetched N instruction
+
+  continue:
+
+  object 1's code:
+  ----------------
+  ...
+    N
+    N
+    S        
+    N
+    N
+  > N
+    N
+    S
+    N
+  ...
+  ----------------
+  interpreter status: fetching N instruction...
+
+  object 1's code:
+  ----------------
+  ...
+    N
+    N
+    S        
+    N
+    N
+  O N
+  > N
+    S
+    N
+  ...
+  ----------------
+  interpreter status: performing operation for currently fetched N instruction
+
+  continue:
+
+  object 1's code:
+  ----------------
+  ...
+    N
+    N
+    S        
+    N
+    N
+    N
+  > N
+    S
+    N
+  ...
+  ----------------
+  interpreter status: fetching N instruction...
+
+  object 1's code:
+  ----------------
+  ...
+    N
+    N
+    S        
+    N
+    N
+    N
+  O N
+  > S
+    N
+  ...
+  ----------------
+  interpreter status: performing operation for currently fetched N instruction
+
+  continue:
+
+  object 1's code:
+  ----------------
+  ...
+    N
+    N
+    S        
+    N
+    N
+    N
+    N
+  > S
+    N
+  ...
+  ----------------
+  interpreter status: fetching S instruction...
+
+  object 1's code:
+  ----------------
+  ...
+    N
+    N
+    S        
+    N
+    N
+    N
+    N
+  O S
+  > N   (points to instruction directly proceeding the suspending instruction)
+  ...
+  ----------------
+  interpreter status: performing operation for currently fetched S instruction
+  
+  SUSPEND (performing operation for fetched S instruction causes interpreter to suspend)
+
+interpreting object 2:
+
+  object 2's code:
+  ----------------
+  ...
+    N
+    S        
+  > N
+    N
+    S
+    N
+  ...
+  ----------------
+  interpreter status: fetching N instruction...
+
+  object 2's code:
+  ----------------
+  ...
+    N
+    S        
+  O N
+  > N
+    S
+    N
+  ...
+  ----------------
+  interpreter status: performing operation for currently fetched N instruction (indicated with O on left)
+  
+  continue: (performing operation for fetched N instruction does not cause interpreter to suspend)
+
+  object 2's code:
+  ----------------
+  ...
+    N
+    S        
+    N
+  > N
+    S
+    N
+  ...
+  ----------------
+  interpreter status: fetching N instruction...
+
+  object 2's code:
+  ----------------
+  ...
+    N
+    S        
+    N
+  O N
+  > S
+    N
+  ...
+  ----------------
+  interpreter status: performing operation for currently fetched N instruction
+
+  continue:
+
+  object 2's code:
+  ----------------
+  ...
+    N
+    S        
+    N
+    N
+  > S
+    N
+  ...
+  ----------------
+  interpreter status: fetching S instruction...
+
+  object 2's code:
+  ----------------
+  ...
+    N
+    S        
+    N
+    N
+  O S
+  > N   (points to instruction directly proceeding the suspending instruction)
+  ...
+  ----------------
+  interpreter status: performing operation for currently fetched S instruction
+  
+  SUSPEND (performing operation for fetched S instruction causes interpreter to suspend)
+
+  
+interpreting object 3:
+.....
+
+N = non-suspending instruction
+S =     suspending instruction
+
+In the illustration above, notice the cursor that progresses through an object's code as instructions are fetched. At
+any instant in time, where time naturally elapses as instructions are fetched, the cursor points to: the next instruction
+that shall be fetched after the interpreter finishes its operation for the currently fetched instruction. Notice that it 
+is not clearly defined where in an object's code this cursor should be at the beginning of its interpretation.
+
+Each object has its own 'program counter'; before an object's code is interpreted, its program counter points to the 
+location in its code of the first instruction that will be fetched and therefore interpreted by the interpreter for that
+object. Every time the interpreter fetches an instruction from that object's code, the object's program counter is changed
+/updated to point to the next instruction that should be fetched after the interpreter then completes its operation for the 
+currently fetched instruction. Thus, the cursor in the illustration above is actually just a representation of the program 
+counter for the respective objects.
+
+The interpreter continues to fetch instructions and perform their operations so long as they are non-suspending; when a
+suspending instruction is fetched, the interpreter is suspended. Notice that for both objects in the illustration above, 
+when the interpreter is suspended, the program counter ends up pointing to the instruction that directly proceeds the 
+suspending instruction [in both cases]. 
+
+A 'region' of instructions is defined as any sequence of instructions from a start location X to an end 
+location Y in an object's code such that:
+
+  1) All instructions at locations between location X and Y except for the instruction at location Y are 
+     non-suspending
+  2) The instruction at location Y (last instruction in the region) is suspending
+  3) Either the instruction that directly precedes the instruction at location X is NOT non-suspending or the 
+     instruction at location X is the first instruction in the object's code
+
+Thus, from its start location to its end location, a region is defined as a sequence of non-suspending instructions
+followed by a single suspending instruction.
+
+For example, if it turns out that object 1 in the above illustrations/example has the following code, then it 
+defines the regions as listed to the right of the code: 
+
+Fig C: regions of an object's code
+
+  object 1's code:
+  ----------------
+X   N  \
+    N   \
+    N    \  Region 1
+    N    /
+    N   /
+Y   S  /      
+X   N  \
+    N   \
+    N    > Region 2  
+    N   /
+Y   S  /
+X   N  \
+    N   \
+    N    \
+    N     > Region 3
+    N    /
+    N   /
+Y   S  /
+
+As can be seen, the suspending instruction is then a sort of separator for the regions of code.
+
+If the program counter for an object points to the location of the first instruction in some region of its 
+code, then when interpreting that code, the interpreter will eventually be suspended after interpreting the 
+suspending instruction or the last instruction in the region, and the object's program counter will end up 
+pointing to the first instruction in the region following that region. 
+
+[This is because the interpreter will start by fetching the first instruction in the region-a non-suspending
+instruction-performing its operation, and continuing to fetch instructions and perform their operations until 
+a suspending instruction is fetched (thereby interpreting a sequence of a number of non-suspending instructions
+followed by a single suspending instruction); the interpreter is then suspended-leaving the program counter 
+to point at the instruction directly proceeding the suspending instruction, which is defined as the instruction 
+that begins the following region of code. Since the interpreter will have interpreted a sequence of a number of 
+non-suspending instructions followed by a single suspending instruction by starting at the location of what is 
+known as the first instruction in the region and suspending or ending at a suspending instruction, which indicates 
+the last instruction in a region, then the interpreter will have interpreted that entire region.]
+
+Fig A: simple game engine that involves interpreted object code
+
+-initialize hardware and paging
+-create the initial objects
+-(MAIN LOOP) do:
+-{
+  -for each existing object:
+     interpret the object's code
+
+  -render all existing objects
+ }
+
+After interpreting a region of an object's code, since the object's program counter will end up pointing to the 
+first instruction in the following region of object code, and since this interpretation occurs in a single iteration 
+of the main loop, the same object's code will be interpreted once again in the next iteration of the loop but that 
+following region will be interpreted instead.
+
+If an object A has code that consists of sequential regions 1, 2, 3, and 4, and an object B has code that consists of
+sequential regions 1, 2, and 3, both objects are the only existing objects in an instance of the simple game engine defined 
+above, and their program counters both point to the beginning of their code (i.e. region 1 of both), then for the first 4 
+iterations of the main game loop:
+
+Fig D1: standard operation of the interpreter in some game as described by 4 iterations of its main loop;
+        for each existing object in this game, the operations for its respective code do not allow the
+        object to achieve a reoccurring state of interpreting a region (its program counter can only be
+        modified by fetching instructions)
+        
+1) 
+   {
+     //-for each existing object:
+     //  interpret the object's code
+     interpret region 1 of object A's code
+     interpret region 1 of object B's code
+   
+     render object A and B
+   }
+
+2)      
+   {
+     //-for each existing object:
+     //  interpret the object's code
+     interpret region 2 of object A's code
+     interpret region 2 of object B's code
+   
+     render object A and B
+   }
+
+3)
+   {
+     //-for each existing object:
+     //  interpret the object's code
+     interpret region 3 of object A's code
+     interpret region 3 of object B's code
+   
+     render object A and B
+   }
+
+4)  
+   {
+     //-for each existing object:
+     //  interpret the object's code
+     interpret region 4 of object A's code
+     interpret region 4?? of object B's code??
+     
+     error     
+     XXXXX
+   
+After interpreting region 3 of object B's code in the third iteration of the main loop, object B's program counter is
+set to point to the instruction or 'memory location of the supposed instruction' following the suspending instruction
+in region 3-the last instruction in the region and consequently the last instruction in object B's code, since region
+3 is the last region in the code. There does not exist some region 4 for object B. So there is no instruction that 
+exists at the location of object B's program counter to interpret by the 4th iteration of the loop, and the same will 
+hold true for object A by the 5th iteration of the loop.
+
+A solution to the above problem will be discussed momentarily. 
+
+So far we have discussed only the behaviors of 2 specific instructions-suspending and non-suspending instructions. 
+As it turns out, many other instructions exist-with more specific and useful operations, but all include the primitive
+operations of either a non-suspending or a suspending instruction. Then, non-suspending and suspending instructions, in 
+addition to the primitive instructions of the same name, will also refer to the -classes- or types of instruction that 
+include their corresponding primitive operation-since all ultimately perform the operations of either not suspending or 
+suspending the interpreter. We will now discuss a solution to the above problem, which requires the introduction of 
+a new -type- of suspending instruction.
+
+For now, we will assume that there exist instructions whose operations allow a certain behavior for an object; for
+example, we assume that there exists an instruction, or more appropriately a sequence of instructions within a region
+whose operations perform a specific task for the object: either moving the object forward a single unit, changing the 
+frame of animation for the object, or performing some calculations for the object. We will not yet worry about which 
+specific instruction or sequence of instructions need to exist for their operations to allow these behaviors. 
+
+The key to solving the above problem is to note that, for each iteration of the main game loop, a new region of the 
+object's code is interpreted; this region will always sequentially follow the region interpreted in the previous 
+iteration. Thus, each region of the object's code is interpreted only once for the entire execution of the game
+and ultimately never returned to. 
+
+  Suppose an object's behavior in the game consists of constantly moving forward, and suppose this object is object B
+  from the above example. Then region 1 of the object's code might result in the operation of moving the object forward
+  by a single unit when being interpreted by the interpreter. Region 3 might result in the operation of changing the frame
+  of animation for the object accordingly to make it appear to be walking, running, or moving in some fashion. Region 2
+  might do some additional calculations.
+
+  Note that the object cannot achieve the behavior of -constantly- moving forward by interpreting/performing a single 
+  region/set of instructions/operations at only one instant. In the above erroneous example, region 1 in the object's code 
+  is interpreted only once before the game ultimately never returns to interpret region 1 again-thus, as a result, the 
+  object only moves forward by one unit a single time throughout the game's execution. Then, an additional mechanism is 
+  needed to bring the object into a constant, reoccurring 'state' of moving forward-or to 'repeatedly' perform the 
+  operations associated with the instructions in region 1.
+
+  As it turns out, the operations for some types of suspending instructions, prior to ultimately suspending the 
+  interpreter, can actually 'reset' the program counter to point to the beginning of [i.e. the location of the first 
+  instruction in] any region in the object code-usually the region that contained the suspending instruction itself. 
+  In effect, when the interpreter is ultimately suspended as a result of interpreting the suspending instruction of some 
+  region of some object's code during some iteration of the main loop, the interpreter can 'resume' its interpretation of 
+  that object's code in the next iteration of the main loop by interpreting some region -other- than the sequentially 
+  following region-thus overriding and extending the default operation of a plain suspending instruction [which naturally
+  suspends the interpreter but can only leave an object's program counter pointing to the beginning of the sequentially
+  following region-thus only allowing for the interpreter to resume interpretation at the sequentially following region 
+  of the object's code in the next iteration of the main loop.]
+
+  For example, object 1's code might consist of the following instructions, where instructions are labeled at the left
+  with their numerical location/index in code:
+
+  Fig E: solving the non-recurrent state problem with the operation of suspending jump instructions
+  
+    object 1's code:
+    ----------------
+  X 0 : N     \
+    1 : N      \
+    2 : N       \  Region 1
+    3 : N       /
+    4 : N      /
+  Y 5 : SJ 0  /      
+  X 6 : N  \--------------------
+    7 : N   \                   |     
+    8 : N    > Region 2         |
+    9 : N   /                   |
+  Y 10: S  /                    |
+  X 11: N     \                 |
+    12: N      \                |
+    13: N       \               |
+    14: N        > Region 3     |
+    15: N       /               |
+    16: N      /                |
+  Y 17: SJ 6  /------------------
+
+  [Note that when the interpreter interprets some region of code and ultimately fetches some instruction, prior to the 
+  implied performing of its operation, the interpreter is said to have "reached" that instruction in that region.] 
+
+  When the interpreter reaches the 'SJ 0' instruction in Region 1 of the object's code-a variation of suspending instruction 
+  referred to as a 'suspending jump' instruction-as listed in the above illustration, the interpreter does 2 things in performing 
+  its operation:
+
+  1) Set the program counter to point to the beginning of Region 1 (i.e. indicated as the 'operand' "0" in 'SJ 0')
+  2) Suspend the interpreter
+
+  The difference of the suspending jump instruction from a normal suspending instruction is that, in its operation, rather 
+  than leaving the object's program counter to point to the default location-the location of the instruction following the 
+  suspending instruction-before ultimately suspending the interpreter, the program counter can be left to point at ANY 
+  specified location in the object's code. In the above example, when the interpreter reaches the 'SJ 0' instruction (which is 
+  located at index 5) in Region 1 of object 1's code, rather than changing the object's program counter to point to index 6
+  before suspending (as would have occured for a normal suspending instruction), the operation specifically changes it to 
+  point to index 0-[back to] the beginning of Region 1.
+
+  Thus, if object 1 is an object among several other n objects in an instance of the simple game engine defined above, and its
+  program counter points to the beginning of Region 1 in its object code, then for the first 3 iterations of the main game loop:
+
+  Fig F:  standard operation of the interpreter of some game as described by first 3 iterations of its main loop;
+          code of object 1 in this game allows for the reoccurring [state of] interpretation of its region 1   
+  1) 
+   {
+     //-for each existing object:
+     //  interpret the object's code
+     interpret region 1 of object 1's code
+     ...
+ 
+     render object 1
+     ...
+   }
+
+  2)      
+   {
+     //-for each existing object:
+     //  interpret the object's code
+     interpret region 1 of object 1's code
+     ...
+
+     render object 1
+     ...
+   }
+
+   3)
+   {
+     //-for each existing object:
+     //  interpret the object's code
+     interpret region 1 of object 1's code
+     ...
+
+     render object 1
+     ...
+   }
+   ....
+
+   Before the first iteration of the main loop, because object 1's program counter is set to point to Region 1 in it's object code,
+   then during the first iteration, the interpreter begins interpreting instructions in Region 1 of object 1's code until the suspending
+   jump instruction is fetched-whose operation ultimately 'resets' object 1's program counter -back to the beginning of Region 1- before
+   suspending the interpreter. At this point, because object 1's program counter once again points to Region 1 in it's object code 
+   [just like before the main loop was entered or before the first interpretation of Region 1] then in the next iteration of the main loop, 
+   Region 1 will be interpreted once again, thus repeating the same sequence of operations as in the first iteration. Therefore, for every 
+   iteration of the main loop, Region 1 of object 1's code is interpreted by the interpreter.
+
+   So the suspending jump instruction provides the mechanism needed for the interpreter to 'repeatedly' perform the operations associated 
+   with the instructions in some region of an object's code-that is, for the interpreter to interpret that same entire region for each 
+   iteration of the main loop. This can bring the object into a constantly reoccurring "state" of action or operation (i.e. constant 
+   performance of the instructions in some region of an object's code by the interpreter for each iteration of the main loop).
+
+   Note that an object is not technically in a 'constant' state of operation but rather operates as a series of 'bursts' on a per-frame basis.
+   In some iteration of the main loop, since the interpreter will ultimately suspend its interpretation of some object's code when it reaches 
+   the suspending instruction of its section, then the interpreter suspends -operation- for that object during which time it interprets the 
+   code for all other objects before ultimately rendering the models representing each object to the display-thus elapsing a single 
+   frame before the main loop enters its next iteration wherein the interpreter eventually returns to interpret that object's code and thus 
+   -resumes- its operation for that object. However, in the context of that object, the suspension of the interpreter's operation for its code 
+   is negligible since the region of instructions interpreted is a necessarily minuscule amount of code; the total amount of time elapsed during 
+   the interpreter's interpretation of each object's code in a single iteration of the main loop is far less than the span of a single frame. 
+   For each iteration of the main loop, this short span then allows the rendering process to complete its operation such that after 
+   synchronization/potentially stalling for any additional time remaining, a single frame will have elapsed at which point the display 
+   can be updated-thereby updating at a -constant- rate, such that any meaningful changes/operations done to any objects as a result of the 
+   interpreter are then also observed to occur at a constant rate:
+
+   Fig G: operations that occur during each iteration of the main loop/frame in an instance of some game-including
+          the interpretation of all existing objects, rendering, and vsync
+   
+   time                           1 frame                            2 frames                          3 frames
+   ---------------------------------------------------------------------------------------------------------------------------------
+   obj1 obj2 ...... objN RENDER..... |obj1 obj2 ...... objN RENDER..... |obj1 obj2 ...... objN RENDER..... | obj1 .....
+   reg1 reg4 ...... reg1             |reg1 reg4 ...... reg3             |reg1 reg4 ...... reg5             | reg1 .....
+   ----------------------------------------------------------------------------------------------------------------------------------
+    ^                                  ^
+   obj1 burst                   another obj1 burst                     ...
+
+   
+   Return to object B from the previous example. Region 1 of the object's code resulted in the operation of moving the object forward
+   by a single unit when being interpreted by the interpreter. The desired behavior for object B was to be in a constant 'state' of 
+   moving forward-which can now be achieved using a suspending jump instruction as the region's suspending instruction (given that object B's
+   program counter is set to point to the beginning of Region 1 prior to entering the main loop):
+
+   Fig D2: solving the non-recurrent state and ever-sequential fetch problems for object B
+   
+   object B's code:
+    ----------------
+  X 0 : N       \<-------------------|
+    1 : N        \                   |
+    2 : N ;move   \                  |
+    3 : N ;forward \                 |
+    4 : N ;one      >  Region 1      | constantly move forward [by one unit]
+    5 : N ;unit    /                 |
+    6 : N         /                  |
+    7 : N        /                   |
+  Y 8 : SJ 0    /--------------------|      
+  X 9 : N  \
+    10: N   \                         
+    11: N    \ 
+    12: N     \
+    13: N      > Region 2
+    14: N     /    
+    15: N    /  
+    16: N   /        
+  Y 17: S  /                    
+  X 18: N     \<----------------|
+    19: N      > Region 3       |
+  Y 20: SJ 18 /------------------
+
+    Note that, similarly, a suspending jump instruction can be used at the end of Region 3 whose operation should ultimately set the object's 
+    program counter to a location that precedes the end of Region 3 (i.e. the beginning of Region 3) before suspending-avoiding the effect of 
+    a normal suspending instruction that would instead leave the program counter at a location outside of the object's code, thus
+    solving the problem stated above. Of course, given that object B's program counter is not set to point to the beginning of Region 3 prior to
+    entering the main loop like in the above example, the interpreter would somehow have to reach [the first instruction in] Region 3 for the 
+    corrections to take effect.
+
+    Prior to entering the main loop, object B's program counter can initially be set to any location in one of 3 distinct sets of locations 
+    such that locations unique to a set are the locations of each instruction in some region, thereby causing the interpreter-once the main
+    loop is entered-to begin interpretation at the location of some instruction within the region corresponding to the set. The interpreter
+    ultimately reaches the region's suspending instruction whose operation then either resets the program counter to the beginning of the 
+    region or leaves the program counter at the beginning of some other region before suspending the interpreter. In the next iteration of
+    the main loop, the interpreter resumes interpretation at the beginning of a possibly different region from the previous iteration and 
+    ultimately reaches the region's suspending instruction, setting the program counter in one of two ways as in the previous iteration
+    only to repeat this process indefinitely for the next and all following iterations of the main loop. Because there are a finite number
+    of regions in an object's code, in some iteration of the main loop in the above process, the interpreter will always ultimately reach
+    some region whose suspending instruction's operation causes the program counter to be reset back to the beginning of that region-thereby
+    causing the interpreter to be in a constant 'state' of interpreting that region of the object's code for all future iterations of the 
+    main loop. Equivalently, by setting object B's program counter to any location in one of the 3 sets prior to entering the main loop, 
+    the object can be set into a distinct 'state' of operation corresponding to the region of code that the interpreter ultimately ends 
+    up operating for indefinitely.
+
+    For example, setting Object B's program counter to the beginning of Region 1 of its code prior to the main loop causes the interpreter 
+    to interpret Region 1 for the first and all following iterations. Setting Object B's program counter to the beginning of Region 2
+    prior to the main loop causes the interpreter to interpret Region 2 for the first iteration, and Region 3 for the second and all
+    following iterations. Setting Object B's program counter to the beginning of Region 3 prior to the main loop causes the interpreter
+    to interpret Region 3 for the first and all following iterations. So Object B can end up in a constant state of operation for either 
+    Region 1 or Region 3.
+
+    Thus the definition for an object's 'state of operation' is simply an 'instance of operation for an object'. Additionaly, as a 
+    more specific term, an object's 'state' is 'an automatically recurring, -dynamic- instance of operation for an object'. This 
+    definition will be revised in further readings to fit the context of discussion. Let a 'block' of an object's code be defined 
+    as any set of regions such that all regions, when being interpreted by the interpreter, ultimately end up in the same state 
+    of operation for that object.
+
+    Then a 'block' of instructions is defined as any sequence of instructions from a start location X to an end 
+    location Y in an object's code such that:
+
+  1) All instructions at locations between location X and Y except for the instruction at location Y are 
+     either non-suspending OR a plain suspending instruction
+  2) The instruction at location Y (last instruction in the region) is a suspending jump instruction
+  3) Either the instruction that directly precedes the instruction at location X is either a suspending jump
+     instruction or the instruction at location X is the first instruction in the object's code
+
+  Fig D3: the blocks in object B's code
+  
+    object B's code:
+    ----------------
+  X 0 : N       \<---------------|=========
+    1 : N        \               |        ||
+    2 : N ;move   \              |        ||
+    3 : N ;forward \             |        ||
+    4 : N ;one      >  Region 1  |        ||  Block 1
+    5 : N ;unit    /             |        ||
+    6 : N         /              |        ||
+    7 : N        /               |        ||
+  Y 8 : SJ 0    /----------------|=========      
+  X 9 : N  \ ==============================
+    10: N   \                             ||
+    11: N    \                            ||
+    12: N     \                           ||
+    13: N      > Region 2                 ||
+    14: N     /                           ||
+    15: N    /                            ||  Block 2
+    16: N   /                             ||
+    17: S  /                              ||       
+    18: N     \<----------------|         ||
+    19: N      > Region 3       |         ||
+  Y 20: SJ 18 /------------------==========    
+
+    (Region 1     causes interpreter to ultimately interpret itself   for all iterations-it defines one block
+     Region 2 & 3 cause  interpreter to ultimately interpret Region 3 for all iterations-they define another block)
+
+    [Thus, the object's potential 'states' correspond to the Blocks of code
+           the object's potential 'states of operation' correspond to the Regions of code]
+
+    An object's state at any instance is identified as the block containing the region of the object's code that the interpreter will 
+    interpret next or is currently interpreting-which is entirely dependent on the object's program counter.
+     
+    Each block of code defines a state for that object; for example, in the case of Object B as defined above, 
+    block or State 1, is the "move object forward" state, and State 2 is the "update walk animation frame" state.
+    State 1 refers to a constant state of operation ('Region 1') which moves the object forward; State 2 refers to
+    a state of operation that does some necessary calculations to ready the object for animation ('Region 2') and refers
+    to constant state of operation that updates the frame of animation for the object to make it appear to be walking
+    ('Region 3').
+
+    Suppose that an additional Block/State is added to object B's code that refers to a constant state of operation that
+    moves the object backwards:
+
+    Fig D4: object B with an additional block of code
+    
+    object B's code:
+    ----------------
+  X 0 : N       \<---------------|=========
+    1 : N        \               |        ||
+    2 : N ;move   \              |        ||
+    3 : N ;forward \             |        ||
+    4 : N ;one      >  Region 1  |        ||  Block 1/State 1
+    5 : N ;unit    /             |        ||
+    6 : N **      /              |        ||
+    7 : N        /               |        ||
+  Y 8 : SJ 0    /----------------|=========      
+  X 9 : N  \ ==============================
+    10: N   \                             ||
+    11: N    \                            ||
+    12: N     \                           ||
+    13: N      > Region 2                 ||
+    14: N     /                           ||
+    15: N    /                            ||  Block 2/State 2
+    16: N   /                             ||
+    17: S  /                              ||       
+    18: N     \<----------------|         ||
+    19: N      > Region 3       |         ||
+  Y 20: SJ 18 /------------------==========   
+  X 21: N       \<---------------|=========
+    22: N        \               |        ||
+    23: N ;move   \              |        ||
+    24: N ;backward\             |        ||
+    25: N ;one      >  Region 4  |        ||  Block 3/State 3
+    26: N ;unit    /             |        ||
+    27: N         /              |        ||
+    28: N        /               |        ||
+  Y 29: SJ 21   /----------------|=========   
+
+    Also, consider that, prior to entering the main loop, object B's program counter is initially set to point to Block 1.
+    Object B is then defined as being in "State 1", a constant state of moving forward, since its program counter points to 
+    Block 1 (or the beginning of Block 1 which is Region 1-a region contained within Block 1), and because the operation of
+    the reachable suspending jump instruction in the region composing that block will cause the interpreter to interpret that
+    and only that region repeatedly, once for every iteration of the main loop. When the main loop is entered, for every
+    iteration of the main loop, Object B will move forward. 
+
+    Now, suppose that Object B is to move forward for only some defined period of time-thus, not moving forward for every 
+    iteration of the main loop-before it should then decide to 'change' to a constant state of moving backward. Since the 
+    object's state is entirely dependent on its program counter, if a change of state is desired then simply changing the 
+    object's program counter to point to the beginning of Block 3 could change its state from State 1 to State 3. But it is 
+    undesirable to do this from directly within the main loop/game code. While the suspending jump instruction could be 
+    used to change the object's program counter, it is not necessary to additionally suspend interpretation of the object's
+    code, so an additional mechanism is needed that can strictly change an object's program counter without suspending 
+    interpretation of its code. 
+
+    But even if such an instruction existed whose operation strictly changed the program counter, then, for example, how could 
+    such an instruction be used in Block 1 (State 1) whose operation would specifically change the program counter to point to
+    the beginning of Block 3 (State 3) without preventing a constant state of State 1 for at least the defined period of time? 
+    In such a case, if such an instruction existed, and if it were ideally located after the set of instructions whose operation 
+    moved the object forward a single unit, its ultimate operation during interpretation in as soon as the first iteration 
+    of the main loop would cause the interpreter to change the object's program counter to the location of Block 3, changing state to 
+    State 3 of course, but immediately after the object has moved forward only a single unit, never allowing for the suspending jump 
+    instruction to be reached and therefore instantly dodging the operation that would render the object to be in an constant
+    state of moving forward. If there existed an instruction or sequence of instructions whose operation could change an object's 
+    program counter, and therefore its state, but only under a certain set of specified conditions-then, equivalently, its 
+    operation could make the -decision- whether to keep that object in its current state or to change to a different state. 
+    The operation of such an instruction could then allow for, under some conditions, the suspending jump at the end of Block 1 
+    to be reached by the interpreter, thus rendering the object in a constant state of moving forward, and under other conditions,
+    could change the program counter to point to the beginning of Block 3-thereby changing the object's state to State 3.
+
+    A 'jump instruction' is a non-suspending instruction whose operation simply changes an object's program counter to point to 
+    the instruction at a specified index in its code. A 'conditional jump instruction' is a non-suspending instruction whose 
+    operation changes an object's program counter to point to the instruction at a specified index only when the conditions 
+    evaluated as the result of the operation of the immediately preceding 'conditional instruction' hold true:
+
+    fig D5: solving the stagnant state problem with the operations of conditional jump instructions
+    
+    object B's code:
+    ----------------
+  X 0 : N             \<---------------|=========
+    1 : N              \               |        ||
+    2 : N ;move         \              |        ||
+    3 : N ;forward       \             |        ||
+    4 : N ;one            >  Region 1  |        ||  Block 1/State 1
+    5 : N ;unit          /             |        ||
+    6 : CEQ frames,1000 /              |        ||
+    7 : JNEZ 21        /               |        ||
+  Y 8 : SJ 0          /----------------|=========      
+  X 9 : N  \ ==============================
+    10: N   \                             ||
+    11: N    \                            ||
+    12: N     \                           ||
+    13: N      > Region 2                 ||
+    14: N     /                           ||
+    15: N    /                            ||  Block 2/State 2
+    16: N   /                             ||
+    17: S  /                              ||       
+    18: N     \<----------------|         ||
+    19: S      > Region 3       |         ||
+  Y 20: J 18  /------------------==========   
+  X 21: N       \<---------------|=========
+    22: N        \               |        ||
+    23: N ;move   \              |        ||
+    24: N ;backward\             |        ||
+    25: N ;one      >  Region 4  |        ||  Block 3/State 3
+    26: N ;unit    /             |        ||
+    27: N         /              |        ||
+    28: N        /               |        ||
+  Y 29: SJ 21   /----------------|=========  
+
+
+    Notice that the instruction at line [index] 20 from the previous examples has been replaced with the respective instructions:
+    a suspending instruction at line 19 and a jump instruction-'J 18'-at line 20. If object B's program counter is set to point
+    to Region 3 before the main loop in an instance of the game, then when entering the main loop and object B's code is interpreted
+    during the first iteration, upon reaching the suspending instruction at line 19 the interpreter suspends and leaves object
+    B's program counter to point at [the instruction at] line 20. When the interpreter resumes interpreting object B's code in
+    the second iteration of the main loop, the instruction at line 20-'J 18', a jump instruction-is then interpreted, whose operation
+    resets the object's program counter to line 18, i.e. the beginning of Region 3. Notice that the operations of this sequence of
+    instructions are equivalent to the operation of the 'SJ 18' instruction as used in the previous examples.
+
+    The instruction at line 6 is a type of conditional instruction otherwise known as "Check EQual". The operation of the instruction
+    simply checks whether the left operand-frames, referring to the number of frames elapsed at that point in the game [recall that
+    1 frame elapses for each iteration of the main loop]-is equal to the right operand-the constant value 1000; thus, it checks whether
+    or not 1000 frames have elapsed at that point in the game. The following instruction at line 7 is a type of conditional jump
+    instruction otherwise known as "Jump Not Equal to Zero" that changes the object's program counter to point at [the instruction at]
+    line 21, or block 3 [thereby changing the object's state to State 3] only when the operation of the preceding conditional
+    instruction (i.e. CEQ frames, 1000 at line 6) evaluates its condition [i.e. have 1000 frames been elapsed?] to be -true- 
+    (i.e. not equal to zero). If the condition does not evaluate to true then the object's program counter is unaffected and the 
+    interpreter fetches the next instruction at line 8, the suspending jump instruction whose operation allows the object to remain 
+    in State 1. Thus, the object will remain in a constant state of moving forward (State 1) until 1000 frames have elapsed at which
+    point the object changes to a constant state of moving backwards (State 3).
+
+    With conditional and conditional jump instructions, states are rendered useful, and more complex objects may 'transition' between 
+    several different states in a single interpretation; dynamic game objects can be designed as a result.
+    
+    Now, for example, consider object C: in one state, the object is to move forward for some time (State 1), in another state the object
+    is to move backwards for some time (State 2), and in another state the object is to stand in place and complete a single 360 
+    degree rotation, spinning around until it reaches its original direction (State 3, also State 4):
+
+    Fig H1: operation of object C's code includes the potential, dynamic change in state from State 1 to 2 and 
+            vice versa, and the potential, static preservation of state from State 1 to 3 and back and from
+            State 2 to 4 and back
+    
+    object C's code:
+    ----------------
+  ----------> 0 : N           <---------------|=========
+  |           1 : N ;move                     |        ||
+  |           2 : N ;forward                  |        ||
+  |           3 : N ;one                      |        ||  
+  |           4 : N ;unit           Region 1  |        ||  Block 1/State 1
+  |      ?    5 : CEQ unitsZ, 500             |        ||
+  | |-------- 6 : JNEZ 10                     |        ||
+  | |      ?  7 : CEQ rand, 100               |        ||
+  | |    |--- 8 : JNEZ 20                     |        ||
+----|-------> 9 : SJ 0        ----------------|=========    
+| | --------> 10: N           <---------------|=========
+| |      |    11: N ;move                     |        ||
+| |      |    12: N ;backward                 |        ||
+| |      |    13: N ;one                      |        ||  
+| |      |    14: N ;unit           Region 2  |        ||  Block 2/State 2
+| |  ?   |    15: CEQ unitsZ, -500            |        ||
+| ----------- 16: JNEZ 0                      |        || 
+|    ?   |    17: CEQ rand, 100               |        ||
+|     |------ 18: JNEZ 28                     |        ||
+|   |-------> 19: SJ 10       ----------------|=========    
+|   | |  |--> 20: N           <---------------|=========
+|   | |       21: N ;rotate                   |        ||
+|   | |       22: N ;by                       |        ||
+|   | |       23: N ;one                      |        ||  
+|   | |       24: N ;degree         Region 3  |        ||  Block 3/State 3
+|   | |  ?    25: CEQ rotX, 360               |        ||
+------------- 26: JNEZ 9                      |        ||
+    | |       27: SJ 20       ----------------|=========        
+    | ------> 28: N           <---------------|=========
+    |         29: N ;rotate                   |        ||
+    |         30: N ;by                       |        ||
+    |         31: N ;one                      |        ||  
+    |         32: N ;degree         Region 4  |        ||  Block 4/State 4
+    |    ?    33: CEQ rotX, 360               |        ||
+    --------- 34: JNEZ 19                     |        ||
+              35: SJ 28       ----------------|=========                          
+          
+    If object C exists in some instance of a game, and it's program counter is set to point to the beginning of Block 1 in its code
+    prior to the game's main loop, then the following lists potential operations of the interpreter/interpretations for object C 
+    during each iteration of the main loop:
+
+           1)  -Instructions at lines 0-4 are interpreted by the interpreter whose operation moves the object forward a single unit (adds 1 
+                to its current position)
+               -Instructions at lines 5-6 are interpreted by the interpreter; an English description of this sequence of instructions would
+                be: "If and only if the object has moved forward 500 units from its initial position, change its state to/(jump to/change the
+                program counter to point to [the location of the first instruction in]) State 2/Block 2." Thus, only when the object has
+                moved to a position forward 500 units from its initial position should the object change from its current state (State 1 = 
+                Moving forward) to State 2 (State 2 = moving backwards). Considering that, before the main loop was entered, the object had 
+                an initial position of 0, and in the previous step/distinct sequence of operations the object was moved forward a single unit, then
+                the object's current position is 1-and equivalently the object has only moved forward a single unit from its initial position.
+                When performing the operations for these instructions the conditional instruction at line 5 will evaluate to false because
+                the object has so far moved only 1 unit and is therefore not yet 500 units from its initial position, so the 'jump will not be
+                taken' in the operation for the following instruction at line 6 and equivalently the object will not yet change its state to 
+                State 2.
+               -Instructions at lines 7-8 are interpreted by the interpreter; an English description of this sequence of instructions would
+                be: "Choose a random number from 1 to 100, if the number is 100, change the object's state to State 3". Thus, the object has
+                a 1/100 chance at this point of taking the jump to Block 3, or changing its state to State 3-so the object has a 1/100 chance
+                in its state of moving forward to change to a state of spinning in place. It is assumed that, in this particular example/case
+                and in this particular interpretation that the operation of the instruction at line 7 has not chosen 100, so the jump and therefore
+                state change due to the operation of the instruction at line 8 does not take place.
+               -Instruction at line 9 is interpreted by the interpreter; interpreter is suspended and object's program counter is reset to the
+                beginning of Block 1 (so object retains its constant state of 'moving forward')
+            2)  Much like iteration 1, except the object will have changed to a position of 2 units from its initial position. The object is 
+                still not 500 units from its initial position so the jump at line 6 is not taken. It is also assumed that in this iteration that
+                the operation of the instruction at line 7 has not chosen 100, so the jump at line 8 is still not taken. Object still suspends and
+                retains this state with the operation of instruction at line 9.
+        3-499)  Each of these iterations is [assumed to be, with the operation of instruction at line 7] identical to the previous iteration except
+                that the object will change to be at a position of a number of units equivalent to the current iteration. 
+          500)  Interpretation during the 500th iteration is identical to previous interpretations except that the jump at line 6 is taken, since the
+                object is now at a position of 500 units from its initial position. Thus, the object changes its state to State 2 = moving backwards:
+               -Instructions at lines 10-14 are interpreted by the interpreter whose operation moves the object backward a single unit (subtracts 
+                1 from its current position)
+               -Instructions at lines 15-16 are interpreted by the interpreter; an English description of this sequence of instructions would
+                be: "If and only if the object has moved backward/[negative] 500 units from its initial position, change its state to/(jump to/change 
+                the program counter to point to [the location of the first instruction in]) State 1/Block 1." Thus, only when the object has
+                moved to a position backward 500 units from its initial position should the object change from its current state (State 2 = Moving 
+                backward) to State 1 (State 1 = moving forward). The object has since moved back a single unit from its position of 500 units
+                due to the operations of lines 10-14, so its current position is 499-which is not equal to -500 units-and therefore the object is
+                not yet located at a position backward 500 units from its initial position. So the jump at line 16 is not taken and the object 
+                does not yet change its state to State 1.
+               -Instructions at lines 17-18 are interpreted by the interpreter; it is assumed that the operation of the conditional instruction
+                at line 17 does not choose 100 as a random number-so the jump at line 18 is not taken. 
+               -Instruction at line 19 is interpreted by the interpreter; interpreter is suspended and object's program counter is reset to the
+                beginning of Block 2 (so object retains its constant state of 'moving backwards')
+      501-523)  Each of these iterations is [assumed to be, with the operation of instruction at line 17] identical in interpretation to the 
+                interpretation, during iteration 500, of those instructions interpreted after the object changes its state to State 2-except
+                that the object will change to be at a position of a number of units equivalent to (1000 - (X+1)) where X is the current iteration. 
+          524)  This iteration is almost identical to iterations 501-523, except that now it is assumed that the operation of the conditional 
+                instruction at line 17 chooses 100 as a random number-so the jump at line 18 is taken. Thus, the object changes its state to 
+                State 4 = spinning in place:
+                -Instructions at lines 28-32 are interpreted by the interpreter whose operation rotates the object clockwise a single degree (adds 1 
+                to its current rotation)
+                -Instructions at lines 33-34 are interpreted by the interpreter; an English description of this sequence of instructions would
+                be: "If and only if the object has moved rotated 360 degrees from its initial facing direction, change its state to/(jump to/
+                change the program counter to point to [the location of the first instruction in]) State 2/Block 2." Thus, only when the object has
+                rotated to face a direction 360 degrees from its initial facing direction should the object change from its current state (State 4 = 
+                Spinning in place) to State 2 (State 2 = moving backwards). When performing the operations for these instructions the conditional 
+                instruction at line 33 will evaluate to false because the object has so far rotated only 1 degree from its initial facing 
+                direction and therefore does not yet face a direction 360 degrees from its initial facing direction, so the jump will not be
+                taken in the operation for the following instruction at line 34 and equivalently the object will not yet change its state to 
+                State 2.
+                -Instruction at line 35 is interpreted by the interpreter; interpreter is suspended and object's program counter is reset to the
+                beginning of Block 4 (so object retains its constant state of 'Spinning in place')
+      525-883)  Each of these iterations is identical in interpretation to the interpretation, during iteration 524, of those instructions interpreted 
+                after the object changes its state to State 4-except that the object will rotate to face a direction of a number of degrees equivalent 
+                to (524 - (X+1)) [where X is the current iteration] from its initial facing direction.
+        * 884)  Interpretation during the 884th iteration is identical to that during iterations (525-883) except that the jump at line 34 is taken, 
+                since the object now faces a direction 360 degrees from its initial facing direction. So the object changes the program counter to
+                to point to line 19, thus changing its state back to State 2 to operate like in iterations 501-523 but starting with fetching
+                instruction 19; this -returns- the program counter to the location of the instruction that would have been reached if the jump in 
+                iteration 524 had NOT been taken. So the order of operations in the previous instance of State 2 is -preserved-, such that in iteration 
+                524, initially an interpretation of Block 2, the interpreter was able to interpret some instructions-lines 10-16-, then interpret 
+                lines 17 and 18-whose operation allowed the interpreter to interpret a sequence of 'sub-instructions' (Block 4), 'pausing' its current 
+                interpretation of Block 2 to interpret Block 4 in which the interpreter was suspended multiple times and therefore occured additional
+                iterations of the main loop (i.e. 525-883), but ultimately returning the object's program counter to the following line 19 to 'resume' 
+                interpreting Block 2. Then of course, after interpreting the instruction at line 19, the suspending jump, the interpreter is suspended 
+                and object's program counter is reset to the beginning of Block 2 (so object once again retains its constant state of 'moving forward').
+     885-1858)  Each of these iterations is [assumed to be, with the operation of instruction at line 17] identical in interpretation to the 
+                interpretation, during iteration 500, of those instructions interpreted after the object changes its state to State 2-except
+                that the object will change to be at a position of a number of units equivalent to (1360 - (X+1)) where X is the current iteration.
+         1859)  Interpretation during the 1859th iteration is identical to that of iterations 885-1858 except that the jump at line 16 is taken, since 
+                the object is now at a position of -500 units from its initial position. Thus, the object changes its state to State 1 = moving forward;
+                interpretation then becomes identical to that of iteration 1, except the object is moved to a location of -499 units from/499 units behind
+                its initial location.
+    1860-2014)  Each of these iterations is [assumed to be, with the operation of instruction at line 7] identical to iteration 1 except
+                that the object will change to be at a position of a number of units equivalent to ((X+1) - 2359) where X is the current 
+                iteration
+         2015)  This iteration is almost identical to iterations 1860-2014, except that now it is assumed that the operation of the conditional 
+                instruction at line 7 chooses 100 as a random number-so the jump at line 8 is taken. Thus, the object changes its state to 
+                State 3 = spinning in place: (like State 4, but with one subtle difference)
+                -Instructions at lines 20-24 are interpreted by the interpreter whose operation rotates the object clockwise a single degree (adds 1 
+                to its current rotation)
+                -Instructions at lines 24-25 are interpreted by the interpreter; an English description of this sequence of instructions would
+                be: "If and only if the object has moved rotated 360 degrees from its initial facing direction, change its state to/(jump to/
+                change the program counter to point to [the location of the first instruction in]) State 1/Block 1." Thus, only when the object has
+                rotated to face a direction 360 degrees from its initial facing direction should the object change from its current state (State 3 = 
+                Spinning in place) to State 1 (State 1 = moving forward). When performing the operations for these instructions the conditional 
+                instruction at line 25 will evaluate to false because the object has so far rotated only 1 degree from its previous facing 
+                direction, 360 degrees, and therefore faces a direction 361 degrees and not 360 degrees from its initial facing direction, 
+                so the jump will not be taken in the operation for the following instruction at line 26 and equivalently the object will not yet 
+                change its state to State 1.
+                -Instruction at line 26 is interpreted by the interpreter; interpreter is suspended and object's program counter is reset to the
+                beginning of Block 3 (so object retains its constant state of 'Spinning in place')
+    2016-2373)  Each of these iterations is identical in interpretation to the interpretation, during iteration 2015, of those instructions 
+                interpreted after the object changes its state to State 3-except that the object will rotate to face a direction of a number of 
+                degrees equivalent to ((X+1) - 1655) [where X is the current iteration] from its initial facing direction.
+       * 2374)  Interpretation during the 2374th iteration is identical to that during iterations (2016-2373) except that the jump at line 26 is taken, 
+                since the object now faces a direction 720 a.k.a 360 degrees from its initial facing direction, assuming that the interpreter is in 
+                some special mode such that the operation of the conditional instruction would evaluate to true given the current facing angle is not
+                360 but some multiple of 360. So the object changes the program counter to point to line 9, thus changing its state back to State 1
+                to operate like in iterations 1860-2014 but starting with fetching instruction 9; this -returns- the program counter to the location 
+                of the instruction that would have been reached if the jump in iteration 2015 had NOT been taken. So the order of operations in the 
+                previous instance of State 1 is -preserved-, exactly as the order of operations in the then previous instance of State 2 was preserved 
+                during iterations 524-884.
+    2375-2716)  Each of these iterations is [assumed to be, with the operation of instruction at line 7] identical to iteration 1 except
+                that the object will change to be at a position of a number of units equivalent to ((X+1)-2718) where X is the current 
+                iteration.
+       2717-N)  The interpretation repeats in the same fashion for all remaining iterations, such that it is undetermined when either State 1 or 
+                State 2 will change to their respective spinning states, State 3 and State 4.
+
+    Notice that Block 3 and Block 4 are IDENTICAL in instructions, except for their respective conditional jump instructions at locations 26 and 34 (and of
+    course their respective suspending jump instructions at locations 27 and 35, but these do not differentiate the blocks as both change the program counter
+    to point to the beginning of their respective block.) Notice that these 2 distinct instructions, and therefore 2 distinct-almost identical copies of-
+    blocks are necessary because they both allow the program counter to return to the appropriate location in the respective block containing the conditional 
+    jump instruction whose operation caused the interpreter to reach that block (as in iteration 884 and 2374). Consider that, for example, Block 4 was removed 
+    completely from object C's code and the conditional jump instruction in Block 2 whose operation potentially causes the interpreter to jump to Block 4 [and 
+    therefore change the object's state to State 4] was replaced with a conditional jump instruction whose operation would potentially cause the interpreter to 
+    jump to the almost identical, existing, Block 3:
+
+    Fig H2: operation of object C's code cannot include dynamic preservation of States 1 and 2 without the 
+            appropriate instructions
+            
+    object C's code:
+    ----------------
+  ----------> 0 : N           <---------------|=========
+  |           1 : N ;move                     |        ||
+  |           2 : N ;forward                  |        ||
+  |           3 : N ;one                      |        ||  
+  |           4 : N ;unit           Region 1  |        ||  Block 1/State 1
+  |      ?    5 : CEQ unitsZ, 500             |        ||          
+  | |-------- 6 : JNEZ 10                     |        ||          
+  | |      ?  7 : CEQ rand, 100               |        ||          
+  | |    |--- 8 : JNEZ 20                     |        ||          
+----|-------> 9 : SJ 0        ----------------|=========           
+| | --------> 10: N           <---------------|=========           
+| |      |    11: N ;move                     |        ||          
+| |      |    12: N ;backward                 |        ||          
+| |      |    13: N ;one                      |        ||          
+| |      |    14: N ;unit           Region 2  |        ||  Block 2/State 2
+| |  ?   |    15: CEQ unitsZ, -500            |        ||          
+| ----------- 16: JNEZ 0                      |        ||          
+|    ?   |    17: CEQ rand, 100               |        ||          
+| ?      |--- 18: JNEZ 20                     |        ||          
+|-----------> 19: SJ 10       ----------------|=========           
+|        |--> 20: N           <---------------|=========           
+|             21: N ;rotate                   |        ||          
+|             22: N ;by                       |        ||          
+|             23: N ;one                      |        ||          
+|             24: N ;degree         Region 3  |        ||  Block 3/State 3
+|         ?   25: CEQ rotX, 360               |        ||
+------------- 26: JNEZ ????                   |        ||
+              27: SJ 20       ----------------|=========        
+              
+    When the interpreter ultimately takes the jump in Block 3 at line 26, how can the interpreter possibly determine which line to return the object's program
+    counter to? It has so far been implied that the interpreter has no way of keeping track of the location of some jump instruction, whose operation causes 
+    some block to be reached, such that some interpretation of that block reaches a conditional jump instruction whose operation if taken could then 
+    appropriately return to the instruction following the location of the instruction being kept track. Thus far an object has no way of directly preserving
+    state. If, for example, the interpreter could remember the respective locations 8 or 18 of the conditional jump instructions in Blocks 1 and 2 at the 
+    point of which they are interpreted in States 1 and 2 to cause the object to change to State 3/interpreter to jump to Block 3 [i.e. preserve the object's
+    state which includes the location of its program counter], then when the interpreter reaches line 26 and takes the jump, it would appropriately return 
+    the program counter to location 9 or 19. But such a mechanism to preserve an object's state is necessary since, considering an object may potentially be 
+    required to enter far more than 1 other state from far more than just 2 states where blocks corresponding to such states are overwhelmingly large and 
+    duplicate blocks for each state only to statically determine the return location for the program counter would be very undesirable.
+    
+    As it turns out, it is not the interpreter that remembers or preserves the object's state, but rather the object itself. Since the interpreter has very
+    limited memory, i.e. not sufficient to remember the object's state, then the object's state is recorded in or pushed to the object's own 'local memory'.
+    An object's local memory is referred to as that object's 'stack memory'-when an object wishes to record a significant piece of information, such as the
+    location in code of an interpreted conditional jump instruction, the object 'pushes' that piece of information to the top of it's stack [memory]:
+    
+    21 < top of stack
+    14 
+    32
+    45
+    12
+
+    In the above example, an object has pushed the data 12, followed by 45, followed by 32, 14, and then 21 to its stack; the data at the top of its stack 
+    is the most recently pushed data, 21 in this example. Of course, in memory the object's stack is stored sequentially:
+    
+    12  45  32  14  21
+                     ^ top of stack
+                    
+    Such that the data at the top of the object's stack is at the highest location in memory. 
+    
+    When an object wishes to then read or recall information from its stack, it 'pops' that data off of the top of its stack:
+    
+    12  45  32  14  __
+                     |
+                     -------> 21   (read and process)
+                     
+        
+    12  45  32  __
+                 |
+                 -------> 14   (read and process)
+    
+    12  45  __
+             |
+             -------> 32   (read and process)
+             
+    There is a special type of instruction-JAL-otherwise known as 'Jump and Link'. The operation for this instruction pushes to the object's stack the value 
+    of the object's program counter at the instant of the instructions interpretation (which always points to the location of the following instruction) 
+    before the interpreter jumps to a new specified location. By pushing the object's program counter, this creates and defines a new 'stack frame' or 
+    'activation record instance' for the object (thereby preserving the object's state). After a number of interpretations of the block jumped to as a result
+    of the Jump and Link instruction's operation, a RET instruction-otherwise known as a 'Return instruction'-should ultimately be reached and interpreted.
+    The operation of the Return instruction will then pop the recorded program counter value most recently pushed [thereby clearing the corresponding stack
+    frame or activation record instance] and the interpreter will jump to the instruction at this location.
+    
+    Object C's code in the following illustration includes another type of instruction called a 'conditional branch instruction'. The instruction BEQZ-otherwise
+    known as 'Branch If Equal to Zero'-is a type of conditional branch instruction. Recall that conditional jump instructions specify the 'absolute' location 
+    in object code that an object's program counter will be changed to point to and therefore replaced with during its operation; a conditional branch instruction
+    operates almost exactly like a conditional jump instruction, but because the location which the object's program counter will be changed to point to is 
+    specified in terms of the number of instructions -after- or -before- the instruction at its current location, that number is added to or accumulates the program
+    counter [rather than replaces it with the specified location as with a conditional jump instruction]. Note that the only type of conditional jump instruction 
+    so far introduced is 'JNEZ'='Jump Not Equal to Zero', thus such a jump will be taken when the operation of its accompanying conditional instruction evaluates
+    to true; conversely, the operation of the 'BEQZ' instruction will take the 'branch' if the operation of its accompanying conditional instruction evaluates to
+    FALSE:    
+    
+    object C's code:
+    ----------------
+  ----------> 0 : N ;move     <---------------|=========
+  |           1 : N ;forward                  |        ||
+  |           2 : N ;one                      |        ||
+  |           3 : N ;unit                     |        ||  
+  |     ?     4 : CEQ unitsZ, 500   Region 1  |        ||  Block 1/State 1
+  | |-------- 5 : JNEZ 10                     |        ||          
+  | |      ?  6 : CEQ rand, 100               |        ||          
+  | |    |--- 7 : BEQZ 1                      |        ||          
+  | |    |    8 : JAL 20                      |        ||          
+  | |    |--> 9 : SJ 0        ----------------|=========           
+  | --------> 10: N           <---------------|=========           
+  |           11: N ;move                     |        ||          
+  |           12: N ;one                      |        ||          
+  |           13: N ;unit                     |        ||          
+  |     ?     14: CEQ unitsZ, -500  Region 2  |        ||  Block 2/State 2
+  ----------- 15: JNEZ 0                      |        ||          
+           ?  16: CEQ rand, 100               |        ||          
+         |--- 17: BEQZ 1                      |        ||          
+         |    18: JAL 20                      |        ||          
+         |--> 19: SJ 10       ----------------|=========           
+              20: N           <---------------|=========           
+              21: N ;rotate                   |        ||          
+              22: N ;by                       |        ||          
+              23: N ;one                      |        ||          
+              24: N ;degree         Region 3  |        ||  Block 3/State 3
+           ?  25: CEQ rotX, 360               |        ||
+         |--- 26: BEQZ 1                      |        ||
+         |    27: RET                         |        ||
+         |--> 28: SJ 20       ----------------|=========      
+         
+    When the interpreter reaches line 6, it will perform the operation for the conditional instruction which evaluates the choice of a random number 
+    from 1 to 100, checking if the number is 100. When the corresponding conditional branch instruction is reached at line 7, its operation will cause
+    the interpreter to change the location of object C's program counter to its current location + 1 if the operation of the conditional branch 
+    instruction evaluated to false; otherwise the program counter is left unchanged. Recall that, after each time the interpreter fetches an instruction
+    in some object's code, before performing the operation for that instruction, the object's program counter is left to point at the location of the
+    instruction that directly follows the fetched instruction. Thus, after the interpreter fetches the conditional branch instruction at line 7, the
+    program counter will point to the directly following instruction at line 8, and after performing the operation of the conditional branch instruction- 
+    if the branch IS taken, the program counter will be changed to point to the instruction at its current location + 1 = 8 + 1 = 9, i.e. the 
+    instruction at location 9; if the branch is NOT taken, then the program counter will instead be left unchanged to point at its current location of
+    [the instruction at location] 8. Equivalently, if the branch is NOT taken, the interpreter will continue to perform its default operation by fetching
+    the instruction following the conditional branch instruction; if the branch IS taken, its operation will cause the interpreter to -skip- fetching 
+    the single (1) instruction that sequentially follows the conditional branch instruction. Therefore, the operation of the conditional branch at line 7
+    causes the interpreter to skip interpreting the JAL instruction at line 8 under the condition that 100 is NOT chosen as a random number by the
+    conditional instruction at line 6 (i.e. 99/100ths of the time), and equivalently does NOT cause the interpreter to skip interpreting [thereby 
+    interpreting] the JAL instruction at line 8 when 100 IS chosen as a random number by the conditional instruction at line 6 (i.e. 1/100th of the time).
+    
+    The operation of a conditional branch instruction then allows the interpreter to conditionally interpret, and equivalently-conditionally skip 
+    interpreting-, the sequence of some number of sequentially following instructions. Such an operation is clearly necessary since, there does not exist
+    a separate 'conditional jump and link' type instruction or separate 'conditional return' type instruction-or conditional variations of most other
+    types of instructions, and it allows such single instructions or sequences of multiple instructions-i.e. sections of code [instructions]-to be 
+    interpreted conditionally.
+    
+    In State 1, and equivalently in an interpretation of Block 1, when the JAL instruction at line 8 is reached as a result of not taking the branch at 
+    line 7, the current location of the object's program counter (8+1=9) -9- is pushed to the object's stack and the interpreter jumps to interpret Block 3.
+    The object then remains in State 3 to recurrently interpret Block 3 until the iteration of the main loop is reached whose interpretation causes the branch 
+    at line 26 to not be taken, thereby allowing the RET instruction at line 27 to be interpreted-whose operation consists of popping the previously pushed
+    -9- off of the object's stack and 'returning' the object's program counter to this location.   
+
+    In State 2, and equivalently in an interpretation of Block 2, when the JAL instruction at line 18 is reached as a result of not taking the branch at 
+    line 17, the current location of the object's program counter (18+1=19) -19- is pushed to the object's stack and the interpreter jumps to interpret Block 3.
+    The object then remains in State 3 to recurrently interpret Block 3 until the iteration of the main loop is reached whose interpretation causes the branch 
+    at line 26 to not be taken, thereby allowing the RET instruction at line 27 to be interpreted-whose operation consists of popping the previously pushed
+    -19- off of the object's stack and returning the object's program counter to this location.
+
+    Notice that when reaching the respective jump and link instruction to Region 3 of the object's code in State 1 or 2, and equivalently interpretations of 
+    Block 1 or 2, after taking the jump, the interpreter is eventually able to return the object's program counter to the location of the instruction 
+    following the jump and link instruction [via the operation of an implied RET instruction within Region 3].     
+    
+    Now consider Object D:
+    
+    object D's code:
+    ----------------
+  |---> 0 : CEQ rand, 20     <---------------|=========
+  | --- 1 : BEQZ 1                           |        ||
+  | |   2 : JAL 12                           |        ||
+  | --> 3 : CEQ rand, 10          Region 1   |        ||  Block 1/State 1
+  | --- 4 : JNEZ 6                           |        ||          
+  | |   5 : SJ 0             ----------------|=========           
+  | --> 6 : CEQ rand, 10     <---------------|=========           
+  | --- 7 : BEQZ 1                           |        ||          
+  | |   8 : JAL 12                           |        ||          
+  | --> 9 : CEQ rand, 20          Region 2   |        ||  Block 2/State 2
+  ----- 10: JNEZ 0                           |        ||  
+        11: SJ 6             ----------------|=========
+        12: N                ??
+        13: N                ??
+        14: N                ??
+        15: RET              ??
+                                                  
+    In State 1, and equivalently in an interpretation of Block 1, when the JAL instruction at line 2 is reached as a result of not taking the branch at 
+    line 1, the current location of the object's program counter (2+1=3) -3- is pushed to the object's stack and the interpreter jumps to line 12.
+    The interpreter then interprets instructions at lines 12-14, and follows with interpreting the RET instruction at line 15-whose operation consists 
+    of popping the previously pushed -3- off of the object's stack and 'returning' the object's program counter to this location. The interpreter then
+    interprets the remainder of Block 1, where the object may potentially change to State 2 by the operation of the conditional jump at line 4-
+    otherwise when reaching the suspending jump instruction at line 5, its operation suspends the interpreter and the object's program counter is reset 
+    to the beginning of Block 1 (so the object remains in a constant state of State 1, since that state will reoccur and equivalently the above will be
+    repeated in the next iteration of the main loop).    
+
+    In State 2, and equivalently in an interpretation of Block 2, when the JAL instruction at line 8 is reached as a result of not taking the branch at 
+    line 7, the current location of the object's program counter (8+1=9) -9- is pushed to the object's stack and the interpreter jumps to line 12.
+    The interpreter then interprets instructions at lines 12-14, and follows with interpreting the RET instruction at line 15-whose operation consists 
+    of popping the previously pushed -9- off of the object's stack and 'returning' the object's program counter to this location. The interpreter then
+    interprets the remainder of Block 1, where the object may potentially change to State 1 by the operation of the conditional jump at line 10-
+    otherwise when reaching the suspending jump instruction at line 11, its operation suspends the interpreter and the object's program counter is reset 
+    to the beginning of Block 2 (so the object remains in a constant state of State 2, since that state will reoccur and equivalently the above will be
+    repeated in the next iteration of the main loop).    
+                    
+    Notice that line 12 of its code may potentially be reached by the interpreter in some interpretation, whether the object is in State 1 or State 2: 
+    line 12 is reached via the operations of the respective 'JAL 12' instructions at line 2 (in Block/State 1) and line 8 (in Block/State 2)-either of
+    which may be reached by not taking their respective branches at lines 1 and 7. These respective branches are, of course, only taken when the 
+    operations of their directly preceding conditional branch instructions evaluate to true.    
+
+    Notice also that the sequence of instructions from line 12 to line 15 do NOT meet the requirements of a block (or even a region, for that matter).
+    Normally, a block of instructions ends with a suspending jump instruction, such that when the interpreter interprets that block and ultimately
+    reaches that suspending jump instruction, its operation will suspend the interpreter and the object's program counter will be reset to the beginning
+    of the block, thereby allowing the object to remain in a recurring state of interpretation for that block. When a jump is taken to line 12 via the 
+    operation of either 'JAL 12' instruction and the sequence of instructions from line 12 to line 15 are interpreted, the operation of the RET instruction
+    at line 15 returns the program counter to immediately interpret the remainder of the block that the jump was taken from. Thus, in taking either jump 
+    from either block/State to line 12, between interpreting the instructions from line 12 to 15 and ultimately returning the program counter to interpret 
+    the remainder of the respective block, no suspending jump is interpreted [whose operation naturally modifies the program counter and suspends the 
+    interpreter] such that some new, recurring state is established. Then, it follows that the sequence of instructions from line 12 to line 15 do not
+    define a block, since no State could be associated with such a block-and equivalently no unique, recurring state can be established by the sequence's
+    interpretation alone.
+    
+    Since no new state is established in interpreting instructions from line 12 to 15, then when such an interpretation occurs as a result of taking the
+    jump to line 12 from either State 1 or State 2, the Object remains in its respective state. Instructions at lines 12 to 15 do not define a block/State,
+    but they -do- define an external sequence of 'sub-instructions; that can be interpreted from either State 1 or State 2 (or any other state) [without 
+    actually having to change the object's state]. Such a sequence of instructions is crucial for efficient interpretation of objects.
+    
+    However, such a sequence of instructions is still referred to as a block of instructions. As it turns out, this sequence of instructions is a 
+    perfectly reasonable, well-formed block of instructions. It is, however, a different -type- of block from those so far introduced. Actually, 
+    something very important is missing in all of the blocks that have so far been introduced; this extra requirement has been left out of the 
+    original definition to make explanation easier. At this point, it is necessary to reintroduce the true definition for a 'block of instructions': 
+    
+    A block is defined as any sequence of instructions that exist in the code of some object O from a start location W 
+    to an end location Z such that:
+       
+    1) Either location W is located at the same location Z or there is no return instruction at location W and at 
+       locations between location W and location Z [non-inclusive] 
+    2) The instruction at location Z is a return instruction
+    3) Either location W is the location of the first instruction in O's code or the instruction that directly 
+       precedes the instruction at location W is a return instruction
+      
+    Additionally necessary are definitions for the 2 distinct -types- of blocks:
+  
+    A 'code block' is defined as any sequence of instructions in the form of a block that exist in the code of some 
+    object O from a start location W to an end location Z such that:
+    
+    1) O's program counter points to location W prior to the first/next fetch in some interpretation I of O's code
+    2) There exists at least 1 suspending instruction at a location X, either at the same location W or between 
+       location W and location Z, such that location X is ultimately reachable by I
+    3) There exists at least 1 instruction at a location Y, either at the same location X or between location X
+       and location Z, whose operation modifies O's program counter to point to location W, location X,
+       or some location between location W and location X, such that location Y is ultimately reachable by I        
+       
+    A 'sub-block' is defined as any sequence of instructions in the form of a block that exist in the code of some
+    object O from a start location W to an end location Z such that:
+    
+    1) O's program counter points to location W prior to the first/next fetch in some interpretation I of O's code
+    2) There does not exist any suspending instruction at either location W, or between location W and location Z 
+       [non-inclusive], that is ultimately reachable by I       
+    3) The instruction at location Z is specifically the furthest reachable return instruction from location W by I 
+       when the block's corresponding stack frame is the current stack frame*
+       
+    (*i.e. the instruction at location Z is a return instruction; stack frames will be introduced later)
+    
+    Recall that the SJ instruction was viewed as a sort of separator in object code, that separated blocks from one another. The above definitions 
+    essentially redefine that separator as the RET instruction, and introduces a new type of block-the 'sub-block'. As it turns out, in most object
+    code, the majority of blocks are sub-blocks-that is, they are blocks that do NOT define a State for the object, but rather a set of 'sub-instructions'
+    that can be jumped to from any object state, and returned from without changing that state. A 'code block' is a type of block that DOES define a 
+    State for the object; thus, each of these blocks have their own distinct associated State, like the blocks that were introduced prior to these new
+    definitions. All sub-blocks have a RET instruction as their final instruction (*by requirement 3)). Unlike the blocks introduced prior to the new
+    definitions, code blocks also have a RET instruction as their final instruction-however this RET instruction is never reachable in an interpretation
+    of that code block. 
+
+    Now consider Object D's code with these new requirements:
+    
+    object D's code:
+    ----------------
+W |---> 0 : CEQ rand, 20     <---------------|=========
+  | --- 1 : BEQZ 1                           |        ||
+  | |   2 : JAL 14                           |        ||
+  | --> 3 : CEQ rand, 10          Region 1   |        ||  Block 1/State 1     (code block)
+  | --- 4 : JNEZ 7                           |        ||          
+XY| |   5 : SJ 0             ----------------|        ||
+Z | |   6 : RET                              |=========           
+W | --> 7 : CEQ rand, 10     <---------------|=========           
+  | --- 8 : BEQZ 1                           |        ||          
+  | |   9 : JAL 14                           |        ||          
+  | --> 10: CEQ rand, 20          Region 2   |        ||  Block 2/State 2     (code block)
+  ----- 11: JNEZ 0                           |        ||
+XY      12: SJ 7             ----------------|        ||
+Z       13: RET                              |=========
+W       14: N                                |=========          
+        15: N                                |        ||  Block 3/Routine 1   (sub-block)
+        16: N                                |        ||
+Z       17: RET                              |=========
+                                        
+    Notice that the only difference is in the placement of RET instructions after every SJ instruction; these RET instructions will never be reached in an 
+    interpretation of their respective blocks, however there is now some sort of uniformity to the sections/portions of this object's code.
+                           
+    Return to the topic of objects' stack memory. As it turns out, an object's stack memory is used for more than just pushing/popping the location of its 
+    program counter with the operations of the respective JAL and RET instructions-it is used for pushing the 'results' of and popping the 'operands' for 
+    operations of most other instructions as well. Consider the operation of a conditional instruction such as CEQ when interpreting some arbitrary object's 
+    code:
+
+    ...
+    10: ...
+    11: CEQ  a, 10     
+                       ;a != 10 at this point   stack: 14 45 11 32 0
+                                                                   ^ top of stack
+                                                                       
+    The operation simply checks if the operands 'a' and '10' are equal in value. If these operands are equal in value, the operation will push a '1' to 
+    the top of the object's stack, indicating that the operation evaluated to true; conversely, if they are not equal in value, the operation will push a '0' 
+    to the top of the object's stack. In the above example, it is assumed that when the interpreter interprets the instruction at line 11, the value of 'a' is
+    not equal to '10', so the interpreter's operation pushes a '0' to the top of the object's stack. Now consider the operation of the conditional instruction's
+    directly proceeding instruction-a conditional branch instruction:
+
+    12: BEQ  2        ; stack: 14 45 11 32 0
+    13: N             ; stack: 14 45 11 32 ^ is popped off the top
+    14: N                               ^ top of stack
+    15: ....
+    ...
+    
+    The operation simply pops the value at the top of the object's stack off and checks if this value is equal to '1' (i.e. checking whether the most recent
+    operation of an instruction that had pushed a value to the top of an object's stack had pushed the value '1'). If this value is equal to '1' then the 
+    operation of the instruction takes the branch; if this value is not equal to '1' then the operation of the instruction does not modify the object's program
+    counter and therefore does not take the branch. At the point of interpreting the conditional branch instruction located at line 12 in the above example,
+    the most recent operation of an instruction that had pushed a value to the top of the object's stack was that of the directly preceding instruction at 
+    line 11, which had pushed a '0' to the top of the object's stack-since the comparison of the instruction's operands evaluated to false. Thus, in the 
+    operation of the conditional branch instruction, after popping this '0' from the top of the object's stack, the branch was not taken [to line 15]-for the 
+    popped value '0' was not equal to '1'.
+
+    The operation of the conditional instruction involves what is known as an 'implicit stack push'; in other words, for every time the interpreter interprets 
+    that instruction, a single value-indicating the results of its operation, i.e. whether it evaluated to true or false-will always be pushed to the top of 
+    the object's stack.
+    The operation of the conditional branch instruction involves what is known as an 'implicit stack pop' to determine one of its operands-thus, for every time
+    the interpreter interprets that instruction, it expects some other operation to have pushed data to the top of the object's stack for the conditional branch
+    instruction's operation to pop and use as one of its operands. 
+              
+    Most instructions, such as the ADD instruction-a type of primitive arithmetic instruction-allow either of its operands to specify that they will be 
+    'explicitly' popped off of the object's stack for use in the instruction's operation. In other words, the results of some instruction's operation 
+    as implicitly pushed to the top of the object's stack can then be used as an explicitly popped operand in some other instruction's operation, resulting
+    in an implicit push of its results to the top of the object's stack-which can then be used as an explicitly or implicitly popped operand in some
+    other instruction's operation and so on. For example, the operation of the ADD instruction pushes to the top of the object's stack the result of adding 
+    the values of its 2 operands together:
+           
+                                                              top of stack
+      10: ...                                                 v
+      11: ADD 1, 2         ; stack (before interpretation):  20  
+      12: ADD 2, 3         ; stack (before interpretation):  20 3 <- top of stack 
+      13: ADD 4, 3         ; stack (before interpretation):  20 3 5 <- top of stack                                
+      14: ADD pop(), 2     ; stack (before interpretation):  20 3 5 7 <- top of stack
+      15: ADD pop(), 10    ; stack (before interpretation):  20 3 5 9 <- top of stack
+      16: ADD pop(), pop() ; stack (before interpretation):  20 3 5 19 <- top of stack
+      17: N                ; stack (before interpretation):  20 3 24 <- top of stack
+      18: ...
+      
+    Notice in the above example that the results of an instruction's operation are not observable as having been pushed to the top of the object's stack until
+    after the operation of that instruction completes-most appropriately right before the interpretation of the directly proceeding instruction. When the 
+    interpreter interprets line 11, its operation simply adds the values of its operands-1 and 2-together and pushes the result-1 + 2 = 3-to the top of the
+    object's stack. The resulting stack is shown to the right of instruction 12, as that is the data in the object's stack when the interpreter fetches that
+    instruction; this shows the result of the previous operation-3-to be at the top of the object's stack at that instant. When the instruction at line 12 is
+    interpreted, its operation simply adds the values of its operands-2 and 3-together and pushes the result-2 + 3 = 5-to the top of the object's stack. 
+    Notice that, since the result of the operation for the ADD instruction at line 11 (i.e. the 3) has not been popped off of the object's stack [implicitly or 
+    explicitly] as a result of the operations of any of the so-far interpreted instructions between lines 11 and 12, it retains its position and is not
+    replaced. When the interpreter interprets the instruction at line 13, its operation simply adds the values of its operands-4 and 3-together and pushes
+    the result-4 + 3 = 7-to the top of the object's stack. 
+    
+    When the interpreter interprets the instruction at line 14, its operation adds the values of its operands; the value of the first operand is determined by 
+    popping that value from the top of the object's stack (as specified by 'pop()')-at that instant the value at the top of the object's stack is '7', and the
+    value of the second operand has been specified as '2'. Thus, the instruction's operation first 'explicitly' pops its first operand '7' from the top of the
+    object's stack (yielding the resultant stack: 20 3 5), then adds that popped operand '7' to its second operand '2' resulting in '7 + 2 = 9', and finally 
+    pushes the result of the operation (i.e. 9) to the top of the stack (yielding the resultant stack: 20 3 5 9). The same operation is repeated when the
+    interpreter interprets the instruction at line 15, except the explicitly popped first operand now has a value of '9' and the second operand has been
+    specified as '10'-thus yielding the result '9 + 10 = 19' and therefore resultant stack: 20 3 5 19.
+    
+    When the interpreter interprets the instruction at line 16, its operation first 'explicitly' pops its first operand '19' from the top of the object's 
+    stack (yielding the resultant stack: 20 3 5), then additionally explicitly pops its second operand '5' from the top of the object's stack (yielding the
+    resultant stack: 20 3), adds both popped operands resulting in '19 + 5 = 24', and finally pushes the result of the operation (i.e. 24) to the top of the 
+    object's stack (yielding the resultant stack: 20 3 24).
+    
+    Notice what has been accomplished by the operations of interpreting this code: the results of one simple calculation and one compound calculation have
+    been pushed to the stack. First, a simple calculation (1 + 2 = 3) is performed and its result is pushed to the stack; then as a result of performing
+    multiple operations, using the result of each operation as an operand in the next, a compound calculation ((2 + 3) + ((4 + 3) + 2 + 9)) is performed 
+    and its result is ultimately pushed to the stack. Notice that without the option to explicitly pop operands for an instruction's operation from an 
+    object's stack, such compound calculations could not be carried out by the interpreter which therefore would be limited to performing only simple
+    calculations involving 2 operands. 
+    
+    
+    
+    Now consider that the above code were a portion of some Object E's code:
+    
+    Object E's code
+    -----------------
+      0:  N
+      1:  N
+      2:  N
+      3:  N
+      4:  N
+      5:  N 
+      6:  N
+      7:  N
+      8:  N
+      9:  N                                               top of stack
+      10: RET                                                v
+      11: ADD 1, 2         ; stack (before interpretation):  20  
+      12: ADD 2, 3         ; stack (before interpretation):  20 3 <- top of stack 
+      13: ADD 4, 3         ; stack (before interpretation):  20 3 5 <- top of stack                                
+      14: ADD pop(), 2     ; stack (before interpretation):  20 3 5 7 <- top of stack
+      15: ADD pop(), 10    ; stack (before interpretation):  20 3 5 9 <- top of stack
+      16: ADD pop(), pop() ; stack (before interpretation):  20 3 5 19 <- top of stack
+      17: RET              ; stack (before interpretation):  20 3 24 <- top of stack
+      18: N
+      19: JAL 11
+      20: N
+      21: N
+      22: SJ 18
+      23: RET
+      
+  Considering that Object E's program counter points to the instruction at line 18 in its code before entering the main loop in an instance of a simple 
+  interpreted game engine: after entering the main loop and during the first interpretation, when the interpreter reaches line 19 to take the jump to the
+  instruction at line 11, it pushes the location of the instruction at the line following line 19 (i.e. line 20) due to the operation of the jump and link 
+  instruction. After lines 11-16 are interpreted, the resultant stack becomes: 20 3 24; when the return instruction at line 17 is interpreted, its operation
+  pops the value off the top of the stack ('24') and changes the program counter to point to the instruction at/jumps to that location. However, there is no
+  instruction at location 24, and furthermore this is not even the desired return location. The desired return location is instead buried at the bottom of
+  the object's stack, only accessible by first popping the values '3' and '24' that were pushed as a result of the arithmetic operations. But a solution to 
+  this problem does not involve popping the stack until the bottom value is reached, and equivalently the interpreter can not assume in the operation for some 
+  'corrected' return instruction that the return location is always at the bottom of the object's stack: for example, consider that the instruction at line 18
+  was an ADD instruction-then the result of the operation in its interpretation would be pushed as the bottom value of the stack before the JAL instruction
+  at line 19 were reached, causing the return location to be pushed -after- the result of the ADD instruction's operation.
+
+  Additionally, consider Object F:
+
+  Object F's code
+  -----------------                                top of stack
+  0:  ADD 1, 1                                          v
+  1:  ADD 2, 2        ; stack (before interpretation):  2 
+  2:  JAL 10          ; stack (before interpretation):  2 4 <- top of stack   
+  3:  N               
+  4:  N               
+  5:  N               
+  6:  N               
+  7:  N               
+  8:  JS 0
+  9:  RET                                                   
+  10: ADD 4, 4        ; stack (before interpretation):  2 4 3 <- top of stack                              
+  11: ADD 8, 8        ; stack (before interpretation):  2 4 3 8 <- top of stack
+  12: JAL 15          ; stack (before interpretation):  2 4 3 8 16 <- top of stack
+  13: ADD pop(), 4                                   
+  14: RET              
+  15: ADD 2, 2        ; stack (before interpretation):  2 4 3 8 16 13 <- top of stack 
+  16: ADD 1, 1        ; stack (before interpretation):  2 4 3 8 16 13 4 <- top of stack 
+  17: JAL 19          ; stack (before interpretation):  2 4 3 8 16 13 4 2 <- top of stack 
+  18: RET              
+  19: ADD 11, 12      ; stack (before interpretation):  2 4 3 8 16 13 4 2 18 <- top of stack 
+  20: RET             ; stack (before interpretation):  2 4 3 8 16 13 4 2 18 23 <- top of stack
+
+  In the above interpretation, many JAL have been interpreted and their jumps have been taken before a RET instruction is finally interpreted at line 20. The 
+  operation of the RET instruction then causes the value at the top of the stack to be popped off, returning the program counter to the instruction at this 
+  location-however there is no instruction at line '23' as it does not refer to a valid location in object code. The correct return location was pushed as
+  the preceding value in the stack-'18'-when taking the jump from line 17 to line 19-the beginning of that block. Notice that the stack can be divided into
+  sections, where every section (except the first) begins with the value of a return location pushed via the operation of an interpreted JAL instruction: 
+  
+  2 4 | 3 8 16 | 13 4 2 | 18 23
+       *1)      *2)      *3)
+       
+  The return location at 1) was pushed to the stack as a result of interpreting the 'JAL 10' instruction at line 2
+  The return location at 2) was pushed to the stack as a result of interpreting the 'JAL 15' instruction at line 12
+  The return location at 3) was pushed to the stack as a result of interpreting the 'JAL 19' instruction at line 17
+  
+  Notice that each section in the object's stack begins with the value of a return location that, as a result of interpreting some RET instruction 
+  reached via interpretation of its 'corresponding block of code', shall be popped off the stack and jumped to. That respective block of code is reached via 
+  the operation of some previously interpreted JAL instruction (the one whose operation pushed the location at the beginning of that block's respective 
+  section to the object's stack). If another JAL instruction is interpreted during that block's interpretation, before some RET instruction is interpreted, 
+  then an additional return location will be pushed to the stack, thereby defining the beginning of a new section. Then, during interpretation of the new 
+  section's corresponding block of code reached via that JAL instruction, operations of instructions may include primitive arithmetic and etc. that would 
+  push the results of some calculations to the object's stack-thereby elongating that section; additionally, yet another JAL instruction within that block
+  may be interpreted before some RET instruction, and so on, thus defining another new section and repeating the above. During some block's interpretation, 
+  when a RET instruction is finally interpreted, there may be multiple sections and therefore return locations present on the stack, so the interpreter must
+  determine which of these is the appropriate return location. Ideally, the appropriate return location turns out to be the most recently pushed return 
+  location via the operation of the most recently interpreted JAL instruction-that return location is located at the beginning of the section corresponding to 
+  the interpreted block on the object's stack. Additionally, if it were possible for the operation of the RET instruction to then return to the appropriate 
+  location, when interpretation continues at the location of the instruction returned to, the operation of that instruction might require explicitly popping 
+  the stack of a value such that that value is expected to be the most recently pushed value via interpretation of some instruction located and interpreted
+  -before- the corresponding JAL instruction (the one whose operation had pushed the return location that was popped off the stack and jumped to via the RET 
+  instruction's operation.) However, depending on whether or not the return location was recovered by somehow removing it from the stack (if it were even 
+  possible to remove data from the stack that is not at the top, which it is not), the value expected to be popped will usually still be buried under the 
+  results of operations performed during interpretation of instructions in the block that was reached via the JAL instruction. Therefore, the stack would 
+  have to be 'rewound' such that the last data value in the section corresponding to the block that contains the instruction at the location returned to 
+  is at the top of the stack, yielding the same stack arrangement at the instant the JAL instruction was fetched. In effect, this gets rid of/pops off the 
+  stack any results of operations that were ultimately unused-and should have been, but were not, popped-during interpretation of instructions in the block 
+  that was reached via the JAL instruction, allowing the stack to return to its form before the interpretation of the JAL instruction.
+  
+  These sections of the stack are what are more commonly referred to as "stack frames" or activation record instances. An object's 'current stack frame' at
+  any instant is the frame associated with the block of its code that contains the current instruction being interpreted. In addition to its program counter, an
+  object has a 'frame pointer', which at any instant of its code's interpretation points to the location of the beginning of the object's current stack frame. 
+  The object also has a 'stack pointer' which at any instant points to one location after the location of the top of the objects stack-or equivalently, what 
+  would be the location of the top of the object's stack if a single data were pushed. Whenever data is pushed to the object's stack, the object places the 
+  data at the location on its stack indicated by its stack pointer before then incrementing the stack pointer's location, or changing it to point to the 
+  location directly proceeding its previous location. 
+  
+  At this point, it is necessary to reintroduce the -true- operation of the JAL-jump and link-instruction. As it turns out, when the interpreter interprets a 
+  JAL instruction in some object's code, a new "stack frame" is created on that object's stack by the operation of the instruction-which, in addition to 
+  pushing the location of the object's program counter, also pushes the locations of the object's frame pointer and stack pointer, before then changing the 
+  object's frame pointer to point to the location on the object's stack where the program counter location was pushed (i.e. the beginning of the 'new' stack 
+  frame created when pushing the program counter location). After the jump is taken as a result
+  of the JAL instruction's operation, further interpretations of JAL instructions will cause additional stack frames to be created and the
+  object's frame pointer to be updated accordingly. When some RET instruction is interpreted, the appropriate return location can be 'peeked' from the 
+  object's stack, (a 'peek' reads the value at some location on the object's stack without actually popping that data off) by reading the data at the
+  location of the beginning of the object's current stack frame-the location of which is indicated in the object's frame pointer. The previous locations
+  of the frame pointer and stack pointer before the most recent interpretation of a JAL instruction (i.e. the one that caused the current, shortly to be
+  popped, stack frame to be created) can then be 'restored' by peeking their preserved values from the object's stack at locations of 1 and 2 values from 
+  the beginning of the current stack frame, respectively, and setting the object's frame pointer and stack pointer to these respective values/locations. In
+  effect, the program counter is returned to its 'previous' (i.e at the point of fetching the JAL instruction) location, the top of the stack is returned to 
+  its 'previous' location, and the 'previous' stack frame in its 'previous' arrangement is restored-such that the object's frame pointer now once again 
+  points to the beginning of that frame, where another return address and previous frame and stack pointers will be peeked in the interpretation of another 
+  RET instruction and so on.
+  
+  Return to Object F:
+  
+  Object F's code     ; ---STACK LOCATIONS/INDICES---:  0__1__2__3__4__5__6__7__8__9_10_11_12_13_14_15_16_17_18_19_20_21_22   
+  -----------------                                      
+  0:  ADD 1, 1        ; stack (before interpretation):  0  0  0<- top of stack
+  1:  ADD 2, 2        ; stack (before interpretation):  0  0  0  2<- top of stack 
+  2:  JAL 10          ; stack (before interpretation):  0  0  0  2  4<- top of stack   
+  3:  N               ; stack (before interpretation):  0  0  0  2  4<- top of stack
+  4:  N               ...
+  5:  N               
+  6:  N               
+  7:  N               
+  8:  JS 0
+  9:  RET              ...                                               
+  10: ADD 4, 4        ; stack (before interpretation):  0  0  0  2  4 |3  0  5<- top of stack                              
+  11: ADD 8, 8        ; stack (before interpretation):  0  0  0  2  4 |3  0  5  8<- top of stack
+  12: JAL 15          ; stack (before interpretation):  0  0  0  2  4 |3  0  5  8  16<- top of stack
+  13: ADD pop(), 4    ; stack (before interpretation):  0  0  0  2  4 |3  0  5  8  16<- top of stack                         
+  14: RET             ; stack (before interpretation):  0  0  0  2  4 |3  0  5  8  20<- top of stack
+  15: ADD 2, 2        ; stack (before interpretation):  0  0  0  2  4 |3  0  5  8  16|13  5 10<- top of stack 
+  16: ADD 1, 1        ; stack (before interpretation):  0  0  0  2  4 |3  0  5  8  16|13  5 10  4<- top of stack 
+  17: JAL 19          ; stack (before interpretation):  0  0  0  2  4 |3  0  5  8  16|13  5 10  4  2<- top of stack 
+  18: RET             ; stack (before interpretation):  0  0  0  2  4 |3  0  5  8  16|13  5 10  4  2<- top of stack 
+  19: ADD 11, 12      ; stack (before interpretation):  0  0  0  2  4 |3  0  5  8  16|13  5 10  4  2|18 10 15<- top of stack 
+  20: RET             ; stack (before interpretation):  0  0  0  2  4 |3  0  5  8  16|13  5 10  4  2|18 10 15 23<- top of stack
+                                                        PC FP SP       PC FP SP       PC FP SP       PC FP SP
+                                                      ;     frame 1       frame 2        frame 3        frame 4
+  
+  Object F's program counter points to the instruction at line 0 in its code before the main loop is entered in an instance of a simple interpreted game 
+  engine. The arrangement of Object F's stack before the interpretation of each instruction in its code during the first iteration of the main game loop
+  is shown to the right of the respective instructions in the illustration/example of Object F's code above. 
+  
+  The game engine used in this example is a slightly revised engine from that used in the previous examples/illustrations; the revision is only minor 
+  and does not make any changes to the main game loop. It deals with the idea that, the object's stack should consist only of stack frames-thus the 
+  interpreter shall always be interpreting instructions in some block of the object's code that corresponds to a section of the stack that IS the current 
+  stack frame. An object's stack frame is composed of the following data, the first 3 values of which are used when interpreting the RET instruction in the 
+  frame's corresponding block of code:
+  
+      1) PC = Program counter return location
+      2) FP = Frame pointer return location  
+      3) SP = Stack pointer return location  
+    4-n) Results of operations in interpreting corresponding block [may or may not exist at any instant]
+    
+  Notice that, in the example, before the first instruction at location 0 is even fetched, 3 values have already been pushed to the object's stack. Observe 
+  that if these values were not pushed, after interpreting arithmetic instructions at lines 0 and 1, the section of the object's stack associated with the 
+  block that contains those instructions would consist only of the results of their operations-thus, at no point during the interpretation of that block
+  would its corresponding section have the complete form of a stack frame; equivalently during the initial interpretation of the object's code, the object 
+  would not meet the requirements of having a 'current stack frame'. 
+  
+  An object's 'initial stack frame' is set by pushing the appropriate PC, FP, and SP locations to its stack right before the main loop is entered in an 
+  instance of the engine, after the initial program counter is set for that object. Prior to this, however, the object's initial frame pointer and stack pointer 
+  locations are are also both set to 0. Since the initial locations of the object's frame pointer and stack pointer are 0 and 0, respectively-then, equivalently,
+  the appropriate values for FP and SP in the initial stack frame are always 0 and 0 because these are the initial locations of the frame pointer and stack 
+  pointer; these values indicate that, prior to the object's initial interpretation and the pushing of these values, the object did not have any stack frames 
+  and did not have any data on its stack, since no possible frame could 'range' from stack locations 0 to 0. The appropriate PC location is the object's 
+  initial program counter location; although, this location is unused, it achieves preservation of the object's initial program counter location and its 
+  presence is necessary because it defines that stack frame. When the initial block associated with that frame is interpreted, if that frame is the object's 
+  current stack frame and a RET instruction is reached, the operation of the return instruction will note the '0' in the value for SP, causing the interpreter 
+  to return error and terminate the object. 
+  
+  In the example above, the object's initial stack frame is clearly frame 1; the 3 values on the object's stack before the initial interpretation (0 0 0) are
+  the respective PC, FP, and SP values for that initial frame. When the interpreter interprets lines 0 and 1 in the initial block, the results
+  of the respective arithmetic operations (i.e. 2 4) are pushed to the stack, thereby adding additional information to that frame. When the JAL instruction 
+  at line 2 is interpreted, the jump is taken to line 10 and a new stack frame-frame 2-is created. Notice that, before that frame is created (i.e. before 
+  interpretation of the JAL at line 2), the top of the object's stack is located at stack location/index 4-this means that the object's stack -pointer- is
+  located 1 index or location after that: 4 + 1 = 5 = current stack pointer location. When that frame is created in the operation of the JAL instruction: the 
+  current program counter location (points to the instruction following the currently interpreted instruction- 2 + 1 = 3), the current frame pointer location 
+  (which has since not been changed from its initial location of 0), and the current stack pointer location (determined to be 5) are all pushed to the object's 
+  stack. After that frame is created in the operation of the JAL instruction, the object's frame pointer is changed to point to the beginning of the current,
+  newly created stack frame; because 3 values have been pushed to the stack to create the frame, the 3rd value in the frame is at the top of the stack, so the
+  stack pointer points to what would be the location of the 4th value (i.e. 8) and the location that points three values before the 4th value in the frame 
+  (i.e. 8 - 3 = 5) is that of the first value in the frame (i.e. the beginning of the frame). After the jump is taken to line 10, a few more arithmetic 
+  instructions are interpreted whose operations add additional information to the current frame (frame 2).
+  
+  .....
+  
+  Suppose there is an object G that is to have the following behavior in an interpreted game engine:
+  
+   1) Walk forward when the UP button is pressed on controller input device
+   2) Walk backward when the DOWN button is pressed on controller input device
+   3) Stand idly and turn head to look left and right when NO buttons are pressed on controller input device
+   4) Object is to animate:
+     a) Do "walk forward" animation when walking forward
+     b) Do "walk backward" animation when walking backwards
+     c) Do "stand in place and turn head to look left and right" animation when standing idly
+   
+  How could such an object be implemented? Requirements 1, 2, and 3 are somewhat ambiguous, but they seem to imply that the object should initially be in an
+  idle state (assuming that, initially, no buttons on the controller are pressed or held down), where the object should simply stand still and should not 
+  change its position, changing to a state of moving forward or moving backward when the respective up or down button is pressed on the controller. In either
+  state of moving forward or backward, the object should change its position to move forward or backward, continuing to check the controller and changing back
+  to the idle state when no buttons are pressed on the controller. Although no mechanism has yet been defined to check whether buttons are pressed on such a 
+  controller input device, it will be defined shortly.
+  
+  Additionally, so far, no such mechanism has been defined to 'animate' an object-and furthermore, what exactly would 'animation' of an object entail? 
+  Should it be a separate state? How exactly would an object 'animate'? When should an object animate?
+  
+  Recall that, for each iteration of the main loop in the game engine, after interpretation for all objects completes, these objects are then 'rendered' to 
+  the display. In any iteration, each object has its own 'model' that consists of a collection of polygons, vertices, and texture data; this model 
+  should be -drawn- to the display at the object's position in the 'rendering stage' of that iteration. In any iteration, an object's current model can 
+  change via the operation of some 'animation' instruction in the interpretation of its code. 
+
+    
+     time                           1 frame                            2 frames                          3 frames
+   ---------------------------------------------------------------------------------------------------------------------------------
+   obj1 obj2 ...... objN RENDER..... |obj1 obj2 ...... objN RENDER..... |obj1 obj2 ...... objN RENDER..... | obj1 .....
+   m=1  m=1         m=2              |m=1  m=2         m=2              |m=2  m=3         m=2              | m=2
+   ----------------------------------------------------------------------------------------------------------------------------------
+   
+   
+  Consider a flip-book: the drawings on any two consecutive pages are usually very similar to one-another, but there are almost always some slight changes 
+  made from one page to the next; when flipping through all pages as a whole, observing these changes creates the effect of a continuous motion or animation.
+  A flip-book is like an object's current 'animation sequence' and each page of the flip-book is like a separate 'model' for the object; if that object were
+  the only existing object in an instance of the game engine, and, for each iteration of the engine's main loop, the interpretation of that object 
+  changed the object's model to the next consecutive page or model after its current model in the object's current animation sequence, then the 'rendering
+  stage' in that iteration would be analogous to flipping a single page of the flip-book. Of course, for the simple game engine in question, one iteration 
+  of its main loop in some execution lasts approximately 1/60th of a second-that is, the rendering stage in the main loop occurs approximately 60 times in 
+  one second. So an execution of the engine would be analogous to flipping through the entire flip-book, where approximately 60 flips occur in one second;
+  such a flip-book would need to be quite tall for even 10 seconds of animation, and changes between consecutive pages would need to be very subtle. Now 
+  suppose that a flip-book/object's animation sequence were not so tall/large and that its pages/models were not to be flipped through/rendered at such a 
+  fast rate of 60 pages/60 'frames' per second, since such a fast rate would cause the animation to be much faster than it was intended. Also suppose that, 
+  in the case of the flip-book, maybe some machine performs the duty of flipping through the pages at a fixed rate, such that it will always flip through 
+  those pages at a rate of 60 pages per second, and in the case of the game engine, that rendering must occur at 60 frames per second. How can the 
+  flip-book/object's animation sequence [that is to be flipped through/rendered at a much slower rate-say 10 pages/frames per second] be modified so that
+  the flipping/rendering to the display can be observed to occur at the same rate it was intended?
+  
+  In the case of the flip-book, 5 copies of each page can be made and placed between the original and next pages-such that 10 consecutive groups
+  will be established, where each group contains 6 identical copies of some page and that page is distinct from the pages in any other group; during 
+  the entire flipping process, since page flips will occur at 1/60th of a second intervals, after flipping through each page in any group of 6 
+  consecutive identical pages, 6 consecutive intervals of 1/60th = 6*1/60 = 1/10th of a second will have elapsed in which the same page is observed. 
+  Then, since each group is consecutive, where each of the 10 groups correspond to their respective consecutive pages in the original flip-book: after 
+  flipping through the first group, 1/10th of a second will have elapsed in which the same/identical [copied] page-corresponding to the first page 
+  in the original flip-book-is observed, immediately following with the second group where another 1/10th of a second is elapsed in which the 
+  same/identical [copied] page-corresponding to the second page in the original flip-book is observed, and so on. Thus, in the flipping process, pages 
+  are observed at a rate of 10 distinct pages per second. Essentially, the original animation sequence has been 'slowed down' by a multiple of 6.
+ 
+  Similarly, in the case of the object's animation sequence, 5 copies of each model might be made and placed between the original and next models. Although
+  these 'models' in an object's animation sequence are actually individual pointers to model data where copying might present a somewhat reasonable
+  solution to the problem, it is not a desirable solution-considering that an object might, at some other point, want to speed up/slow down that 
+  animation sequence, possibly at non-integer multiples other than 6, 3, 2, etc. Note that the -engine- itself doesn't necessarily have to behave 
+  like a flip-book, that is, for each iteration of its main loop, the interpretation of some object's code doesn't necessarily have to change its model
+  to the next consecutive model after that model in its current animation sequence. The interpretation of that object's code during that iteration 
+  actually doesn't even need to change the object's model for the next iteration; the same model can be kept for multiple iterations/frames, thus
+  rendering the same model for multiple consecutive iterations-exactly as that same model would have been rendered by encountering it in each
+  iteration when stepping through consecutive copies in the object's animation sequence. The rendering process will always behave like a flip-book, since
+  it renders object's models (whether they change or not) to the display at a fixed rate; objects on the other hand do not have to change their models
+  and therefore do not have to animate at a fixed rate.
+  
+  When interpreted during the interpretation of some object's code in an instance of a new, revised game engine: the ANIM instruction is a -suspending- 
+  instruction whose operation [possibly] changes the object's animation sequence, changes the object's current model to the model with the specified 
+  index in its animation sequence, and suspends the interpreter-resuming interpretation NOT NECESSARILY at the next iteration of the main loop, but 
+  rather at the next iteration where it holds true that some specified time has elapsed since the interpretation of that ANIM instruction. The 
+  operation of the ANIM instruction will suspend the interpreter, and that object's code might not be interpreted (starting at location of instruction 
+  following this -suspending- ANIM instruction) in the next iteration of the main loop.
+
+  In every iteration of the main loop in the new, revised game engine, for each existing object, a value is peeked at [and NOT popped off] the top of 
+  its stack which indicates a specific number of 'clock ticks'. A single clock tick is equal to a single CPU cycle-several CPU cycles may elapse as a 
+  single CPU instruction is executed; the game engine is, in its purest form, a sequence of instructions for some CPU to execute. Depending on the 
+  CPU/architecture that the engine has been written [and ultimately compiled] for, certain instructions may taken longer than others to execute-that 
+  is, the number of CPU cycles that elapse varies per CPU instruction. When executed on some architecture, a million CPU cycles might have elapsed in 
+  a single iteration of the game's main loop-and therefore a million clock ticks will have also elapsed. Although such a rate is quite slow for today's
+  standards, for practicality it will be assumed that a single iteration of the game's main loop is equal to 1000 ticks-for the architecture that the 
+  engine has been designed for. Thus 1/60th of a second = 1 frame = 1 render = 1 iteration of the main loop = 1000 ticks; 60000 ticks = 1 second.
+  
+  Each object keeps a record of the last time the interpreter has interpreted its code, in clock ticks; before the main loop is reached in an execution
+  of the new, revised game engine, this 'previous instance of interpretation' time value is initially set to 0 for each object-for none of the object's 
+  have yet had their code interpreted. After creating the initial stack frames for each object, an additional value referred to as 'wait' is pushed to 
+  the top of the objects' stacks; wait is initially 0 for all objects. Before the first object's code is interpreted in any iteration of the main loop, the 
+  game determines the number of ticks that have been elapsed at that point by reading the CPU's 'root counter' (which constantly keeps track of the number 
+  of CPU cycles/ticks that have elapsed since the beginning of execution); from this value is subtracted the object's previous instance of interpretation 
+  value, thereby calculating the number of ticks that have elapsed since the object's last interpretation, and that calculated time is then compared with a
+  value that is peeked at the top of the object's stack-the value at the top of the object's stack is always the 'wait' value before an interpretation.
+  If the calculated elapsed time is greater than the 'wait' value/time on the object's stack, then: the wait value is popped off of the object's stack, 
+  the current number of ticks elapsed is recorded as the object's 'previous instance of interpretation' time value, and finally the object's code is
+  interpreted; otherwise, that object's code is not interpreted in the current iteration. In the first iteration of the main loop, a few ticks will have 
+  elapsed as a result of game code executed prior to the main loop, so for example 10 ticks may have elapsed at that point; from this value-10-is subtracted 
+  the previous instance of interpretation value, which is always 0 in the first iteration: 10 - 0 = 10, and then this value-10-is compared with the wait value 
+  at the top of the object's stack, which is also always 0 in the first iteration: 10 > 0. Since ticks will have always elapsed by the first iteration of the
+  main loop, then this value will always be greater than 0, and consequently: the wait value '0' is popped off of the object's stack, the object's previous
+  instance of interpretation is set to the number of ticks elapsed-10 to continue the above example-and the object's code is finally interpreted. When that 
+  interpretation is suspended, the process continues with the next existing object and so on-where, in the first iteration of the main loop, all following
+  existing objects' code will be interpreted after having their previous instances of interpretation values set to the appropriate amount of ticks elapsed
+  immediately prior to their interpretation. 
+  
+  Fig X: New, revised, slightly more complex game engine:
+  
+  - initialize hardware and paging
+  - FOR EACH OBJECT DESCRIPTOR do:
+    - allocate/create an object
+    - set object's program counter location 
+    - set object's frame pointer and stack pointer locations to 0
+    - create object's initial stack frame
+    - push 'wait'=0 to object's stack
+    
+  - (MAIN LOOP) do:
+  - {
+      - for each existing object do:
+        - peek 'wait' from object stack
+        - if ticks_elapsed since/[-] object.last_interpretation > 'wait'
+          - pop 'wait' off of object stack
+          - object.last_interpretation = ticks_elapsed
+          - interpret the object's code
+
+      - render all existing objects
+    }
+ 
+  By the second iteration of the main loop, all objects will have had their 'wait' values popped off of their stacks, so the above process cannot properly 
+  proceed with the first object and so on-unless, in the interpretation for each object, a 'new' wait value is pushed to its stack. Suppose Object H's 
+  program counter is set to point to location 0 in its code prior to the main loop and is the first object in an instance of the new, revised game engine:
+  
+  Object H's code
+  ---------------
+  0 : N
+  1 : N
+  2 : N
+  3 : ANIM 2, 1, 2500
+  4 : ANIM 2, 2, 2500
+  5 : ANIM 2, 3, 2500
+  6 : J 3
+  7 : RET
+  
+  When the ANIM instruction at line 3 in Object H's code is reached during its interpretation in the first iteration of the game's main loop, the operation
+  of the instruction will:
+  
+    1) Change the object's current animation sequence to animation sequence #2
+    2) Change the object's current model to the model at index 1 in its current animation sequence (now 2)
+   *3) Push 2500 as the new 'wait' value to the top of the Object's stack
+    4) Suspend the interpreter
+    
+  Given this piece of information that, the operation of the ANIM instruction -pushes- a new wait value to the top of the Object's stack before suspending
+  the interpreter, the above process can now properly proceed given such an object. Considering that, in the first iteration of the main loop, the object's
+  previous instance of interpretation was set to 10, then the 'interpretation decision process' for Object H would consist of the following steps in the 
+  second iteration of the main loop:
+  
+    1) Get # of ticks elapsed; since a single frame/iteration has naturally elapsed since the previous iteration, where at the beginning of its execution
+       in determining the number of ticks elapsed for the object's original 'previous instance of interpretation' an elapsed time of 10 ticks was arrived at,
+       then 10 ticks + ((1000 ticks/1 frame) * 1 frame) = 1010 ticks have naturally elapsed at this point
+    2) Subtract # of ticks elapsed from 'previous instance of interpretation' time = 10 ticks; 1010 ticks - 10 ticks = 1000 ticks have elapsed since this
+       object's previous interpretation
+    3) Peek at the wait value at top of object's stack: 2500; compare ticks elapsed since object's previous interpretation with 'wait': 1000 < 2500  
+       -Since 1000 < 2500 or equivalently: 2500 ticks have not yet elapsed since the object's previous interpretation, then Object H is not interpreted
+        in this iteration; the wait value 2500 will remain on the object's stack
+
+  And in the third iteration of the main loop:
+  
+    1) Get # of ticks elapsed; since a single frame/iteration has naturally elapsed since the previous iteration, where at the beginning of its execution
+       the # of ticks elapsed was determined to be 1010, then 1010 ticks + ((1000 ticks/1 frame) * 1 frame) = 2010 ticks have naturally elapsed at this 
+       point
+    2) Subtract # of ticks elapsed from 'previous instance of interpretation' time = 10 ticks; 2010 ticks - 10 ticks = 2000 ticks have elapsed since this
+       object's previous interpretation
+    3) Peek at the wait value at top of object's stack: 2500; compare ticks elapsed since object's previous interpretation with 'wait': 2000 < 2500  
+       -Since 2000 < 2500 or equivalently: 2500 ticks have not yet elapsed since the object's previous interpretation, then Object H is not interpreted
+        in this iteration; the wait value 2500 will remain on the object's stack
+
+  And by the fourth iteration of the main loop:
+  
+    1) Get # of ticks elapsed; since a single frame/iteration has naturally elapsed since the previous iteration, where at the beginning of its execution
+       the # of ticks elapsed was determined to be 2010, then 2010 ticks + ((1000 ticks/1 frame) * 1 frame) = 3010 ticks have naturally elapsed at this 
+       point
+    2) Subtract # of ticks elapsed from 'previous instance of interpretation' time = 10 ticks; 3010 ticks - 10 ticks = 3000 ticks have elapsed since this
+       object's previous interpretation
+    3) Peek at the wait value at top of object's stack: 2500; compare ticks elapsed since object's previous interpretation with 'wait': 3000 > 2500  
+       -Since 3000 > 2500 or equivalently: 2500 ticks have elapsed since the object's previous interpretation, then Object H is interpreted
+        in this iteration; before interpretation, the object's previous instance of interpretation value is set to 3010, and the wait value 
+        2500 is popped off the top of the object's stack  
+
+  Recall that Object H was most recently suspended by the ANIM instruction at line 3, so its program counter currently points to line 4; therefore
+  the current interpretation will be a continuation of the interpretation where that suspending ANIM was interpreted, beginning with interpreting
+  the ANIM instruction at line 4. The operation of this instruction then causes the exact same results as when the ANIM instruction at line 3 was
+  interpreted, except that the object's current model is instead changed to the model at index -2- of the same, unchanged, current animation 
+  sequence. The next interpretation will occur in iteration 7, however with the program counter beginning at line 5 and interpreting the ANIM 
+  instruction at that location, where the only difference in operation, again, is that the object's current model is then changed to the model
+  at index -3- of the current animation. The next interpretation will occur in iteration 10 with the program counter beginning at line 6 and the
+  interpretation taking the jump to line 3 to indefinitely repeat everything that has occurred since last interpreting that line.
+  
+  If Object H were the only Object in its instance of the game engine, then the following is an illustration of each frame/iteration of the main
+  loop to show the change in Object H's current model from frame to frame:
+  
+            1 frame    2 frames     3 frames      4 frames     5 frames    6 frames     7 frames     8 frames      9 frames    10 frames
+   --------------------------------------------------------------------------------------------------------------------------------------...
+   objH RENDER |     RENDER |     RENDER |objH RENDER |     RENDER |     RENDER |objH RENDER |     RENDER |     RENDER |objH RENDER |    ...
+   m=1         |m=1         |m=1         |m=2         |m=2         |m=2         |m=3         |m=3         |m=3         |m=1         | m=1...
+   ------------------------------------------------------------------------------------------------------------------------------------- ...
+ 1x10^-4 sec 1/60 sec     2/60 sec      3/60 sec     4/60 sec     5/60 sec     6/60 sec     7/60 sec     8/60 sec     9/60 sec    10/60 sec
+  
+  Thus, to state this instance/execution of the game in terms of flipping some flip-book: a 3 page flip-book is flipped 20 times per second,
+  and after every 3 flips, flipping restarts at the beginning of the book. Equivalently, Object H changes it current model/animates at a rate
+  of approximately 20 [distinct] frames per second.
+  
+  One can calculate the appropriate value for 'wait' based on desired instantaneous frame/animation rate (R), frame rate of the game engine (E),
+  and architecture dependent ticks/frame value (T):
+  
+    wait = TE / R
+    
+  Return to Object G, which has the following behavior in an interpreted game engine:
+  
+   1) Walk forward when the UP button is pressed on controller input device
+   2) Walk backward when the DOWN button is pressed on controller input device
+   3) Stand idly and turn head to look left and right when NO buttons are pressed on controller input device
+   4) Object is to animate:
+     a) Do "walk forward" animation when walking forward
+     b) Do "walk backward" animation when walking backwards
+     c) Do "stand in place and turn head to look left and right" animation when standing idly
+  
+  Suppose that, in an instance of the engine, Object G is standing idly. Suppose also that Object G's current model/frame in its animation 
+  sequence is left unchanged for at least 300 frames, where such an unchanging model is the object's 'default standing position model', 
+  thereby rendering the object as 'standing still/in place' for approximately 5 seconds. Suppose additionally that, after those 5 seconds 
+  the object shall then begin to change its model every 3 frames/animate to be rendered as turning its head to look left and right, such 
+  that each new model is a successive model from the object's current 'animation sequence' of models whose successive viewing would be 
+  observed as a character turning its head to look left and right, before returning to once again, indefinitely, repeat this process of 
+  standing still for 5 seconds followed by turning head to look left and right. These indefinitely repeated operations define the object's
+  state of standing in place.
+  
+  Now consider any 5 second window of time in which the object would be rendered as standing still: such a behavior of standing still could
+  be accomplished in the interpretation of its code by the operation of an ANIM instruction that would change the object's current model 
+  to its 'standing position model' and cause the interpreter to wait 300000 ticks/300 frames/5 seconds until its next interpretation. Suppose
+  that within this window of time, the UP button were pressed on the controller input device, such that there existed a conditional instruction/
+  conditional jump instruction pair in the code for Object G's current, idle standing state, whose combined operation were to change the object's 
+  state to 'walk forward' when that button were held down. Within that five second window, the interpreter would not interpret any portion of the
+  object's code; such a pair of instructions whose operation would conditionally change the object's state to 'walk forward' when the button were 
+  detected as held down could not be reached within that window. 
+  
+  It is only the case that the object should be in its routine of standing in place when -no -buttons are pressed on the controller input
+  device, however, at the near instant the UP button is pressed on the controller input device, the object should change its state to 'walk 
+  forward'. If the interpreter should at some point wait for 5 seconds before its next interpretation of that object's code when in its state of 
+  standing still, then clearly no object code could be interpreted to detect such a button press and appropriately change the object's state within 
+  that time-the object could only be forced to stand in place. But this wait is necessary since, at that point in its current state, the 
+  object should not and would not need to change its frame of animation/current model for another 5 seconds, to effectively render the object 
+  as a stationary, inanimate character. But what if the object desires to or should have the potential to do something else within that 5 seconds,
+  like interpret some other portion of its code whose operation would detect a button press for a potential state change? 
+
+  If the interpreter should be waiting until its next interpretation of Object G's code, then there would be no interpretation of Object G's code in 
+  any iteration of the main game loop within those 5 seconds. But the interpreter should not be waiting for just any interpretation, it should be 
+  waiting for [the iteration with] an interpretation that would ultimately cause the interpreter to suspend and wait once again until its next 
+  interpretation as the result of another ANIM instruction's operation. The default behavior of the interpreter for a single object in a single 
+  iteration of the main loop is as follows: if not 'holding off' interpretation in this iteration, then interpret the object's code until an 
+  ANIM instruction is reached-whose ultimate operation should cause the interpreter to 'hold off' its next interpretation of that object's code for a specified 
+  number of following iterations-otherwise hold off interpretation. Then, during the 5 second window in which the interpreter holds off its next 
+  interpretation of the object's code, 300 subsequent iterations of the main loop will have been executed in which that interpretation were held 
+  off. It is these 300 iterations for which an interpretation of the object's code-whose operation could have detected a button press and potentially 
+  changed the object's state-did not take place. But it is necessary that the interpreter did not interpret/resume interpretation of the following 
+  portion of the object's code in any of those iterations; otherwise another ANIM instruction would have been reached whose operation would have 
+  changed the object's current model/frame of animation before the equivalent 5 second period of time had elapsed. But what if, in any of those 
+  300 iterations, the interpreter could perform an interpretation of a separate portion of the object's code-a portion of code that did not contain 
+  any ANIM instructions (whose operation would cause the object's current model to change), but a portion of code whose overall operation was still 
+  guaranteed to suspend the interpreter-and this interpretation would be performed ON TOP of-or in this case as an alternative to-the interpretation 
+  being held off? Then the interpreter could seemingly, simultaneously perform the tasks of interpreting that separate portion of the object's code 
+  AND holding off the default interpretation of its next portion of code (i.e. one that is expected to contain an ANIM instruction.) This separate 
+  portion of the object's code could then contain instructions whose operation, in that interpretation, would detect a button press on the 
+  controller input device and potentially, accordingly change the object's state. This interpretation would also be performed -in addition- to the
+  interpretation of the object's code containing the ANIM instruction in iterations where it were not held off.
+  
+  If the interpreter were to be capable of the above, then the game engine would have to be revised yet again. The above requirements particularly
+  suggest that the engine be updated to allow -2- potential interpretations per object for a single iteration of the main loop: 
+  
+  -1) an interpretation of a block of the object's code that: 
+    - contains ANIM instructions 
+    - should be recurring, not necessarily in subsequent iterations, but future iterations-thereby establishing some
+       sort of state for the object: that is, the block contains a jump instruction that follows some ANIM instruction whose operation would change 
+       the object's program counter to point to the location of some instruction within the block that precedes the ANIM instruction.  
+    (the implied interpretation of any contained region that includes an ANIM instruction could cause the interpreter to potentially, for a 
+    specified number of iterations, hold off its default behavior of interpreting the same or another region of code containing an ANIM instruction)
+
+  -2) an interpretation of a block of the object's code that: 
+    - *contains -no- ANIM instructions
+    - *is GUARANTEED to suspend the interpreter
+    
+  Note that, in the newer, revised [yet-again] engine, there does not exist an 'S' instruction or an 'SJ' instruction whose operation simply suspends
+  the interpreter; suspending is achieved with the compound operations of other instructions: ex. the operation of the ANIM instruction does several
+  things in addition to ultimately suspending the interpreter. Then, a block of code containing ANIM instructions, whose interpretation establishes
+  some sort of state for the object, by definition-is a code block: requirements 2 and 3 from the original definition of a code block say that its
+  interpretation will establish the object's state, and requirement 1 says there must exist a suspending (i.e. ANIM) instruction within the block.
+  Without 'S' and 'SJ' instructions, the only other suspending instructions so far introduced that could be used in an object's code are ANIM 
+  instructions. If ANIM instructions were the only suspending instructions that could be used in an object's code, then a block of code that 
+  contained -no- ANIM instructions-by definition-would be a sub-block. Then the above requirements for the 2 potential interpretations per object
+  for a single iteration of the main loop in the newer revised game engine might be rewritten as follows:
+  
+  -1) an interpretation of a code-block
+  -2) an interpretation of a sub-block
+      *where the interpretation of that sub-block contains no ANIM instructions and is guaranteed to suspend the interpreter
+    
+  Recall that the definition for a sub-block requires that no instruction within such a block EXCEPT for the last instruction-which is naturally always
+  a RET instruction-should be suspending. Thus far, the RET instruction has been introduced as a non-suspending instruction, so under the current
+  specifications, the interpretation of the last instruction in a sub-block-a RET instruction-could not suspend the interpreter; in this case, the 
+  interpretation of no instruction in a sub-block could suspend the interpreter. But as it turns out, the interpretation of a RET instruction at any 
+  instant may or may not suspend the interpreter-this decision depends on the interpreter's current 'status flags'. As discussed previously, the interpeter
+  has a very limited amount of its own memory-it uses some of this memory for its status flags when interpreting an object's code. Before the 1st and 2nd 
+  potential interpretations for each object in some iteration of the main loop, the game modifies one of the interpreter's status flags to notify whether 
+  or not it should suspend with the interpretation of a RET instruction; another interpreter status flag indicates whether or not the interpreter should
+  suspend with the interpretation of an ANIM instruction. If the 'suspend on RET' status flag is set before an object's code's 2nd potential interpretation, then
+  that interpretation will always be guaranteed to suspend the interpreter with the operation of the last, RET instruction in the interpreted sub-block; 
+  when that flag is then cleared, the interpretation of any RET instruction will not suspend the interpreter. This defines the mechanism needed for 
+  the interpreter to appropriately interpret the kind of sub-block that it needs to for an object's code's 2nd potential interpretation in some iteration
+  of the main game loop.
+  
+  Note that, since an object's code's 2nd potential interpretation will start with the instruction at the beginning of the corresponding sub-block and
+  will always end with the interpretation of the last, RET instruction in the sub-block-then that entire sub-block will always be interpreted in that
+  interpretation. In previous revisions of the engine, the one and only potential interpretation of an object's code per-iteration, after a suspending
+  instruction were interpreted, would have left the object's program counter pointing at the location of the instruction directly following the ANIM 
+  instruction that suspended the interpreter. In some iteration of the main loop, if the game wishes to use the interpreter to interpret a specified 
+  sub-block in an object's 2nd potential interpretation, then prior to that interpretation, the object's program counter must be changed to point to 
+  the beginning of the desired sub-block. Considering the newer engine were designed more like the previous engines, before the first iteration of the 
+  main loop, the object's program counter should be set appropriately to the location that starts the code-block that should be interpreted in the first
+  potential interpretation for the first iteration of the main loop (guaranteed to be an interpretation); since that interpretation will have left the 
+  object's program counter pointing at the location of the instruction directly following the ANIM instruction that will have naturally suspended the 
+  interpreter, thereby completing that interpretation, then unless this program counter location is somehow preserved, by necessarily changing the
+  program counter to the location of the beginning of the appropriate sub-block prior to the 2nd potential interpretation (also guaranteed to be an 
+  interpretation), that program counter location will be lost. Additionally, since the last instruction interpreted in that interpretation will always 
+  be a RET instruction, then its operation will pop the entirety of the object's current stack frame and return its program counter to the location 
+  specified in that stack frame; however that stack frame would not indicate the appropriate return location and would just be some arbitrary stack frame-
+  which, in the first iteration of the main loop, would actually be the object's initial stack frame. In the 2nd interpretation for that object's code  
+  in the first iteration of the main loop, the operation of that RET instruction would then cause the entirety of the object's initial stack frame to 
+  be popped off of its stack, and the following iteration would involve the operation of the RET instruction during that object's 2nd interpretation 
+  attempting to pop the object's empty stack of a return location-causing serious errors.
+    
+  These problems suggest a solution that might involve creating a new stack frame for the object prior to the 2nd interpretation of, and after the first
+  potential interpretation of its code [which occurs in each iteration of the main loop]; this way the object's program counter can be preserved such
+  that when the interpreter ultimately interprets the RET instruction in the sub-block for that 2nd interpretation, its operation will cause the entirety
+  of the created stack frame to be popped off of its stack and the object's program counter to be returned to the appropriate location that had been 
+  preserved for the '1st interpretation' to resume at the appropriate location in the next iteration which it occurs.
+  
+   Fig XX: Newer, revised, even more complex game engine:
+  
+  - initialize hardware and paging
+  - FOR EACH OBJECT DESCRIPTOR do:
+    - allocate/create an object
+    - instantiate object
+      - set object's initial state (code block location and trans block location)
+      - set object's program counter to code block location 
+      - set object's frame pointer and stack pointer locations to 0
+      - create object's initial stack frame
+      - push 'wait'=0 to object's stack
+    
+  - (MAIN LOOP) do:
+  - {
+      - for each existing object do:
+        
+        one interpretation:
+        - create new stack frame for object
+        - set object program counter to trans block location
+        - set interpreter's 'suspend on RET' flag 
+        - interpret the object's code
+        
+        another [potential] interpretation:
+        - peek 'wait' from object stack
+        - if ticks_elapsed since/[-] object.last_codeblock_interpretation > 'wait'
+          - pop 'wait' off of object stack
+          - object.last_codeblock_interpretation = ticks_elapsed
+          - clear the interpreter's 'suspend on RET' flag
+          - interpret the object's code
+
+      - render all existing objects
+    }
+    
+    Notice that the 'first potential interpretation' as described further above will occur -after- the second interpretation as described by the illustration
+    above; the ordering of the 2 interpretations does not cause any significant differences, as the program counter will always be preserved and returned to
+    its original location by creating a new stack frame for the object prior to the interpretation that ultimately returns the program counter to that location
+    by the expected interpretation of a RET instruction. Then the 'first potential interpretation' previously referred to will now be called an object's 'code
+    block' interpretation and the second interpretation will be referred to as an object's 'trans block' interpretation. Notice also that the term 'trans block' 
+    is used in place of sub-block; trans blocks are special types of sub-blocks whose interpretations can correspond only to the immediately preceding created 
+    stack frame, prior to the object's interpretation of the same name, and as a result of executing code (i.e. a function that directly creates a stack frame for 
+    the object) from directly within the main game loop-not as a result of the operations of any interpreted (i.e. JAL) instruction. Equivalently, trans blocks
+    are sub-blocks that can only directly be reached per request by the game engine; all sub-blocks are reachable by the operation of a JAL instruction, but some
+    sub-blocks (non trans-blocks) can not be directly reached by the game engine. (Although they can be, trans blocks are usually not reached as the result of the
+    operation of some JAL instruction).
+    
+    Note that, during the interpretation of an object's trans block, the interpreter's 'suspend on RET' flag is set. Consider that somewhere within that trans
+    block is a JAL instruction that takes the jump to a sub-block; when the RET instruction in that sub-block is ultimately interpreted, the interpreter will
+    suspend with the operation of -that- RET instruction, rather than the one at the end of the object's trans block. The object's stack frame would then be popped 
+    in its entirety and the object's program counter would be returned to the location that would eventually be resumed at for the object's next code block
+    interpretation; that RET instruction would not have returned the program counter to the location of the instruction following the JAL that took the jump
+    to the sub-block, so the remainder of the trans block would never be interpreted. This is because the interpreter's 'suspend on RET' flag is set prior to 
+    and during that interpretation. Then to achieve the appropriate behavior, this flag should be cleared as a result of the JAL instruction's operation so that
+    the RET instruction reached as a result of the interpretation of the block jumped to will appropriately return the program counter to the location of the 
+    instruction following the JAL without suspending the interpreter. But then, when the remainder of the trans block is interpreted, with the 'suspend on RET'
+    flag having been cleared by the JAL instruction's operation, the operation of the RET instruction at the end of the trans block would not suspend the 
+    interpreter as it should. Then the operation of the RET instruction should -set- the 'suspend on RET' flag once again-but this shouldn't be the operation 
+    of any arbitrary RET instruction. Consider that a JAL instruction were interpreted in the trans block that took the jump to a sub-block that contained 
+    another JAL instruction to be interpreted, that would take the jump to yet another sub-block; the operations of both JAL instructions would cause the 
+    'suspend on RET' flag to be cleared, redundantly with the second, but the operation of only the first RET instruction that were reached would cause the 
+    suspend on RET flag to be set once again, and once the RET instruction at the end of the sub-block containing the second JAL instruction were reached, -its- 
+    operation would cause the interpreter to suspend, rather than the operation of the RET instruction at the end of the trans block. If more than 2 JAL 
+    instructions were reached in sequence, then still, when only the second RET instruction were reached, its operation would cause the interpreter to suspend.
+    
+    The interpreter so far has no way of keeping track of/knowing that only after X number of RET instructions have been interpreted [after of course, a sequence
+    of X jumps taken due to the operation of X number of JAL instructions] should the interpreter finally [re] set the 'suspend on RET' flag. Only in the 
+    interpretation of the object's trans-block, and not in any other block, should the operation of the last RET instruction cause the interpreter to suspend.     
+    Recall that, with the operation of each JAL instruction, new stack frames are created that should ultimately popped back with the operation of following 
+    RET instructions; the operations of the JAL instructions 'keep track of' or preserve the program counter location of the instruction that follows for the 
+    program counter to be 'restored' or returned to with the next interpreted RET instruction in that stack frame. If the general operation of stack frame creation, 
+    could additionally push the interpreter's status flags to/preserve the interpreter's status flags on the object's stack, and the operation of the RET instruction
+    could additionally pop/restore those status flags much like the object's program counter is restored, then starting with the interpretation of the object's trans
+    block-once any JAL instruction were reached, its operation would preserve the interpreter status flags with the 'suspend on RET' flag set (since its operation 
+    involves the creation of a stack frame) but it should also clear the 'suspend on RET' flag; the operations of any subsequently interpreted JAL instructions prior 
+    to RET instructions would then create stack frames that preserved the interpreter status flags with the 'suspend on RET' flag cleared. The interpretations of
+    any following RET instructions would then restore the previously preserved interpreter status flags from the object's current, soon to be popped, stack frame.
+    Until a RET instruction was interpreted whose operation would cause the interpreter to return the object's program counter to the location of the object's trans 
+    block, the prior operations of any other RET instructions would involve a popping of stack frames that were created as a result of the operation of some
+    JAL instruction and each would therefore restore the interpreter status flags with the 'suspend on RET' flag cleared; when the RET instruction in question were 
+    interpreted, the object's current stack frame should be that corresponding to the sub block directly reached as a result of interpreting a JAL instruction
+    within the object's trans block-a stack frame that would contain the preserved interpreter status flags at the point the 'suspend on RET' flag had been set.
+    Thus, when the RET instruction in question were interpreted, its operation would return the object's program counter to the location within the object's trans
+    block [of the instruction following the JAL instruction whose previous operation caused a jump to the sub-block containing the RET instruction for its ultimate
+    interpretation] and restore the interpeter status flags with the 'suspend on RET' flag set. When the RET instruction in the object's trans block were then 
+    reached, its operation would appropriately, only then, cause the interpreter to suspend.
+    
+    The operation of a RET instruction in the newer revised engine consists of the following:
+    
+    - peek object's current stack frame for program counter return location; set object's program counter to this location
+    - if the interpreter's 'suspend on RET' flag is set
+      - peek the object's current stack frame for previous frame pointer location
+      - peek the object's current stack frame for previous stack pointer location
+      - pop the entirety of the object's current stack frame
+        - reset the object's current frame pointer location to the [peeked] previous location
+        - reset the object's current stack pointer location to the [peeked] previous location
+      - suspend the interpreter
+    - if the interpreter's 'suspend on RET' flag is not set
+      - peek object's current stack frame for previously preserved interpreter status flags; set interpreter's current status flags to these flags
+      - peek the object's current stack frame for previous frame pointer location
+      - peek the object's current stack frame for previous stack pointer location
+      - pop the entirety of the object's current stack frame
+        - reset the object's current frame pointer location to the [peeked] previous location
+        - reset the object's current stack pointer location to the [peeked] previous location
+      
+    The operation of a JAL instruction in the newer revised engine consists of the following:
+    
+    - create a new stack frame for the object
+      - push the interpreter's current status flags to the object's stack
+      - push the object's current program counter location to the object's stack
+      - push the object's current frame pointer location to the object's stack
+      - push the object's current stack pointer location to the object's stack
+      - change the object's frame pointer to point to the beginning of the (pushed data on its stack, starting with preserved interpreter status flags)
+        stack frame just created
+    - change the object's program counter to point to the specified location in its code
+    
+  
+    Now, return once again to Object G, which has the following behavior in an interpreted game engine:
+    
+     1) Walk forward when the UP button is pressed on controller input device
+     2) Walk backward when the DOWN button is pressed on controller input device
+     3) Stand idly and turn head to look left and right when NO buttons are pressed on controller input device
+     4) Object is to animate:
+       a) Do "walk forward" animation when walking forward
+       b) Do "walk backward" animation when walking backwards
+       c) Do "stand in place and turn head to look left and right" animation when standing idly
+       
+    Object G has the following code:
+    
+    |----------------------|
+    |   State definitions  |
+    |----------------------|
+    | State | Code | Trans |
+    |   1   |   0  |   35  |
+    |   2   |  19  |   42  |
+    |   3   |  27  |   51  |
+    |----------------------|
+    
+    0:  ANIM 1, 1, 300000               |=========
+    1:  ANIM 1, 3, 3000                 |        ||
+    2:  ANIM 1, 4, 3000                 |        ||
+    3:  ANIM 1, 5, 3000                 |        ||  
+    4:  ANIM 1, 6, 3000                 |        ||          
+    5:  ANIM 1, 7, 3000                 |        ||
+    6:  ANIM 1, 6, 3000                 |        ||  
+    7:  ANIM 1, 5, 3000                 |        ||   
+    8:  ANIM 1, 4, 3000                 |        ||   Block C1/State 1     (code block)
+    9:  ANIM 1, 3, 3000                 |        ||  
+    10: ANIM 1, 8, 3000                 |        ||
+    11: ANIM 1, 9, 3000                 |        ||
+    12: ANIM 1,10, 3000                 |        ||
+    13: ANIM 1,11, 3000                 |        ||
+    14: ANIM 1,10, 3000                 |        || 
+    15: ANIM 1, 9, 3000                 |        ||  
+    16: ANIM 1, 8, 3000                 |        ||        
+    17: J 0                             |        ||
+    18: RET                             |=========
+    19: ANIM 2, 1, 2000                 |=========
+    20: ANIM 2, 2, 2000                 |        ||
+    21: ANIM 2, 3, 2000                 |        ||
+    22: ANIM 2, 4, 2000                 |        ||   Block C2/State 2     (code block)
+    23: ANIM 2, 5, 2000                 |        ||
+    24: ANIM 2, 6, 2000                 |        ||
+    25: J 19                            |        ||
+    26: RET                             |=========
+    27: ANIM 3, 1, 2000                 |=========
+    28: ANIM 3, 2, 2000                 |        ||
+    29: ANIM 3, 3, 2000                 |        ||
+    30: ANIM 3, 4, 2000                 |        ||   Block C3/State 3     (code block)
+    31: ANIM 3, 5, 2000                 |        ||
+    32: ANIM 3, 6, 2000                 |        ||
+    33: J 27                            |        ||
+    34: RET                             |=========
+    35: CEQ UP, CTRL                    |=========
+    36: BEQ 1                           |        ||
+    37: STATE 2                         |        ||
+    38: CEQ DOWN, CTRL                  |        ||   Block T1/State 1     (trans block)
+    39: BEQ 1                           |        ||
+    40: STATE 3                         |        ||
+    41: RET                             |=========
+    42: N  ; move                       |=========
+    43: N  ; object                     |        ||
+    44: N  ; forward                    |        ||
+    45: N  ; one                        |        ||   
+    46: N  ; unit                       |        ||   Block T2/State 2     (trans block)
+    47: CEQ NONE, CTRL                  |        ||
+    48: BEQ 1                           |        ||
+    49: STATE 1                         |        ||
+    50: RET                             |=========
+    51: N  ; move                       |=========
+    52: N  ; object                     |        ||
+    53: N  ; backward                   |        ||
+    54: N  ; one                        |        ||   
+    55: N  ; unit                       |        ||   Block T3/State 3     (trans block)
+    56: CEQ NONE, CTRL                  |        ||
+    57: BEQ 1                           |        ||
+    58: STATE 1                         |        ||
+    59: RET                             |=========
+    
+    Notice that the above code introduces a new 'STATE' instruction, and the concept of a 'state definition list'. These concepts will be introduced with the following discussion.
+    
+    Recall that, prior to the main loop in any of the engines so far introduced, each object's program counter must be -set to the appropriate location at which interpretation
+    of it's code- will then begin in the first iteration. In the newly revised engine, this location refers to the beginning of the -code block- that should be interpreted in 
+    the first iteration of its main loop; however, prior to the interpretation of that code block, its location and equivalently the object's current program counter location 
+    is preserved in a newly created stack frame, the -object's program counter is set to the location of the object's trans block-, and then the object's trans block is interpreted
+    firstly. When the object's trans block interpretation ultimately ends with the interpretation of the RET instruction at the end of the block, the stack frame is then popped 
+    off of the object's stack entirely and the object's program counter is restored to the preserved location (i.e. within its code block, in the first iteration refers to the 
+    beginning) to only then perform the object's code block interpretation. So far, it has been implied that these 'initial locations' that the object's program counter should 
+    be set to for the ultimate, separate interpretations of its respective trans block and code block, can be the locations of any arbitrary trans block and code block. 
+    
+    Ignoring the STATE instructions for now and assuming that they would not be reached by the operations of either conditional branch instructions at lines 36, 39, 48, and 57 
+    not taking the branch as the result of the operations of their immediately preceding conditional instructions evaluating to false, then the interpretations of each trans 
+    block would result in the following operations:
+    
+      Block T1: do nothing
+      Block T2: move the object forward one unit
+      Block T3: move the object backwards one unit
+      
+    The (compound) interpretations of each code block would also result in the following operations:
+    
+      Block C1: -set object current animation sequence to 'stand still'
+                -set object's current model/frame of animation to model/frame 1 in the animation sequence 
+                 (appears as a character standing still) 
+                 and suspend the interpreter for/wait 5 seconds/300 frames
+                -set object's current model/frame of animation to model/frame 3 in the animation sequence
+                 (appears as a character standing still but having turned its head 20 degrees to the left)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 4 in the animation sequence
+                 (appears as a character standing still but having turned its head 40 degrees to the left)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 5 in the animation sequence
+                 (appears as a character standing still but having turned its head 60 degrees to the left)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 6 in the animation sequence
+                 (appears as a character standing still but having turned its head 80 degrees to the left)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 7 in the animation sequence
+                 (appears as a character standing still but having turned its head 90 degrees to the left)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 6 in the animation sequence
+                 (appears as a character standing still but having turned its head 80 degrees to the left)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 5 in the animation sequence
+                 (appears as a character standing still but having turned its head 60 degrees to the left)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 4 in the animation sequence
+                 (appears as a character standing still but having turned its head 40 degrees to the left)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 3 in the animation sequence
+                 (appears as a character standing still but having turned its head 20 degrees to the left)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 8 in the animation sequence
+                 (appears as a character standing still but having turned its head 20 degrees to the right)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 9 in the animation sequence
+                 (appears as a character standing still but having turned its head 40 degrees to the right)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 10 in the animation sequence
+                 (appears as a character standing still but having turned its head 60 degrees to the right)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 11 in the animation sequence
+                 (appears as a character standing still but having turned its head 80 degrees to the right)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 10 in the animation sequence
+                 (appears as a character standing still but having turned its head 60 degrees to the right)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 9 in the animation sequence
+                 (appears as a character standing still but having turned its head 40 degrees to the right)
+                 and suspend the interpreter for/wait 1/20th of a second/3 frames
+                -set object's current model/frame of animation to model/frame 8 in the animation sequence
+                 (appears as a character standing still but having turned its head 20 degrees to the right)
+      Block C2: -set object current animation sequence to 'walking forward'
+                -...ANIM instructions changing object's current frame accordingly to make it appear to be walking forward
+      Block C3: -set object current animation sequence to 'walking backwards'
+                -...ANIM instructions changing object's current frame accordingly to make it appear to be walking backward
+                           
+    Suppose that Object G is the only existing object in an instance of the newly revised game engine, and that prior to the main game loop: the location of the object's code 
+    block (i.e. the object's initial program counter location) is set to point to Block C1 and the location of the object's trans block is set to Block T1. Then the following
+    timeline might describe the interpretations in an execution of that game engine:
+
+              1 frame     2 frames       3 frames     4 frames     .....rames   300 frames  301 frames   302 frames   303 frames   30 ...
+             ------------------------------------------------------.....--------------------------------------------------------------...
+ object/op:  |objG  RENDER |objG  RENDER |objG  RENDER |objG RENDER.....jG  RENDER |objG RENDER |objG RENDER |objG RENDER |objG RENDER...
+ trans?:     |TRANS        |TRANS        |TRANS        |TRANS      .....ANS        |TRANS       |TRANS       |TRANS       |TRANS      ...
+ code?:      |CODE         |             |             |           .....           |CODE        |            |            |CODE       ...
+             |m=1          |m=1          |m=1          |m=1        .....1          |m=3         |m=3         |m=3         |m=4        ...
+             ------------------------------------------------------.....--------------------------------------------------------------...
+              1x10^-4 sec 1/60 sec     2/60 sec      3/60 sec     4.....         5 sec      5 1/60 sec    5 2/60 sec   5 3/60 sec     ...
+    
+    Notice that in each iteration of the main loop, after of course preserving the current location of the program counter within the object's code block, the game directly sets 
+    the object's program counter to the location its trans block (Block T1) prior to its interpretation-the same location for each iteration; this causes that trans block to be 
+    recurrently interpreted for each iteration. But this interpretation occasionally occurs on TOP of/in addition to the interpretation of the object's code block (Block C1)-an 
+    interpretation, which is usually resumed at the location of the instruction that follows the ANIM instruction that last suspended the interpreter during that code block's 
+    interpretation. Notice that, unlike for the object's trans block interpretation in some iteration, the object's program counter is not directly set to some static location 
+    prior to the potential interpretation of its code block-the object's program counter is instead set to the location of the instruction that follows the ANIM instruction 
+    that last suspended the interpreter (i.e. recovered as the preserved program counter location from the stack frame created prior to the previous trans block interpretation).
+    Thus it cannot be ensured that the interpreter will also recurrently interpret the object's code block [seemingly simultaneously/on top of its trans block] unless the 
+    operations of instructions within that block are guaranteed to cause the recurrent interpretation of that block; fortunately, code blocks are required to contain such
+    instructions. Then the game always directly causes the interpreter to recurrently interpret an object's trans block, but in an object's code block, the appropriate 
+    instructions must (and are by definition guaranteed to) exist such that their -interpretation- should cause the interpreter to recurrently interpret that block. 
+    
+    An object at any time can then be said to be in a 'compound' state of recurrently interpreting its trans block and recurrently interpreting its code block. The above timeline
+    illustrates Object G's interpretations per frame when in its 'stand in place' state: this state involves the recurrent interpretation of the code block which animates the 
+    object to appear to be standing still and then turning its head left to right and the seemingly simultaneously occuring recurrent interpretation of the trans block which, 
+    based on analysis of its code above, one might assume somehow appropriately changes the object's current state when the corresponding buttons are pressed on the controller 
+    input device. Suppose that, in the above example, prior to the main game loop: the location of Object G's code block is set to point to Block C2 and the location of Object G's
+    trans block is set to Block T2. An execution of the game would involve object G in its compound state of recurrently interpreting the block whose operation would animate the 
+    object as a character walking forward and recurrently interpreting the block whose operation would cause the object to -move- forward, and check whether to return to its
+    state of standing still based on whether or not any buttons were pressed on the controller input device. 
+    
+    Recall that in prior, simpler versions of the game engine, an object's state were defined by only a single recurrent interpretation of some block of its code; to change the
+    object's state then required only the operation of a jump instruction-which would cause the change to a single recurrent interpretation of then a different block of code. In
+    the newer, revised engine, however, an object's state is defined by two recurrent interpretations-also known as 'threads of interpretation': one of it's current trans block
+    and another [potential] interpretation of it's current code block. To accomplish a state change in the newer, revised engine, the location of both the object's current
+    trans block -and- the location of the object's current code block should somehow be modified. Otherwise, for example, suppose that Object G is the only existing object in 
+    an instance of the newly revised game engine, and that prior to the main game loop: the location of the object's code block is set to point to Block C1 and the location of 
+    the object's trans block is set to Block T1. Suppose also, firstly, that there existed a conditionally reached jump instruction in Block C1 whose interpretation expected to completely 
+    change the object's state to some other defined state, as in prior versions of the engine: the operation of such an instruction might cause the recurrent interpretation of 
+    Block C1 to then change to a recurrent interpretation of Block C2, or equivalently, might cause the object to change its animation behavior from standing still to walking 
+    forward, but the recurrent interpretation of Block T1 would still persist, or equivalently, the object would remain in place without moving; this would then inappropriately 
+    cause the object to be in an undefined state of 'walking in place'. 
+   
+    But then what exactly is a 'defined state'? By definition, a single state should consist of a code block [to be recurrently interpreted] and a trans block [to be recurrently 
+    interpreted]-these are indicated respectively by their locations within the object's code. As it turns out, an object's code is additionally packaged with a list of 'state
+    definitions'. Each potential state for the corresponding object [in an instance of the engine] is indicated in its code's state definitions list as a pair of code block/trans 
+    block locations, where the object's state at any instant can be identified as the numerical index of the state definition used to change the object's current code block and
+    trans block as a result of the object's most recent -state change-. 
+    
+    A state change is then accomplished with the operation of a 'STATE' instruction, whose operand indicates the index of the state definition in the object's state definition
+    list whose code block/trans block location pair should replace the locations of the object's respective code block and trans block locations. A state change is also performed
+    prior to the main loop's execution to set the 'initial' locations of the object's code block and trans block; the object's 'initial state' refers to the index of the state
+    definition used for this first, initial state change (which is rather an initialization than a change, since the object would not have any sort of state prior to that point).
+
+    Trans blocks are the only blocks in an object's code that can consist of STATE instructions; trans blocks are appropriately named because, they are the only blocks that can 
+    contain [STATE] instructions whose interpretation would cause the object to make a 'state transition' from its current state to a different state. 
+    
+    ...
+    
+    Even more complex engines, like the Crash Bandicoot game engine, involve more than just 2 simultaneously recurring interpretations-or threads of interpretation-per object.
+    Additionally, in the Crash engine, objects can be created [and terminated] at any instant [i.e. in any iteration of the main game loop] rather than only prior to the main
+    game loop. Therefore, as a new object is created, 'instantiation' for that object essentially involves the following:
+ 
+      - set object's initial state (code block location, trans block location, and event block location)
+      - set object's program counter to code block location 
+      - set object's frame pointer and stack pointer locations to 0
+      - create object's initial stack frame
+      - push 'wait'=0 to object's stack
+    
+    Of course, instantiation also involves determining the exact initial state for the object given its desired 'subtype' by resolving the state at the corresponding index in
+    a 'subtype to state' map/table located in the object's instantiating entry data. The object's instantiating entry also includes its object code/GOOL code and the list of
+    state definitions for the object's code block location and trans block location to then be set appropriately. When an object is created and instantiated in some iteration
+    of the main loop, the ultimate interpretation of its code-and equivalently the 'execution' of that object-can then appropriately begin in the next iteration. Because the 
+    engine involves more than 2 threads of interpretation per object, an object in any iteration of the main loop can have more than just a code block interpretation and a 
+    trans block interpretation, and therefore more than just a code block location and a trans block location; state definitions then include more than just a code block 
+    location and a trans block location. This suggests that there can exist additional types of blocks (i.e. event blocks, pre blocks, etc.) that can be interpreted in a 
+    separate thread from the original 2, for a different purpose and with a different behavior. State definitions also include more than just the entry locations for an object's
+    threads of execution-they include additional flags that describe their corresponding states. These flags are stored elsewhere in the object's memory when a state change
+    is performed [that refers to a particular state/(index of a) state definition].
+    
+    As the purpose of this sub-guide is to present the information needed to understand only the basic concepts of complicated game engines that operate with interpreted object
+    code, such as the Crash Bandicoot game engine, it refrains from any further discussion about specific details of such engines. These specifics can be found elsewhere in the
+    Crash Bandicoot disassembly guide/analysis.    

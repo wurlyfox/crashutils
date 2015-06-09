@@ -1,0 +1,633 @@
+21EE8
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE TYPE 0x1C/28):
+
+GOOL OPCODE TYPE X:
+
+00011100 CCCCAAAA ADDDBBBB BBBBBBBB
+
+B = GOOL ADDRESS USED (translated to game address)
+A = SIGNED VALUE -16-15 USED
+C = SUBFUNCTION (jumptable 21f64...)
+D = PROCESS LINK see subfunction 3/4
+
+if (CCCC bits > 16 then back to beginning (having decremented stack)
+else call to subfunction (with v1=subfunction, a2=a bits value, s3=translated gool address)
+
+===========
+
+
+SUBFUNCTION 0:
+-------------------
+uses B bits as translated source address at which to grab data from plus an offset specified by A bits
+pushes this word value onto a processes stack if valid pointer, else pushes null
+
+  src = s3;
+
+  if (!src) { back to begin }
+  if (*(src))
+  { 
+    process.push(*(src + (abits*4)));
+  }
+  else
+  {
+    process.push(0);
+  }
+
+SUBFUNCTION 1,6:  (0x21fac)
+----------------------
+
+subfunction 1 = use process translation vector as vector
+subfunction 6 = use translated source as vector
+calculates euclidian distance in XYZ plane from vector to process' link's translation vector
+EDIT: what are these subs?
+
+   if (cbits == 6) { a0 =            src; }
+   else            { a0 = &process[0x80]; }
+   
+   v1 = process[0x60 + ((abits & 3)*4)];
+   a1 = v1 + 0x80;
+
+   if (bit 2 of abits != 0)
+   {
+     var_120 = a0[8];
+     var_124 =     0;
+     var_128 = a0[0];
+     a0 = &var_128;
+
+     var_110 = *(v1 + 0x88);
+     var_114 =            0;
+     var_118 = *(v1 + 0x80);
+     a1 = &var_118;
+
+   }
+
+   if (bit 1 of abits != 0)
+   {
+     process.push(sub_80029D30(a0, a1));   //push dist between two vectors    //sqrt((a0.x - a1.x)^2 + (a0.y - a1.y)^2 + (a0.z - a1.z)^2);
+   }
+   else
+   {
+     process.push(sub_80029B90(a0, a1));   //else push approximate dist between two vectors (smallcoords/4 + bigcoord)
+   }
+
+
+SUBFUNCTION 2:
+------------------
+calculates angle in either XZ or XY plane from process' translation vector to one of it's link's translation vectors
+
+   v1 = process[0x60 + ((abits & 3)*4)]; 
+   
+   if (process[0xCC] & 0x00200200 == 0)
+   {                       
+     process.push(sub_80029E10(&process[0x80], &v1[0x80]));   atan2(v2.x - v1.x, v2.z - v1.z)   
+   }
+   else
+   { 
+     process.push(sub_80029E48(&process[0x80], &v1[0x80]));   atan2(v2.x - v1.x, v2.y - v1.y)
+   }
+
+   
+//-------READ FROM/WRITE TO A LINKS MEMORY---------
+SUBFUNCTION 3:
+
+   link = process[0x60 + (dbits*4)]; 
+
+   linkmem = ((*(src) >> 8) * 4);
+
+   process.push(link[0x60 + linkmem]);
+
+SUBFUNCTION 4:
+
+   link = process[0x60 + (dbits*4)]; 
+
+   linkmem = ((*(src) >> 8) * 4);
+
+   link[0x60 + linkmem] = process.pop();
+//-------------------------------------------------
+
+
+SUBFUNCTION 5:
+-----------------
+calculates angle in XZ plane from process translation vector to one of its link's translation vectors
+then finds angular distance between this and process[0x90] angle
+
+   v1     = process[0x60 + ((abits & 3)*4)]; 
+   result = sub_80029E10(&process[0x80], &v1[0x80]);
+   diff   = abs(result - (process[0x90] & 0xFFF));
+
+   if (diff >= 0x800)
+     diff = diff & 0xFFF;
+
+   process.push(diff);
+
+SUBFUNCTION 7:
+--------------
+
+if (addr == 0) { next instruction; }
+
+if (*(addr) != 0)
+{
+  offset = (*(addr) >> 8)*4;
+  
+  bits = 0x5FF58[offset];
+  
+  if (bits & 1 != 0)
+  {
+    count = 3;
+    
+    //v1 = count * 8
+    procListA = 0x60DB8;
+
+    do
+    {
+      count++;
+      
+      procList  = procListA + (count*8);
+      
+      found = 0;
+      if (procList[0] == 2)
+      {
+        children = procList[4];
+        goto check;
+      }
+      else
+      {
+        found = sub_8001BA90(procList, *(addr));
+        
+        if (!found)
+        {
+          
+          if (procList[0] == 2) 
+            children = procList[4];
+          else
+            children = procList[0x6C];
+            
+          check:
+          
+          child = children;
+          found = 0;
+          while (child && !found)
+          {
+            found = sub_8001B788(child, sub_8001BA90, *(addr));
+            child = child[0x68];
+          } 
+        }
+      }
+    } while (count < 5);
+    
+    push(found);
+  }
+  else
+  {
+    push(0);
+  }
+}
+      
+      
+      
+SUBFUNCTION 8:
+
+if (*(src))
+{
+  if (abits != 0)
+  {
+    index = *(src) >> 8;
+    0x5FF58[index*4] &= 0xFFFFFFFD;
+  }
+  else
+  {
+    index = *(src) >> 8;
+    0x5FF58[index*4] |= 2;
+  }
+}
+    
+back to begin
+
+SUBFUNCTION 9:
+
+if (*(src))
+{
+  curZone     = *(0x57914);
+  currentZone = sub_80026DD4(currentZone, *(src));
+  
+  valid = (currentZone < 0xFFFFFF02);
+}
+else
+{
+  currentZone = *(0x57914);
+  valid = (currentZone < 0xFFFFFF02);
+}
+
+if (valid)
+{
+  link = process[0x60 + dbits*4];
+  
+  link[0x28] = currentZone;
+}
+
+back to begin
+   
+SUBFUNCTION 10:
+  
+  bitlist = 0x5FF58;
+  IF (*(src) ==   0)  { back to begin }
+  IF (abits  >= 0xA)  { back to begin }
+  
+  --ABITS = SUBSUBFUNCTION (jumptable 222EC)
+
+  
+  SUBSUBFUNCTION 0:
+  
+    index = *(src) >> 8;
+    bitlist[index*4] &= 0xFFFFFFFB;  //clear bit 3
+
+  SUBSUBFUNCTION 1:
+  
+    index = *(src) >> 8;
+    bitlist[index*4] |= 4;           //set bit 3
+
+  SUBSUBFUNCTION 2:  
+    
+    index = *(src) >> 8;
+    bitlist[index*4] &= 0xFFFFFFF7;  //clear bit 4
+
+  SUBSUBFUNCTION 3:  (just like 1 except const value or'd = 8)
+ 
+    index = *(src) >> 8;
+    bitlist[index*4] |= 8;           //set bit 4
+
+  TODO: CASE 4 
+  
+  SUBSUBFUNCTION 5:
+  
+    levelBitlist = 0x5E348;
+    
+    index = *(src) >> 8;
+    levelOffset = *(0x5C53C) * 512;
+    
+    zoneHeader = *(0x57914)[0x10];
+    
+    if (zoneHeader[0x2FC] & 0x2000 == 0) //if we can save state here
+    {
+      //this pretty much keeps a list of LID|PID (LLLLLLLPPPPPPPPP)
+      //so we can record a list of which objects have been encountered
+      listValue = (levelOffset + index) & 0xFFFF;
+      
+      count = 0;
+      while (levelBitList[count] != 0)
+      {
+        if (levelBitList[count] != listValue)
+        {
+          if (levelBitList[count] == 1)     //if we find a free entry
+            listPtr = &levelBitList[count]; //remember where it is
+        }                                   //but continue to search
+        else
+        {
+          found = true;                     //if we find the value
+          break;                            //then the object has already been encountered
+        }          
+        
+        count++;   
+      }
+          
+      if (!found)
+      {
+        if (!listPtr)
+          listPtr = &levelBitList[count];
+      
+        *(listPtr) = listValue;
+      }
+    }
+    
+    goto subsubfunction 3;
+      
+  SUBSUBFUNCTION 6&7: point to back to beginning
+
+  SUBSUBFUNCTION 8:                  //clear bit 1
+
+    index = *(src) >> 8;
+    bitlist[index*4] &= 0xFFFFFFFE;
+
+  SUBSUBFUNCTION 9:                  //set bit 1
+ 
+    index = *(src) >> 8;
+    bitlist[index*4] |= 1;
+
+SUBFUNCTION 11:
+  
+  if (abits == 1)
+  {
+    //2252C
+    
+    if (addr == 0)
+      process.push(0);
+    else
+    {
+      val = *(addr);
+      
+      offset = (val >> 8) * 4;
+      
+      bits = 0x5FF58[offset];
+      
+      process.push(((bits>>1)^1)&1);
+    }
+  }
+  else if (abits == 2) 
+  {
+    //22574
+    if (addr == 0)
+      process.push(0);
+    else
+    {
+      val = *(addr);
+      
+      offset = (val >> 8) * 4;
+      
+      bits = 0x5FF58[offset];
+      
+      process.push(bits&4);
+    }
+  }
+  else if (abits == 3)
+  {
+    if (addr == 0)
+      process.push(0);
+    else
+    {
+      val = *(addr);
+      
+      offset = (val >> 8) * 4;
+      
+      bits = 0x5FF58[offset];
+      
+      process.push(bits&8);
+    }
+  }
+  else
+    next instruction
+    
+SUBFUNCTION 12:
+
+  IF (abits >= 0xC) { back to begin }
+  else ABITS = SUBSUBFUNCTION (jumptable 2265C)
+
+
+  SUBSUBFUNCTION 0 :
+    
+    sub_80026460(process, 0x57954, 0)
+
+  SUBSUBFUNCTION 1 :
+
+    sub_80026650(0x57974)
+
+  SUBSUBFUNCTION 2 :
+
+    procLists = 0x60DB8;
+    
+    tag       = bbits;
+    listIndex = tag >> 8;
+
+    //one of the 8 lists
+    procList  = procLists[listIndex*8]; //a1
+    
+    adoptProcess(process, procList);
+    
+  SUBSUBFUNCTION 3 :
+
+    nullsub_2(*(src));  (UNUSED?)
+
+  SUBSUBFUNCTION 4 :
+   
+    *(src)[0x28] = *(0x57918);
+
+  SUBSUBFUNCTION 5 :
+    
+    sub_800313B4();          //gp[0x268] = 0xFFFFFD56
+
+  SUBSUBFUNCTION 6 :
+
+    sub_800313C4(*(src));    
+  
+  SUBSUBFUNCTION 9 :
+
+    *(0X56714) = (*(src) >> 8);
+
+  SUBSUBFUNCTION 10:
+ 
+    sub_80013798(*(src) >> 8);
+
+  SUBSUBFUNCTION 11: (228c4)
+
+    sub_80026200(1);             //DEALS SOMETHING WITH INV
+
+
+SUBFUNCTION 13:
+
+   link = process[0x60 + dbits*4];
+   
+   var_108 = abits;
+   var_104 = link;
+   var_100 = 0;
+   var_FC  = 0x7FFFFFFF;
+   var_F8  = *(src);
+
+   procList5 = 0x60DD8;
+
+  if (procList5)
+  {
+    result = 0;
+    if (procList5.type != 2)
+    {
+      result = sub_8001BAB0(procList5, &var_108);
+      
+      children = getChildren(process);
+    }
+    else
+    {
+      children = process.headChildren;
+    }
+
+    if (children) 
+    { 
+      if (!result)
+      {
+        firstChild =   children;
+        nextChild  = firstChild;
+        do
+        {
+          curChild  = nextChild;
+            
+          result = sub_8001B788(curChild, sub_8001BAB0, &var_108);   
+
+          nextChild = curChild.link;
+
+        } while (nextChild && !result)
+      }
+    }
+  }
+
+  if (var_100 != 0)
+  {
+    push(var_100);
+  }
+  else
+  {
+    push(0);
+  }
+  
+  back to begin
+
+SUBFUNCTION 14:
+
+  link = process[0x60 + (dbits*4)];
+  
+  var_F0 = link[0x80] + link[0x8];
+  var_EC = link[0x84] + link[0xC];
+  var_E8 = link[0x88] + link[0x10];
+  var_E4 = link[0x80] + link[0x14];
+  var_E0 = link[0x84] + link[0x18];
+  var_DC = link[0x88] + link[0x1C];  
+  
+  result = sub_80026B80(*(src), &var_F0);
+  push(result);
+  
+  back to begin
+
+SUBFUNCTION 15:
+
+  process[0xF4] = sub_8003D4EC(abits, *(src));
+  
+  back to begin
+
+=============
+
+misc 
+
+sub_80013798(a0):
+
+  v0 = gp[0x14];
+  (stack back 0x20 bytes)
+  s0 = a0;
+  var_4 = return address;
+
+  if (v0 != 0)
+  {
+    v0 = *(0x5CFAC);
+    if (v0 == 0)
+    {
+      PadChkVSync(a0=1, a1=0)
+      if (v0 != 0) { return; }
+    
+      a0 = 0x7F7FFFFF;  //?
+      v0 = 0x5E03C[s0*6];
+
+      a1=var_10+sp;
+      sub_80043A24(a0&v0, a1);
+
+      a1=var_10+sp;
+      sub_80043668(0x15, a1);
+    }
+  }
+
+  reads controller port 1 & 2/check if button a0 is pressed????  
+
+            
+}
+    
+=========
+
+sub_80029B90(vectorA, vectorB)  //square root approximation function (avoids intensive calculations)
+{
+  var_10 = abs(vectorA.X - vectorB.X);  //a3
+  var_C  = abs(vectorA.Y - vectorB.Y);  //a2
+  var_8  = abs(vectorA.Z - vectorB.Z);  //v1
+  
+  if (var_10 < varC || var_10 < var_8)  //i.e. if further up/down then to left/right or forward/back
+  { 
+    if (var_C < var_10 || var_C < var_8)   //if further left/right than up/down or right/left
+	{ 
+	  return ( ((var_C + var_10) / 4) + var_8);
+	}
+	else
+	{
+	  return ( ((var_10 + var_8)/ 4) + var_C);
+	}
+  }
+  else
+  {
+	return ((var_C+var_8/4) + var_10);
+  }
+}
+  
+==============
+
+sub_800313C4(val)
+{
+  if (gp[0x260] >= 2 && gp[0x2C4] == 3)
+  {
+    scale = val>>8;
+	if (scale < 3 || (scale >= 3 && scale != gp[0x2C4]))  //includes scale < 0, or neg
+    {
+      sub_80031A40(0x56ED0, 1, 0);
+	  sub_80031A40(0x56EBC, 3, 0);
+	  gp[0x270] = 0;
+	}
+	else 
+	{
+	  if (*(0x61914) != 0 || *(0x61918) != 0)
+	    gp[0x270] = 0x3FFF;
+      else
+	    gp[0x270] = 0;
+		
+	   sub_80031A40(0x56EBC, 2, 0);
+	   sub_80031A40(0x56ED0, 1, 0);
+	}
+	
+	sub_80031498(gp[0x258], 0x56ED0, gp[0x270], gp[0x270]);
+  }
+}
+
+---------------------------
+
+sub_80031A40(addr, mode, val)
+{
+  //s1 = addr
+  //a3,a2 = val
+  //
+  
+  //mode used as case (if >= 5 return)
+  
+  case 0:
+  
+  addr[4] = 1;
+  return sub_8004B5A8(gp[0x258], addr[0], 1, val & 0xFFFF);
+  
+  case 1:
+  
+  addr[4] = 1;
+  return sub_8004C964(gp[0x258], addr[0]);
+  
+  case 2:
+  
+  addr[4] = 0;
+  return sub_8004B544(gp[0x258], addr[0]);
+  
+  case 3:
+  
+  addr[4] = 1;
+  return sub_8004B6AC(gp[0x258], addr[0]);
+  
+  case 4:
+  
+  addr[0x10] = (val >> 16);
+  count = (gp[0x260] < 2) ^ 1;
+  
+  if (count < gp[0x260])
+  {
+    do
+	{
+	  count++;
+	  sub_8004CD58(gp[0x258], addr[0], addr[0x10], addr[0x12]);
+	} while (count < gp[0x260])
+  }
+}

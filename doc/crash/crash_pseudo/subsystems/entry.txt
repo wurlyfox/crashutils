@@ -1,0 +1,48 @@
+sub_8001767C(modelEntry):  //inits the TPAG entries in a TGEO model
+
+item1 = modelEntry[0x10];
+
+if (*(0x56710) == 0x19 | 0x38)  //for titles and the intro sequence (i.e. "prepare the feeeemale bandicoot")
+{                               //we load the texture information slightly differently
+  176b4;
+}
+
+60000514
+
+num = item1[0x10];
+
+count = 0;
+
+while (count < num)
+{
+  offset = count * 4;
+
+  textureInfo = &item1[0x14 + offset]; //byte
+
+  if (textureInfo[3] & 0x80 != 0)      //flag for determine if its textured or not
+  {
+                                       //if highest bit set then TPAG EID at v0[4]
+
+
+    sub_80015118(textureInfo[4], 0, 1);   //finds the corresponding entry for the TPAG EID and replaces with the entry
+                                          //also initializes a chunkinfo relating this entry to its containing chunk
+
+    count += 3;  //then some items are 0xC bytes in size { byte a, byte b, byte c, byte flag, word EID, word }
+  }              //EDIT: has texture information
+  else
+  {
+    count++;     //whereas others are the standard 4     { byte a, byte b, byte c, byte flag }
+                 //EDIT: has only color information
+  }
+}
+
+return 0xFFFFFF01;
+
+
+------------------------------------
+
+sub_80025628(zoneDataEntry)
+{
+  item1 = zoneDataEntry[0x10];
+
+  

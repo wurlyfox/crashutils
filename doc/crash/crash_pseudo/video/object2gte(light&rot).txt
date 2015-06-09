@@ -1,0 +1,552 @@
+We calculate the light matrix for an object as a composition of transformations: one whose basis
+defines the orientation of the object and another the light matrix specific to that object
+
+'LRot' is the rotation matrix that represents a composition of intrinsic rotations along the 
+Y, X, Y axes respectively in that order; this is the rotation matrix defined as Y1X2Y3: in 
+terms of euler angles (see: http://en.wikipedia.org/wiki/Euler_angles#Intrinsic_rotations)
+
+(where x, y, and z are the angles of orientation of the object)
+
+[LRot]  = [ cos(x)cos(z) - sin(x)cos(y)sin(z), sin(x)sin(y), cos(x)sin(z) + sin(x)cos(y)cos(z)]
+          [                      sin(y)sin(z),       cos(y),                     -sin(y)cos(z)]
+          [-sin(x)cos(z) - cos(x)cos(y)sin(z), cos(x)sin(y), cos(x)cos(y)cos(z) - sin(x)sin(z)]
+
+'LObj' is just the light matrix specific to the object..
+
+Then to calculate the local light matrix:
+
+[Lij] = [LObj][LRot]
+
+To get the local color matrix we just copy it directly from the object data:
+
+[LRij] = [CObj]
+
+To calculate the back color, we scale the object light back color by object light back color 
+intensity:
+
+[BKr]   [LIr][LCr]
+[BKg] = [LIg][LCg]
+[BKb]   [LIb][LCb]
+
+The PSX uses these matrices and vectors to calculate the new vertex color with the vertex normals:
+
+[L1]        [Nx]
+[L2] = [Lij][Ny]
+[L3]        [Nz]
+
+[LTr]         [L1]   [BKr]
+[LTg] = [LRij][L2] + [BKg]
+[LTb]         [L3]   [BKb]
+
+RR = R x LTr
+GG = G x LTg
+BB = B x LTb
+
+ 
+sub_8003913C(matrix, objModelEntry, processVectors, colorVM)
+{
+  //is an angle vector
+  zang  = processVectors[1][8] & 0xFFF;                             //gp
+  xzang = (-(processVectors[1][8] - processVectors[1][4])) & 0xFFF; //fp
+  yang  = processVectors[1][0] & 0xFFF;                             //sp
+
+  sinZang = sin(zang);  //t5
+  sinYang = sin(yang);  //t6
+  sinXang = sin(xzang); //t7
+
+  cosZang =  cos(zang); //t1
+  cosYang =  cos(yang); //t2
+  cosXang = cos(xzang); //t4
+ 
+  //     x   y   z
+  //sin s0, t6, t5
+  //cos t4, t3, t1
+  
+  s0 = sinXang & 0xFFFF;      
+  t1 = cosZang & 0xFFFF;
+  t5 = sinZang & 0xFFFF;
+  t6 = sinYang & 0xFFFF;
+  t3 = cosYang & 0xFFFF;
+  t4 = cosXang & 0xFFFF;
+  
+  GTE.VZ0 = (sinYang & 0xFFFF);                                //Z
+  GTE.VXY0 = ((cosXang & 0xFFFF) << 16) | (sinZang & 0xFFFF);  //YX
+
+  //[sin(zang)]
+  //[cos(xang)]
+  //[sin(yang)]
+  
+  GTE.R11R12 = cosYang & 0xFFFF;
+  GTE.R13R21 =                0;
+  GTE.R22R23 = cosZang & 0xFFFF;
+  GTE.R31R32 =                0;
+  GTE.R33    = sinZang & 0xFFFF;
+
+  //understand that the result of these mults return 1EEEEEEEEEEEFFFFFFFFFFFFFFFFFFFF
+  //we want to shift it right so that we have        0000000000001EEEEEEEEEEEFFFFFFFF
+  //(8 bit fractional precision each time)
+
+  GTE::rtv0();  //rotate vector zero given the rotation matrix
+
+  resultAX = GTE.IR1;  //sp
+  resultAY = GTE.IR2;  //gp
+  resultAZ = GTE.IR3;  //s1
+
+  [cos(yang),         0,        0][sin(zang)]
+  [0        , cos(zang),        0][cos(xang)]
+  [0        ,         0,sin(zang)][sin(yang)]
+
+  = [cos(yang)sin(zang)]
+    [cos(xang)cos(zang)]
+    [sin(yang)sin(zang)]
+
+  GTE.R11R12 = cosXang & 0xFFFF;
+  GTE.R13R21 =                0;
+  GTE.R22R23 = sinYang & 0xFFFF;
+  GTE.R31R32 =                0;  
+  GTE.R33    = sinXang & 0xFFFF;
+
+  GTE::rtv0();  
+  
+  resultBX = GTE.IR1;  //at
+  resultBY = GTE.IR2;  //s2
+  resultBZ = GTE.IR3;  //s3
+
+  [cos(xang),         0,        0][sin(zang)]
+  [0        , sin(yang),        0][cos(xang)]
+  [0        ,         0,sin(xang)][sin(yang)]
+
+  = [cos(xang)sin(zang)]
+    [cos(xang)sin(yang)]
+    [sin(xang)sin(yang)]
+
+
+  GTE.R11R12 = sinXang & 0xFFFF;
+  GTE.R13R21 =                0;
+  GTE.R22R23 = resultAX & 0xFFFF;
+  GTE.R31R32 =                0;
+  GTE.R33    = cosZang & 0xFFFF;
+
+  GTE::rtv0();
+
+  resultCX = GTE.IR1;  //s4
+  resultCY = GTE.IR2;  //s5
+  resultCZ = GTE.IR3;  //s6
+  
+  [sin(xang),                  0,        0][sin(zang)]
+  [0        , cos(yang)sin(zang),        0][cos(xang)]
+  [0        ,                  0,cos(zang)][sin(yang)]
+
+  = [     sin(xang)sin(zang)    ]
+    [cos(xang)cos(yang)sin(zang)]
+    [     sin(yang)cos(zang)    ]
+
+  fp = sin(xang)cos(zang);
+  t8 = sin(xang)cos(yang)cos(zang);  
+  s7 = sin(xang)cos(yang)sin(zang); //resultAX * sin(xang)
+  t9 = cos(xang)cos(yang)cos(zang); //resultAY * cos(yang)
+ 
+  //resultBY = -resultBY  s2
+  
+  s7 = cos(xang)cos(zang) - sin(xang)cos(yang)sin(zang)    //resultAY - s7  
+  s5 = cos(xang)cos(yang)sin(zang) + sin(xang)cos(zang)    //resultCY + fp
+  t8 = -(cos(xang)sin(zang) + sin(xang)cos(yang)cos(zang); //-(resultBX + t8);
+  t9 = cos(xang)cos(yang)cos(zang) - sin(xang)sin(zang);  //t9 - resultCX
+
+  
+  
+  //copy camera rotation matrix specified in args; total object rotation is a composite rotation of the 
+  //objects orientation and the camera rotation
+  t1,t3,t4,t5,t6 = matrix;
+  
+  GTE.R11R12 = t1;
+  GTE.R13R21 = t3;
+  GTE.R22R23 = t4;
+  GTE.R31R32 = t5;
+  GTE.R33    = t6;
+
+  GTE.IR1 = s7;
+  GTE.IR2 = resultBZ;
+  GTE.IR3 = t8;
+
+  GTE::rtir12();  //ir*rotmatrix
+
+  resultDX = GTE.IR1;  //s7
+  resultDY = GTE.IR2;  //s3
+  resultDZ = GTE.IR3;  //t8
+
+  //Y1Z2Y3 bottom row in reverse 1x3 
+  [cos(xang)cos(zang) - sin(xang)cos(yang)sin(zang),  sin(xang)sin(yang), -cos(xang)sin(zang) - sin(xang)cos(yang)cos(zang)] * R
+  
+  
+  
+  GTE.IR1 = resultAZ;  
+  GTE.IR2 = cosYang;
+  GTE.IR3 = resultCZ;
+
+  GTE::rtir12();
+
+  resultEX = GTE.IR1;   //s1
+  resultEY = GTE.IR2;   //t2
+  resultEZ = GTE.IR3;   //s6
+
+  //Y1Z2Y3 middle row in reverse
+  [sin(yang)sin(zang), cos(yang), sin(yang)cos(zang)]
+  
+  GTE.IR1 = s5;
+  GTE.IR2 = resultBY;
+  GTE.IR3 = t9;
+   
+  GTE::rtir12();
+
+  resultFX = GTE.IR1;   //s5
+  resultFY = GTE.IR2;   //s2
+  resultFZ = GTE.IR3;   //t9
+
+  //Y1Z2Y3 top row in reverse
+  [cos(xang)cos(yang)sin(zang) + sin(xang)cos(zang), -cos(xang)sin(yang), cos(xang)cos(yang)cos(zang) - sin(xang)sin(zang)]
+  
+  t4=(((processVectors[2].X) * objModelEntry[4])>>12) & 0xFFFF;
+  t5=(((processVectors[2].Y) * objModelEntry[8])>>12) & 0xFFFF;
+  t6=(((processVectors[2].Z) * objModelEntry[0xC])>>12) & 0xFFFF;
+  
+  GTE.R11R12 = t4 & 0xFFFF;
+  GTE.R13R21 = 0;
+  GTE.R22R23 = t5 & 0xFFFF;
+  GTE.R31R32 = 0;
+  GTE.R33    = t6 & 0xFFFF;
+
+  GTE.IR1 = resultDY;
+  GTE.IR2 = resultEY;
+  GTE.IR3 = resultFY;
+
+  GTE::rtir12();
+
+  resultDY = GTE.IR1 * (-5/8);
+  resultEY = GTE.IR2 * (-5/8);
+  resultFY = GTE.IR3 * (-5/8);
+  
+  //t1 = resultDY
+  //t3 = resultEY
+  //t4 = resultFY
+  
+  GTE.IR1 = resultDZ;
+  GTE.IR2 = resultEZ;
+  GTE.IR3 = resultFZ;
+
+  GTE::rtir12();
+
+  resultDZ = -GTE.IR1;
+  resultEZ = -GTE.IR2;
+  resultFZ = -GTE.IR3;  
+  
+  GTE.IR1 = resultDX;
+  GTE.IR2 = resultEX;
+  GTE.IR3 = resultFX;
+
+  GTE::rtir12();
+
+  resultDX = GTE.IR1;
+  resultEX = GTE.IR2;
+  resultFX = GTE.IR3;    
+
+  GTE.R11R12 = (resultEX << 16) | resultDX;
+  GTE.R13R21 = (resultDY << 16) | resultFX;
+  GTE.R22R23 = (resultFY << 16) | resultEY;
+  GTE.R31R32 = (resultEZ << 16) | resultDZ;
+  GTE.R33    = resultFZ;
+  
+  //seems to be the transpose of the composite intrinsic rotation matrix Y1X2Y3 (in terms of euler angles)
+  //--------------------------------------------------------------------------------------------------------
+  //     [  1 ]   [cos(xang)cos(zang) - sin(xang)cos(yang)sin(zang), sin(yang)sin(zang), cos(xang)cos(yang)sin(zang) + sin(xang)cos(zang)]
+  // R * [-5/8] * [sin(xang)sin(yang), cos(yang), -cos(xang)sin(yang)]
+  //     [  1 ]   [cos(xang)sin(zang) + sin(xang)cos(yang)cos(zang), -sin(yang)cos(zang), -cos(xang)cos(yang)cos(zang) + sin(xang)sin(zang)]
+                             ^^^^
+  //R = camera rotation        = computed object orientation matrix
+
+  //D = bottom, E = middle, F = top
+  //[cos(xang)cos(yang)sin(zang) + sin(xang)cos(zang), -cos(xang)sin(yang), cos(xang)cos(yang)cos(zang) - sin(xang)sin(zang)]
+  //[sin(yang)sin(zang), cos(yang), sin(yang)cos(zang)]
+  //-[cos(xang)cos(zang) - sin(xang)cos(yang)sin(zang),  sin(xang)sin(yang), -cos(xang)sin(zang) - sin(xang)cos(yang)cos(zang)] * R 
+
+  //-------------------------------now we have set the proper rotation matrix for the objet-------------
+  
+  
+  if (processVectors[3].X >= 0)    //remember if the X scale is negative to calculate alpha by reversing X's rotational distance from Z
+  {
+    gp = processVectors[2].Z - processVectors[2].X
+  }
+  else
+  {
+    gp = processVectors[2].Z + processVectors[2].X
+  }
+
+  //fp = -z
+  //sp = -y
+  t5 = sin(gp)
+  t6 = sin(-processVectors[2].Y)
+  t7 = sin(-processVectors[2].Z)
+  t1 = cos(gp)
+  t2 = cos(-processVectors[2].Y)
+  t4 = cos(-processVectors[2].Z)
+
+  //..............
+  
+  fp = (t1 * t7);  cos(xLang)sin(zLang)
+  t8 = (fp * t2);  cos(xLang)cos(yLang)sin(zLang)
+
+  s0 = t7 & 0xFFFF;  //sin(zLang)
+  t1 = t1 & 0xFFFF;  //cos(xLang)
+  t5 = t5 & 0xFFFF;  //sin(xLang)
+  t6 = t6 & 0xFFFF;  //sin(yLang)
+  t3 = t2 & 0xFFFF;  //cos(yLang)
+  t4 = t4 & 0xFFFF;  //cos(zLang)
+  
+  GTE.VZ0  = t6;     //sin(yLang)  = Z
+  at = (t4 << 16) | t5;
+  GTE.VXY0 = at;     //cos(zLang), sin(xLang)  == Y, X
+
+  GTE.L11L12 = t3;   //cos(yLang)
+  GTE.L13L21 = 0;
+  GTE.L22L23 = t1;   //cos(xLang)
+  GTE.L31L32 = 0;
+  GTE.L33    = t5;   //sin(xLang)
+
+  [cos(yLang),         0,          0][sin(xLang)]  [sin(xLang)cos(yLang)]
+  [0         ,cos(xLang),          0][cos(zLang)] =[cos(xLang)cos(zLang)]
+  [0         ,         0, sin(xLang)][sin(yLang)]  [sin(xLang)sin(yLang)]
+
+  fp = cos(xLang)sin(zLang)
+  t8 = cos(xLang)cos(yLang)sin(zLang)
+  
+  GTE::llv0();  //v0 * lightmatrix
+
+  sp = GTE.IR1;  //results
+  gp = GTE.IR2;
+  s1 = GTE.IR3;
+
+  GTE.L11L12 = t4;  //cos(zLang)
+  GTE.L22L23 = t6;  //sin(yLang)
+  GTE.L33    = s0;  //sin(zLang)
+
+  s7 = (GTE.IR1 * t7);   //sin(xLang)cos(yLang)sin(zLang)  
+  t9 = (GTE.IR2 * t2);   //cos(xLang)cos(yLang)cos(zLang)
+
+  [cos(zLang),         0,          0][sin(xLang)]  [sin(xLang)cos(zLang)]
+  [0         ,sin(yLang),          0][cos(zLang)] =[sin(yLang)cos(zLang)]
+  [0         ,         0, sin(zLang)][sin(yLang)]  [sin(yLang)sin(zLang)]
+ 
+ 
+  GTE:llv0();
+
+  GTE.L11L12 = s0;         //sin(zLang)
+  GTE.L22L23 = sp & 0xFFFF;//sin(xLang)cos(yLang)
+  GTE.L33    = t1;         //cos(xLang)
+
+  at = GTE.IR1;
+  s2 = GTE.IR2;
+  s3 = GTE.IR3;
+
+  [sin(zLang),                   0,          0][sin(xLang)]  [     sin(xLang)sin(zLang)     ]
+  [0         ,sin(xLang)cos(yLang),          0][cos(zLang)] =[sin(xLang)cos(yLang)cos(zLang)]
+  [0         ,                   0, cos(xLang)][sin(yLang)]  [     cos(xLang)sin(yLang)     ]
+
+  GTE::llv0();
+
+  s4 = GTE.IR1;
+  s5 = GTE.IR2;
+  s6 = GTE.IR3;
+
+  s2 = -s2
+  
+  //results = sp, gp, s1, at, s2, s3, s4, s5, s6
+  [cos(yLang),         0,          0][sin(xLang)]  [sin(xLang)cos(yLang)]
+  [0         ,cos(xLang),          0][cos(zLang)] =[cos(xLang)cos(zLang)]
+  [0         ,         0, sin(xLang)][sin(yLang)]  [sin(xLang)sin(yLang)]
+
+  [cos(zLang),         0,          0][sin(xLang)]  [sin(xLang)cos(zLang)]
+  [0         ,sin(yLang),          0][cos(zLang)] =[-sin(yLang)cos(zLang)]
+  [0         ,         0, sin(zLang)][sin(yLang)]  [sin(yLang)sin(zLang)]
+  
+  [sin(zLang),                   0,          0][sin(xLang)]  [     sin(xLang)sin(zLang)     ]
+  [0         ,sin(xLang)cos(yLang),          0][cos(zLang)] =[sin(xLang)cos(yLang)cos(zLang)]
+  [0         ,                   0, cos(xLang)][sin(yLang)]  [     cos(xLang)sin(yLang)     ]
+
+  //fp = cos(xLang)sin(zLang)
+  //t8 = cos(xLang)cos(yLang)sin(zLang)
+  //s7 = sin(xLang)cos(yLang)sin(zLang)  
+  //t9 = cos(xLang)cos(yLang)cos(zLang)
+ 
+  s7 = gp - s7;       //cos(xLang)cos(zLang) - sin(xLang)cos(yLang)sin(zLang)
+  s5 = fp + s5;       //cos(xLang)sin(zLang) + sin(xLang)cos(yLang)cos(zLang)
+  t8 = at + t8;       //-sin(xLang)cos(zLang) - cos(xLang)cos(yLang)sin(zLang)
+  t8 = -t8;           
+  t9 = t9 - s4;       //cos(xLang)cos(yLang)cos(zLang) - sin(xLang)sin(zLang) 
+  ----------
+
+  at = s7 & 0xFFFF;
+
+  t1 = (s1 << 16) | at;   
+
+  at = s5 & 0xFFFF;
+  
+  t3 = (s3 << 16) | at;   
+
+  at = t2 & 0xFFFF;
+  
+  t4 = (s2 << 16) | at;   
+
+  at = t8 & 0xFFFF;
+
+  t5 = (s6 << 16) | at;   
+
+  GTE.L11L12 = t1;
+  GTE.L13L21 = t3;
+  GTE.L22L23 = t4;
+  GTE.L31L32 = t5;
+  GTE.L33    = t9;        //[-sin(yLang)sin(zLang) + cos(zLang)cos(yLang)cos(xLang)]
+
+  //this matrix is just the rotation matrix that represents a composition of 
+  //intrinsic rotations along the Y, X, Y axes respectively in that order
+  //this is the rotation matrix defined as Y1X2Y3: in terms of euler angles
+  //see: http://en.wikipedia.org/wiki/Euler_angles#Intrinsic_rotations
+  //
+  
+  = [cos(xLang)cos(zLang) - sin(xLang)cos(yLang)sin(zLang),  sin(xLang)sin(yLang), cos(xLang)sin(zLang) + sin(xLang)cos(yLang)cos(zLang)]
+    [                                 sin(yLang)sin(zLang),            cos(yLang),                                 -sin(yLang)cos(zLang)]
+    [-sin(xLang)cos(zLang) - cos(xLang)cos(yLang)sin(zLang), cos(xLang)sin(yLang), cos(xLang)cos(yLang)cos(zLang) - sin(xLang)sin(zLang)]
+  
+  //this is of course independent of camera rotation; so the objects orientation forms a basis for which light
+  //is cast upon 
+  
+  //------------------
+  
+  t1 = processIndex[0];      LY1|LX1
+  t3 = processIndex[4];      LX2|LZ1
+  t4 = processIndex[8];      LZ2|LY2
+  t5 = processIndex[0xC];    LY3|LX3
+  t6 = processIndex[0x10];   BGR|LZ3
+  t7 = processIndex[0x14];   BGB|BGG 
+  s0 = processIndex[0x18];   CR2|CR1
+  s4 = processIndex[0x1C];   CG1|CR3
+  gp = processIndex[0x20];   CG3|CG2
+  sp = processIndex[0x24];   CB2|CB1
+  fp = processIndex[0x28];   RIY|CB3
+  v1 = processIndex[0x2C];   BIY|GIY
+
+  //s1L s7R s3L  = 
+    s5R s2L t2R
+    s6L t8R t9L
+  
+  if (processVectors[3].X < 0)
+    s7 = -((processIndex[0] << 16) >> 16);       //negated process LM X1
+  else
+    s7 = ((processIndex[0] << 16) >> 16);        //process LM X1
+  s1 = processIndex[0] >> 16;                    //process LM Y1          
+  s5 = (processIndex[4] << 16) >> 16;            //process LM Z1
+  
+  GTE.IR1 = s7;     
+  GTE.IR2 = s1;          
+  GTE.IR3 = s5;    
+
+  [process[0x30]] //negated if process has negative scale
+  [process[0x32]]
+  [process[0x34]]
+
+  GTE::llvir();  //IR * light matrix
+  
+  s7 = GTE.IR1;
+  s1 = GTE.IR2;
+  s5 = GTE.IR3;
+  
+  if (processVectors[3].X < 0)
+    s3 = -((processIndex[4]) >> 16);       //negated process LM X2
+  else
+    s3 = ((processIndex[4]) >> 16);        //process LM X2
+  t2 = (processIndex[4] << 16) >> 16;      //process LM Y2
+  s2 = (processIndex[4] >> 16)             //process LM Z2
+  
+  GTE.IR1 = s3;
+  GTE.IR2 = t2;
+  GTE.IR3 = s2;
+
+  [process[0x36]] //negated if process has negative scale
+  [process[0x38]]
+  [process[0x3A]]
+
+  GTE::llvir();
+
+  s3 = GTE.IR1;
+  t2 = GTE.IR2;
+  s2 = GTE.IR3;
+
+  if (processVectors[3].X < 0)
+    t8 = -(((processIndex[0xC]) << 16) >> 16); //negated process LM X3
+  else
+    t8 = (((processIndex[0xC]) << 16) >> 16);  //process LM X3
+  s6 = (processIndex[0xC]  << 16) >> 16;       //process LM Y3
+  t9 = (processIndex[0x10] >> 16)              //process LM Z3
+  
+  GTE.IR1 = t8;
+  GTE.IR2 = s6;
+  GTE.IR3 = t9;
+
+  [process[0x3C]] //negated if process has negative scale
+  [process[0x3E]]
+  [process[0x40]]
+
+  GTE::llvir();
+
+  t8 = GTE.IR1;
+  s6 = GTE.IR2;
+  t9 = GTE.IR3;
+ 
+  v0 = (processIndex[0x24] >> 16); //i.e red intensity  
+  t0 = (processIndex[0x10] >> 16); //i.e bg color red
+  ra = (v0 * t0) >> 8;             //((0-255) color * (0-255) intensity)/256 = total
+  GTE.RBK = ra;                    //background color red component
+    
+  v0 = (processIndex[0x2C] << 16) >> 16; //i.e green intensity     
+  t0 = (processIndex[0x14] << 16) >> 16; //i.e. bg color green
+  ra = (v0 * t0) >> 8;                   //((0-255) color * (0-255) intensity)/256 = total
+  GTE.GBK = ra;                          //background color green component
+
+  v0 = (processIndex[0x2C]) >> 16; //i.e blue intensity     
+  t0 = (processIndex[0x14]) >> 16; //i.e. bg color blue
+  ra = (v0 * t0) >> 8;                   //((0-255) color * (0-255) intensity)/256 = total
+  GTE.BBK = ra;                          //background color blue component
+ 
+
+  GTE.L11L12 = (s1 << 16) | (s7 & 0xFFFF);
+  GTE.L13L21 = (s3 << 16) | (s5 & 0xFFFF);
+  GTE.L22L23 = (s2 << 16) | (t2 & 0xFFFF);
+  GTE.L31L32 = (s6 << 16) | (t8 & 0xFFFF);
+  GTE.L33    = t9;
+
+  //then this copies contents of color matrix
+  t1 = s4 & 0xFFFF0000;
+  t3 = s0 & 0x0000FFFF;
+  t1 = t1 | t3;
+
+  GTE.LR1LR2 = t1;
+
+  t1 = s0 & 0xFFFF0000;
+  t3 = sp & 0x0000FFFF;
+  t1 = t1 | t3;
+
+  GTE.LR3LG1 = t1;
+   
+  t1 = sp & 0xFFFF0000;
+  t3 = gp & 0x0000FFFF;
+  t1 = t1 | t3;
+
+  GTE.LG2LG3 = t1;
+
+  t1 = gp & 0xFFFF0000;
+  t3 = s4 & 0x0000FFFF;
+  t1 = t1 | t3;
+
+  GTE.LB1LB2 = t1;  
+
+  GTE.LB3 = fp;
+}

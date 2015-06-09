@@ -1,0 +1,87 @@
+CrashUtils Design Rationale
+---------------------------
+
+The purpose of this document is to provide the rationale for some of CrashUtils' 
+(seemingly poor) design choices.
+
+- Why context plugins?
+
+  There are many benefits, including:
+  
+  - "Plug-in" 
+  
+    - Adding/removing a feature involves adding/removing the associated plugin.
+    
+    - Conserves memory; only the existing plugins, corresponding to enabled features,
+      will allocate resources.
+      
+  - Minimal module size
+  
+    - Code blocks/sub-operations present in a plugin function can be distributed
+      among/migrated to functions of its descendant plugins.
+      
+    - Allows classification and separation of sub-operations.
+    
+  - Facilitates the real-time display and modification of game data, required by the editor
+    
+    - Plugins are aspect-oriented: each plugin implements a separate -functionality- or 
+      -aspect- of the editor
+    
+    - One alternative may have involved developing pure class representations for
+      the different types of entry item data handled by the editor; such data would 
+      need naturally to be duplicated from the source item and converted to a compatible 
+      format to then occupy the members of an object of that class type. 
+      
+      The aim of CrashUtils is to allow the modification of game data in real time as it 
+      is concurrently accessed by a CrashPC instance; in the prior case, any modification 
+      to the duplicate item data in its object representation would also need to be 
+      reflected in the original, source entry item data itself. There is no clean-cut
+      solution to implementing this kind of functionality unless the class itself
+      or a parent provides the features for message exchange. If these features are
+      provided, an object could be informed when a change occurs to the source entry 
+      data [that initially occupied its members]; in response the object can then
+      reflect only the relevant changes in its members. The extra implementation for
+      synchronization/reflecting these changes may prove to be too unsuitable for 
+      inclusion in the class itself; in this case it is seemingly more appropriate 
+      for inclusion in a parent 'system' class-i.e. the plugin 'system'. 
+      
+      Furthermore, it is wasteful to have a class that represents all of the item data 
+      for some type of entry item if only a subset of the object's corresponding occupied 
+      data is actually used by the editor. For example it is not necessary to load the
+      representative geometry for a zone's octree, camera path, boundaries, and etc.
+      if the editor is configured to display only camera paths. Thus, each aspect 
+      is instead represented by a separate plugin; each plugin can contain the all
+      the necessary implementation-synchronization, display, modification, etc-for its 
+      corresponding feature.
+      
+    - Since plugins communicate with message passing, a notification can easily
+      be broadcasted to an entire family of plugins in a single call; only the relevant
+      plugins will then process this message. A change to the corresponding entry data 
+      may be very small-therefore a plugin only needs to reflect the equivalent change
+      in its representative data.
+      
+- Why not just have a corresponding subclass for each entry type?
+
+  Due to differences in endianness, we cannot directly represent most item
+  data present in entries as a C++ structure. Furthermore, we cannot directly 
+  represent the variably sized contiguous data fields with any C++ construct. 
+  
+  One alternative might have involved copying/duplicating the item data into
+  a new object instance via the corresponding classes' 'load()' function, 
+  occupying data members accordingly. In this way, there could have been a
+  representative class for each entry/item type. However, the aim of CrashUtils
+  is to allow the modification of game data in real time as it is concurrently
+  accessed by a CrashPC instance; in the prior case, any modification to the
+  duplicate item data in its object representation would also need to be 
+  reflected in the original, source entry item data itself. Item data should 
+  not be object oriented; it was never intended to be that way. 
+  
+  In the case that a separate system exists to allow for the viewing
+  and/or modification of some entry [item] data, it is sometimes acceptable to 
+  duplicate, but also convert and make compatible the entry item data with objects of
+  that system. In this case, an object instance of a representative class type can be 
+  used to 'load()' the entry data by occupying corresponding data members. This is
+  done with the respective model classes of the CrashPC graphics API associated with 
+  WGEO and TGEO/SVTX entry [item] data. The graphics system itself (particularly the
+  level editor) is still ultimately responsible for synchronizing the object data with 
+  the source entry item data, however.  

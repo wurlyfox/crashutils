@@ -1,0 +1,12 @@
+GOOL SUBSYSTEM OPCODE 0x8C(loc_8002330C):  
+
+10001011 SSSSSSSS SSSSDDDD DDDDDDDD
+
+loc_8002330C:
+{
+
+  translate both src and dest...
+
+  
+  process[0x14C] = sub_800304C8(process, dest, *(src));
+}

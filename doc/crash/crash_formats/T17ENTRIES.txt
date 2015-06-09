@@ -1,0 +1,45 @@
+------------------
+-   T17 ENTRIES  - 
+------------------
+
+2 + N item entries describing the fade procedure and entity items to
+spawn as GOOL process instances during a title card/transition
+
+-----------------------------------------------------------------
+
+ITEM 1:
+---
+0:  total EID count at 0x1B0
+4:  
+8:  total column count
+0xC: entity count
+0x14: total TGEO EID count at 0x1E0
+0x18: MAX of 5 x 12 byte structures describing a 'column' of clut items:
+  -items in this column (count of clut items)
+  -destination x offset to load this column
+  -destination y offset to load this column
+
+0x78: column 1 (EID whose entry has 120 items each describing an item of clut data in the column
+0x7C: column 2
+0x80: column 3
+0x84: column 4
+0x88: column 5
+0x8C - 0x1AC: ??
+0x1B0 - 0x1DC: max 12 EIDs
+0x1E0 - ...: TGEO EIDs who are to have their TPAGs processed first
+
+??
+total - glob count < some value:
+
+if total < some value:
+  all cases pass
+if total >= some value
+  last 'some value' cases pass
+  
+ITEM 2:
+----
+TODO
+
+ITEM 3O: 'entitys'/objects (O = number of entities in this transition)
+----
+EQUIVALENT TO FORMAT OF ITEM 4O IN T7 ENTIRES

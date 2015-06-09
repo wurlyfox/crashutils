@@ -1,0 +1,325 @@
+sub_80030260(process)
+{
+  if (process == 0) { return; }
+
+  structIndex = gp[0x26C];
+  
+  if (structIndex < 0x18)
+  {
+    do
+    {
+      struct = 0x56804[(structIndex * 0x44)]; //0x44 byte structs at 0x56804, index one one to start on determined by gp[0x26C]
+
+      bitfield   = struct[4] & 8;          //i.e. s2[0x4]
+      structProc =   struct[0xC];
+   
+ 
+      if (bitfield != 0 && structProc == process)  //if not 4
+      {
+        var_20 = 0;
+
+        gp[0xF8] = 9;
+
+        val = struct[0];
+
+        sub_80030840(val, 0x40000000, &var_20, struct[0xC]);
+
+        struct[0xC]   = 0;  //word      //s2[0xC]  = 0;
+        struct[0x11]  = 0;  //byte      //s2[0x11] = 0;
+      }
+      
+      structIndex++;
+    } while (structIndex < 0x18)
+  }
+}
+
+//struct for 30840
+struct
+{
+  word processorval;
+
+  struct
+  {
+    word bitfield;  
+    word unknown;
+    word process;
+  
+    byte byteA;
+    byte byteB;
+    
+    hword distValA2;  //0xE
+    hword case7val;   //0x10
+    hword distValB2;  //0x12
+
+    word XA;  //0x14
+    word YA;  //0x18
+    word ZA;  //0x1C
+
+    hword unknown;  //0x20
+    hword unknown;  //0x22
+    hword unknown;  //0x24
+    hword unknown;  //0x26
+    hword unknown;  //0x28
+    hword unknwon;  //0x2A
+    
+    hword distValA1; //0x2C      (set to stack value, var_20 from callee = 0)
+    hword distValB1;  //0x2E
+
+    word scalarA;    //0x30
+    word quotientA;  //0x34
+    word scalarB;    //0x38
+    word quotientB;  //0x3C
+
+  }
+}
+
+//where is the high nybble of const used again?
+sub_80030840(val, const, stackptr, valB):
+{
+  //s2 = val;
+  //s5 = const;
+  //s1 = stackptr;
+
+  //const = FFFF0000 00000000 00000000 000CCCCC
+  
+  structIndex = gp[0x26C];
+  mainstruct = 0x56804[structIndex * 0x44];
+
+  var_30 = valB;
+
+  if (structIndex < 0x18)
+  {
+    do
+    {
+      if (processorval != 0 && processorval != 0xFFFFFFFF)
+      {
+        if (mainstruct.processorval   != var_30) { end of loop and increment //30c70; }
+      }
+      else
+      {
+        if (mainstruct.struct.process != var_30) { end of loop and increment //30c70 }
+      }
+      
+      if (processorval == 0)
+      {
+        struct = 0x56E7C;
+      }
+      else
+      {
+        struct = &mainstruct[4];
+      }
+
+      if (const & 0x80000000 != 0)  //game just check if < 0 since high bit represents negativity
+      {
+        struct.bitfield |= 1;
+      }
+
+      if (const & 0x40000000 != 0)
+      {
+        struct.bitfield |= 2;
+      }
+ 
+      if (const & 0x20000000 != 0)
+      {
+        struct.bitfield |= 4;
+      }
+
+      var_B4 = 0;
+    
+      if (const.cbits >= 0xD) { jumptable 30978 default case; }
+      else                    { jumptable 30978 case const.cbits; }
+
+
+      //case 0:
+
+      if (struct.bitfield & 4)   //bit 3
+      {
+        struct.distValA1 = stackptr[0];
+
+        if (processorval != 0)
+        {
+          struct.scalarA    = gp[0xF8];
+          struct.quotientA  = (struct.distvalA1 - struct.distvalA2) / struct.scalarA;
+        }
+    
+        struct.bitfield |= 0x40;     //bit 7
+
+        to default case 
+      }
+      else
+      {
+        struct.distvalA2 = stackPtr[0]  
+
+        if (processorval != 0)
+        {
+          var_B4 |= 3;
+    
+          a0 = &struct[0x14];
+          a1 = struct.distvalA2;
+  
+          goto end of case 3;
+        }
+        else
+        {
+          goto default case;
+        }
+      }
+
+      //case 1:
+      if (struct.bitfield & 4)
+      {
+        struct.distValB1 = stackPtr[0];
+    
+        struct.scalarB    = gp[0xF8];
+        struct.quotientB  = (struct.distvalB1 - struct.distvalB2) / struct.scalarB;
+      
+        struct.bitfield  |= 0x80;     //bit 8
+
+        to default case
+      }
+      else
+      {
+        struct.distvalB2 = stackPtr[0];
+
+        if (processorval != 0)
+        {
+          var_B4 = 0x10;
+          var_A4 = struct.distvalB2;
+        }
+  
+        goto default cawse;
+      }
+
+      //case 2:
+      matrix = { stackptr[0], stackptr[4], stackptr[8] }
+      sub_800248A0(matrix, &stackptr, 2);
+
+      to case 3;
+
+      //case 3:
+
+      if (struct.bitfield & 4)
+      {
+        struct.XA = stackptr[0];
+        struct.YA = stackptr[4];
+        struct.ZA = stackptr[8];
+
+        if (processorval != 0)
+        {
+          mainstruct.struct.XA = stackptr[0];
+          mainstruct.struct.YA = stackptr[4];
+          mainstruct.struct.ZA = stackptr[8];
+
+          var_B4 = 3;
+    
+          retStruct = sub_80030078(&struct[0x14], struct.distValA2);
+
+          var_AD = retStruct[3];
+          var_AE = retStruct[4];
+          var_AF = unchanged;
+          var_B0 = unchanged;
+          var_B1 = unchanged;
+          var_B2 = retStruct[0];
+          var_B3 = retStruct[1];
+        }
+      }
+
+      goto default case;
+
+      //case 4:
+      struct.byteA = stackptr[0];
+      goto default;
+
+      //case 5:
+      struct.process = stackptr[0];
+      goto default;
+
+      //case 6:
+      gp[0xF8] = stackptr[0];
+      if (gp[0xF8] == 0) { gp[0xF8] = 1; }
+      goto default;
+
+      //case 7:
+      struct.bitfield |= 0x10;  //set bit 5
+      struct.case7val = stackptr[0];
+      goto default;
+
+      //case 8:
+      struct.bitfield |= 0x200; //set bit 10
+      goto default;
+
+      //case 9:
+      struct.bitfield &= 0xFFFFFDFF; //clear bit 6
+      goto default;
+
+      //case 10:
+      struct.bitfield = (structbitfield & 0xFFFFF7FF) | ((stackptr[0] << 3) & 0x800);  //clr bit 12, stackptr[0] may set it
+      goto default;
+
+      //case 11:
+      struct.bitfield = (structbitfield & 0xFFFFFBFF) | ((stackptr[0] << 2) & 0x400);  //clr bit 11, stackptr[0] may set it
+      goto default;
+
+      //case 12:
+      struct.byteB = stackptr[0];
+      goto default;
+
+      //case default:
+      if (var_B4)
+      {
+        var_B8 = (1 << structIndex);
+
+        sub_80047F5C(&var_B8);
+      }
+
+      if (processorval == 0xFFFFFFFF) { return 0; }
+
+      structIndex++;
+
+    } while (count < 0x18)
+  }
+  else
+  {
+    return -((0 ^ processorval) >= 0);
+  }
+}
+
+//-------------------
+
+#define CTCVC(coord) (coord)>>8   //converts crash vector coordinates to gte vector coordinates
+#define CTGVC(coord) (coord)<<8   //converts gte vector coordinates to crash vector coordinates
+
+sub_800248A0(CRVECTOR invector, CRVECTOR outvector, word mode)
+{
+
+  if (mode != 0) { SetRotMatrix(0x57844); }
+  else           { SetRotMatrix(0x577E4); }
+
+  SetTransMatrix(0x5762C);
+
+  SVECTOR insvector; //convert invector to an 'short' vector (uses hwords instead of words for data)
+                     //RotTrans uses SVECTOR for input
+  if (mode != 0)
+  {
+    insvector.vx = CTGVC(invector.X - *(0x57888));
+    insvector.vy = CTGVC(invector.Y - *(0x5788C));
+    insvector.vz = CTGVC(invector.Z - *(0x57890)); 
+  }
+  else
+  {
+    insvector.vx = CTGVC(invector.X - *(0x57864)); 
+    insvector.vy = CTGVC(invector.Y - *(0x57868));
+    insvector.vz = CTGVC(invector.Z - *(0x5786C));
+  }
+
+  VECTOR outgvector;
+
+  flag = var_18;
+  RotTrans(insvector, outgvector, flag);      //Perform coordinate transformation using a rotation matrix.
+
+  outvector.X =  CTCVC(outgvector.vx);
+  outvector.Y = -CTCVC(outgvector.vy);
+  outvector.Z =  CTCVC(outgvector.vz);
+  
+  return 0xFFFFFF01;
+}

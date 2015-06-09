@@ -1,0 +1,552 @@
+GOOL INTERPRETER SUBROUTINE
+---------------------------
+
+-Note that the terms 'object' and 'process' are used interchangeably throughout this guide: they both refer to the same data
+structure-an object contains information about a process, and a process contains information about an object.
+
+The gool interpreter subroutine is given a structure containing information about an instance of a game object, otherwise
+known as a 'process'.
+
+At process[0xE0] is the 'program counter' for the process, containing the location of the next 'instruction' for the process.
+All instructions or are a word in size, having the following format:
+
+  TTTTTTTT ???????? ???????? ????????
+
+  T = OPCODE
+  ? = dependent on opcode
+
+The following steps are then taken for execution of the processes' instructions:
+
+1) The interpreter determines the opcode for the instruction at the processes' program counter.
+2) The processes' program counter is incremented.
+3) The operation of the interpreter is then dependent on the OPCODE field grabbed from the instruction.
+4) When the interpreter completes its operation, steps 1-4 are repeated until some operation ends the processes execution.  
+
+
+--------------------------------------------------
+
+NOP INSTRUCTION: (i.e. "no operation"-does nothing)
+
+-------------------------------------------------
+ OPCODE |         INSTRUCTION FORMAT            |
+--------|---------------------------------------|
+  128   |  10000000 AAAAAAAA AAAAAAAA AAAAAAAA  |
+  129   |  10000001 AAAAAAAA AAAAAAAA AAAAAAAA  |
+-------------------------------------------------
+
+
+----------------------------------------
+
+GOOL INSTRUCTIONS OF OPCODE TYPE A (TYPES 0-18, 20-23, 25, 27, 29-30, 32-33, 38-39, 140):
+
+TTTTTTTT LLLLLLLL LLLLRRRR RRRRRRRR
+
+T = OPCODE FUNCTION, ONE OF TYPE A
+L = ADDRESS/VIRTUAL ADDRESS OF LEFT OPERAND
+R = ADDRESS/VIRTUAL ADDRESS OF RIGHT OPERAND
+
+----
+
+An operand address is 12 bits in size:
+
+TODO: better description of address translation
+
+  ------
+  format: 0FAAAAAAAAAA 
+   if F = 0 then addr = (A*4) + *(gool[0x20] + 0x18);
+   if F = 1 then addr = (A*4) + *(gool[0x24] + 0x18);
+
+  format: 100AAAAAAAAA
+   gp[0x88] = 1 if less than 1
+   gool[gp[0x88]*4] = (A << 8)
+   addr = (A<<8)
+
+  format: 110AAABBBBBB
+
+   addr=*(gool[A*4] + B + 0x60)
+
+  format: 1010AAAAAAAA
+   gp[0x88] = 1 if less than 1
+   gool[gp[0x88]*4] = (A << 4)
+   addr = (A<<4)    
+
+  format: 10110AAAAAAA
+
+   addr = (A*4) + gool[0xE4];
+
+  format: 1011110AAAAA
+
+   addr = 1
+
+  format: 1011111AAAAA
+
+   addr = 0
+
+  format: 10111111AAAA
+
+   addr = 0xBF0
+
+  ------------
+
+There is an additional check for REAL addresses that need no translation:
+
+  =For left  operand addresses that need no translation: 
+    
+     --when the address is NOT the SAME as the global frame pointer, the lower 9 bits of the address determine an offset from 
+      0x60 in the gool struct: leftPtr = &gool[0x60 + ((address & 0x1FF) * 4)]. THIS will be used as the location of the left operand.
+    
+     --OTHERWISE: the gool frame pointer (gool[0xDC]) points to the location of the left operand, then it is set back a word
+
+  =For right operand addresses that need no translation: 
+
+     --when the address is NOT the SAME as the global frame pointer, the lower 9 bits of the address determine an offset from 
+      0x60 in the gool struct: rightPtr = &gool[0x60 + ((address & 0x1FF) * 4)]. THIS will be used as the location of the right operand.
+    
+     --OTHERWISE, the gool frame pointer (gool[0xDC]) points to the location of the right operand, then it is set back a word
+
+
+By this point, locations of left and right operands are known; they are dereferenced to grab their values.
+
+Finally the operation is performed (with left & right operands), and the result is stored at the current location of the gool frame pointer.
+[The operation to perform-which sometimes actually corresponds to a single assembly instruction, but not always-is determined by none other than the OPCODE. A table is shown below that relates OPCODEs to their corresponding operation in c-style pseudocode]
+
+The gool frame pointer is then incremented a word, and the interpreter repeats its process (incrementing pc, grabbing next instruction opcode, etc)
+---
+
+OPCODE TYPE A->PSEUDO C TABLE
+================================================
+result = where result is stored (aka at the location of the gool frame pointer)
+left   = left operand
+right  = right operand
+
+GPF = gool process stack pointer
+
+OPCODE     ASM    |        corresponding psuedocode         |      additional notes
+------|-----------|-----------------------------------------|---------------------------------------
+0x0   |    ADD    |          result = left + right;         |
+0x1   |    SUB    |          result = left - right;         |
+0x2   |   MULT    |          result = left * right;         |   only 32 bit result
+0x3   |    DIV    |          result = left / right;         | 
+0x4   |    N/A    |     result = ((left ^ right) == 0);     |
+0x5   |    N/A    |       if (right == 0) { result = 0; }   |  
+      |           |       else   { result = (left > 0); }   |
+0x6   |    N/A    | result = ((left != 0) || (right != 0)); |               
+0x7   |    AND    |          result = left & right;         |
+0x8   |     OR    |          result = left | right;         |
+0x9   |    SGE    |         result = (left >= right);       |
+0xA   |           |        result = !(left < right);        | would this not be equivalent to sge?
+0xB   |    SLT    |         result = (left < right);        |
+0xC   |           |        result = !(left >= right);       | would this not be equivalent to slt?
+0xD   | DIV MFHI  |         result = left % right;          |
+0xE   |    XOR    |         result = left ^ right;          |
+----------------------------------------------------------------------------------------------------
+
+WHERE src and dest are locations of left and right (respectively) [before they are dereferenced]
+
+OPCODE     ASM    |        corresponding psuedocode         |      additional notes 
+------|-----------|-----------------------------------------|---------------------------------------
+0xF   |           | result = ((left & right) ^ left) == 0); | 
+0x10  |           | result = right+sub_2f6b0(left-right);   | 
+0x11  |   MOVE    |            *(dest) = *(src)             | R INCREMENTS GPF A WORD RATHER THAN DECREMENT
+0x12  |           |         *(dest) = (*(src) == 0)         | R INCREMENTS GPF A WORD RATHER THAN DECREMENT                                   
+0x14  |           |            *(dest) = src;               | R INCREMENTS GPF A WORD RATHER THAN DECREMENT
+0x15  |           |if (left < 0) {result = right >> -left;} | 
+      |           |else          {result = right << left; } | 
+0x16  |           |           result = *(dest);
+      |           |if (src != 0) {*(gpf) = *(src); gpf+=4;} | var_58 becomes *(src) [are src and dest = dest and src?]
+0x17  |           |           *(dest) = *(src) nor 0;       | R INCREMENTS GPF A WORD RATHER THAN DECREMENT
+0x19  |           |           *(dest) = |*(src)|            |
+------------------------------------------------------------------------------------------------------
+
+
+There are additional opcodes of instruction type A that are not in the table. 
+These have more detailed function and are described here:
+
+          val
+//0x800, 0x5000, 0x5000
+
+//if (val+0x800 < 0x5000) { val + 0x800 }
+//else                    { (0x800*2) - val; }
+
+OPCODE 0x13:
+
+if (left == 0xBF0)
+{
+  s4 = process.pop();
+  s3 = process.pop();
+}
+else
+{
+  s4 = 0x100;
+  s3 = translate(left);
+}
+
+//lval = translate(left)
+
+
+dst  = translate(right)
+rval = *(dst);
+
+if (rval)
+{
+  if (s3 >= 0)
+  {
+    if (rval + s4 < s3)
+      s0 = rval + s4;
+    else
+      s0 = (s4*2) - rval; 
+
+    s3 = abs(s0);
+  }
+  else
+  {
+    if (s3 >= rval - s4)
+      s0 = -s3 - (s4*2);
+    else
+      s0 = rval - s4;
+      
+    s3 = -abs(s0);
+  }
+
+  *(dst) = s0;
+  push(s3);
+}
+
+---
+
+OPCODE 0x1B:
+(something related to returning on-screen position, left = y, right = x?)
+
+v0 = *(0x58404);   //display buffer
+v1 = v0[0x84];     //refers to mem location in display buffer 
+                   //after draw/display environment structs
+                   //set to 0x22 initially
+
+if (v1 >= 0x67)
+{
+  mcand = left * 0x66;
+}
+else
+{
+  mcand = left * v1;
+}
+
+if (mcand < 0)
+{
+  mcand = mcand + 0x3FF;
+}
+
+//multiplies 
+result = (mcand / 1024) + right;   
+
+
+--
+
+OPCODE 0x1D:  //process.push(((sin((right/left)pi - 1/2pi) + 2pi)/pi)*right)
+
+//2pi = 0x1000
+//pi = 0x800
+//1/2pi = 0x400
+
+//upside-down cosine
+angle = ((right/left) * 0x800) - 0x400;
+sine = sub_8003905C(angle);
+
+//if (left > -1) { scale = (sine + 0x1000)>>2; process.push((scale*right)>>11)}
+//else           { scale = (sine + 0x1000);  process.push((scale*right)>>13)}
+scale = (sine + 0x1000) / 0x2000;
+(sin(angle) + 1) / 2;
+
+//generates wave ranging from 0 to 1 and back to 0 thru each period of 2pi radians
+//right will change amplitude
+
+//left = length of a period
+//right = slope between peaks of periods?
+process.push(scale * right);
+
+   
+
+---------
+
+OPCODE 0x1E:
+
+result = (left + *(0x57960)) % right;
+
+
+
+---------
+
+OPCODE 0x1F:  //reads a global variable
+
+index = (right>>8)*4;
+process.push(*(0x6188C + index));
+
+OPCODE 0x20:  //writes a global variable
+
+index = (right>>8)*4;
+*(0x6188C + index) = left;
+
+---------
+
+OPCODE 0x21:
+
+a0 = right;
+a1 = left;
+result = sub_800245F0();
+
+---------
+
+//gfp = process[0xDC]
+
+OPCODE 0x22 & 0x25:
+//IF left input == true, pop arg2 and arg1 off stack
+//                else, use 0x100 for arg2 and src for arg1
+//use right input for arg0, or pop off stack if 0
+
+//if      opcode is 0x22 sub_800243A0(arg0, arg1, arg2, 0)
+//else if opcode is 0x25 push(sub_80024628(arg0, arg1, abs(arg2)))
+
+PRE-TRANSLATION
+{
+  //left is grabbed differently when src is BF0
+  if (src == 0xBF0)
+  {
+    s0    = *(gfp-=4);
+    left  = *(gfp-=4);   (this will set the gfp back 2 words for l instead of 1)
+  }
+  else
+  {
+    s0    = 0x100;
+  }
+}
+
+
+
+//otherwise it is grabbed the normal way
+if (dest == 0) { goto 229D0; }
+
+if (OPCODE == 0x22)
+{
+  a0 = right;
+  a1 =  left;
+  a2 =    s0;
+  a3 =     0;
+
+  sub_800243A0();
+
+}
+if (OPCODE == 0x25)
+{
+  if (s0 < 0)
+    s0 = -s0;
+
+  a0 = right;
+  a1 =  left;
+  a2 =    s0;
+  result = sub_80024628();
+}  
+
+
+-------
+
+OPCODE 0x27:   (R INCREMENTS RATHER THAN DECREMENTS GFP A WORD)
+-----------
+(moves a constant value from process' code entry's item 6 (constant value table) at src>>6 to destination)
+EDIT: moves address of one of 64 byte animation structs in code entry's item 6
+      to dest; this is the default animation structure
+if (dest != 0)
+{
+  index = (*(src)/64);
+
+  entry = process[0x20];
+  item6 = entry[0x24];        //THIS MIGHT EXPLAIN ITEM6'S PURPOSE!
+
+  *(dest) = &item6[index];
+}  
+
+-------------------------------------------
+
+OPCODES THAT ARE NOT OF TYPE A: 19, 24, 26, 28, 35, 36  (38 PART OF 22)
+
+
+
+
+OPCODE 0x22 redo:
+------
+so basically here we know the purpose of var_58
+when lbits are a valid (nonzero) address after translation, 
+ -we get the value there and store it in var_58
+ -as well as push it onto the stack after pushing the value at rbits after translation
+otherwise 
+ -we only push the value at rbits after translation
+all of this would only happen given rbits is a valid address after translation
+
+00010110 LLLLLLLL LLLLRRRR RRRRRRRR
+
+a0 = translate right 12 bits (R)
+s0 = translate left  12 bits (L)
+
+if (a0 == 0) { next instr; }  //precondition
+if (s0 != 0)
+{
+  var_58 = *(s0);
+  process.push(*(a0));
+  process.push(var_58);
+}
+else
+{
+  process.push(*(a0));
+}
+
+
+
+
+--------------------------------
+gool address to normal address translation.. (gool address = 12 bits)
+
+sub_8001fb34(a0 = ptr to gool struct, a1 = 11 bit 'gool address') 
+
+allocate 16 bytes (4 words) on stack (NOT USED...)
+test bit 12 (0x800) of a1
+if 0 then (1fc14):
+{
+  v1 = a1 & 0x3FF;  //i.e. 011 11111111 bits [ignore bit 11]
+  test bit 11 (0x400) of a1  
+  if 0 then v0 = *(a0+0x20);
+  if 1 then v0 = *(a0+0x24);
+  return *(v0+0x18) + (v1*4);
+}
+if 1 then (1fb40):
+{
+  v0 = a1 >> 4;
+  test bit 11 (0x400) of a1  
+  if 0 then (1fb74):
+  {
+    test bit 10 (0x200) of a1
+    if 0 then (1fbec):
+    {
+      v1=gp[0x88];
+      a0=gp[0x84];
+
+      if (v1<1){v1=1;}
+
+      v0=(v1*4)+a0;
+      gp[0x88]=v1;
+
+      v1=(a1&0x1FF) << 8; //shift one byte left
+        
+      *(v0)=v1;
+      return v0;
+    }          
+    if 1 then (1fb80):
+    {
+      test bit 9 (0x100) of a1
+      if 0 then (1fbc4)
+      {
+        v1=gp[0x88];
+        a0=gp[0x84];
+
+        if (v1<1){v1=1;}
+
+        v0=(v1*4)+a0;
+        gp[0x88]=v1;
+
+        v1=(a1&0xFF) << 4; //shift one nybble left
+        
+        *(v0)=v1;
+        return v0;
+      }
+      if 1 then (1fb88)
+      { 
+        v0 = a1 << 25;
+        test bit 8 (0x80) of a1
+        if 0 then (1fbb4):
+        {
+          v1=a0[0xE4];
+          v0 = (v0 >> 23)+v1;  (or v0=(a1*4)&0x1FF, forced sign) 
+          return v0;
+        }
+        if 1 then (1fb90):
+        {
+          v0 = 0xBF0;
+          if (a1 != BE0) then (1fba4):
+          {
+            if (a1 == 0xBF0) then (1fc40):
+              return 0xBF0;
+            else
+              return 1;
+          }
+          else (1fb9c):
+            return 0;
+        }
+      }
+    }      
+  }
+  if 1 then (1fb4c):
+  {
+    //remember: v0 at this pt is a1<<4
+    addr = (v0 & 0x1C) + a0;  //bits 3,4,& 5 + addr offset
+    val = *(addr);
+    if (val = 0) { return 0; }
+    else { 
+      v0 = ((a1 & 0x3F) * 4) + 0x60;
+      return v0 + val;
+  }
+}
+
+
+-------------------------------------
+
+
+GOOL STATUS FLAGS: (var_70)
+
+bit 1: halt/suspend on rte (for rte suspend mode 0)
+bit 2: halt/suspend after routine execution from jalr
+bit 3: halt/suspend on animate
+bit 4: rte suspend mode:
+       mode 0)
+       return ERR_INITFRAME if trying to return from top frame
+       return SUCCESS if 'halt/suspend on rte' flag set
+       continue execution if 'halt/suspend on rte' flag not set
+       
+       mode 1)
+       return SUCCESS for event service mode
+       return ERR_NOEXCEPTION otherwise
+bit 5: replace prev frame status flags with 0 for rte suspend
+bit 6: enables/disables event service mode
+
+instruction type 0x88 (RSRT & variations) and 0x89 (RSRF & variations) 
+trigger event service mode if the conditions (value on stack) are true. 
+execution state is halted by returning SUCCESS, and gathered from the 
+instruction and back through interpreter parameters is the subroutine
+ID of the routine corresponding to the serviced event and a flag
+indicating whether the instruction returned true (T) or false (F)
+
+RSRT   = Return        Sub Routine [ID]                        [and] True [flag]
+RSNT   = Return        Sub [routine ID if stack value] Nonzero [and] True [flag] 
+RSZT   = Return        Sub [routine ID if stack value] Zero    [and] True [flag] 
+RSTv48 = does nothing other than default of halt execution if neither rte suspend nor jalr suspend is set
+RNRT   = Return Null  [Sub] Routine [ID]                       [and] True [flag]
+RNNT   = Return Null  [subroutine ID if stack value] Nonzero   [and] True [flag] (else pop stack back if condition fails)
+RNZT   = Return Null  [subroutine ID if stack value] Zero      [and] True [flag] (else pop stack back if condition fails)
+RNTv48 = pop stack back
+EFS    = Event Flag Set                                        (does not return or halt execution, halt still occurs bits 1 & 2)
+EFSN   = Event Flag Set               [if stack value] Nonzero ^^^^^^
+EFSZ   = Event Flag Set               [if stack value] Zero    ^^^^^^
+EFSv48 = does nothing other than default of halt execution if neither rte suspend nor jalr suspend is set
+RSRF   = Return        Sub Routine [ID]                        [and] False [flag]
+RSNF   = Return        Sub [routine ID if stack value] Nonzero [and] False [flag] 
+RSZF   = Return        Sub [routine ID if stack value] Zero    [and] False [flag] 
+RSFv48 = does nothing other than default of halt execution if neither rte suspend nor jalr suspend is set
+RNRF   = Return Null  [Sub] Routine [ID]                       [and] False [flag]
+RNNF   = Return Null  [subroutine ID if stack value] Nonzero   [and] False [flag] (else pop stack back if condition fails)
+RNZF   = Return Null  [subroutine ID if stack value] Zero      [and] False [flag] (else pop stack back if condition fails)
+RNFv48 = pop stack back
+EFC    = Event Flag Clear                                      (does not return or halt execution, halt still occurs bits 1 & 2)
+EFCN   = Event Flag Clear             [if stack value] Nonzero ^^^^^^
+EFCZ   = Event Flag Clear             [if stack value] Zero    ^^^^^^
+EFCv48 = does nothing other than default of halt execution if neither rte suspend nor jalr suspend is set
+
+each instruction has a default behavior of halting execution rather than performing
+its intended duty if neither rte suspend nor jalr suspend status flags are set
+

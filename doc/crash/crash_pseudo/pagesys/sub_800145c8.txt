@@ -1,0 +1,154 @@
+//going backwards with at most 8 chunkinfos at 58074
+//continuing to check the next if the current chunkinfo has:
+// case 1 
+//   OR
+// index[6] of chunk type (in a0)
+//
+//  if index[8] of the chunkinfo = the item pointer in a1, then return the current count
+
+//if these conditions are not met with at least one of the chunkinfos or are never met then return 0xFFFFFFF4; 
+
+//if the conditions are met the first iteration, we return 7 if the item pointer is -1
+
+
+---
+//aka find the first chunkinfo in the shortlist of 8 with an index[8] equal to the item specified in a1
+//(or 7 if specified item is -1)
+//-if an chunkinfo is found with index[6] that does not match chunk type in a0 AND is not a case 1 then return 0xFFFFFFF4
+
+sub_800145C8(a0 = chunk type, a1 = -1 or pointer to an item?)       
+
+a2 = 7;
+t1 = 1;
+t0 = 0xFFFFFFFF;
+a3 = 0x58074;         
+
+v1 = 0x134;                 
+
+
+
+while (      ((a3[4] ==  1) || 
+        (0x57F46[v1] == a0)     )  //
+{
+
+  if (a1 == -1 || a1 == 0x57F48[v1]) { return a2; }
+  else
+  {
+    a3 = a3 - 0x2C;
+    a2--;
+ 
+    v1 = v1 - 0x2C;
+  }
+} also while (a2 >= 0)  
+
+return 0xFFFFFFF4;
+
+//change where necessary, this is my custom syntax for a combination pre-post loop check (fucking assmebly is annoying)
+
+
+
+--------------
+
+using CID for the chunkinfo at a0 as an index, set the corresponding word in the 5CFBC list to FFFFFFFE
+
+sub_80014930(a0 = chunkinfo):
+
+v0 = a0[0x14];    //grab chunk ID
+a0[4] = 1;        //set case to 1
+
+v0 = ((a0[0x14]/2) * 4) + *(0x5CFBC);
+
+*(v0) = 0xFFFFFFEE; //set the corresponding CID in the 5CFBC list to FFFFFFFE
+
+
+----------------------
+
+
+sub_80048A88(bool a0):  if a0 false: ping TestEvent once with the 559A0 event and return the results
+                        if a0 true : keep TestEvent 'ing with the 559A0 event until it returns a non-zero
+
+if (*(0x5594C) == 1) { return 1; }
+if (*(0x55914) == 1) { return 1; }
+
+a0 = *(0x559A0)
+v0 = TestEvent(a0);
+
+if (arg_a0 != 1)  
+{ 
+  if (v0 == 1) 
+  { 
+    *(0x55914) = v0; 
+  } 
+  
+  return v0;
+}
+else if (v0 != 0) 
+{ 
+  *(0x55914) = 1; 
+
+  return 1;
+}
+
+while (TestEvent(*(0x559A0)) == 0);
+*(0x55914) = 1;
+
+return 1;
+
+
+--------
+//round a0 to nearest units of 8 and store result at 0x558E0
+sub_80048A18():
+
+a0 = -1
+a1 = arg_a0;
+
+v0 = sub_80046E00();   
+
+*(0x558E0) = v0;      
+
+return arg_a0;
+
+
+------
+
+sub_80046E00():
+
+a2 = arg_a0;
+if (*(0x55904) != 0);
+{
+  a0 = *(0x5590C);
+
+  v0 = arg_a1 % *(0x5590C);  //modulus operator
+
+  
+  a1 = arg_a1;
+  if (v0 != 0)
+  {
+    a1 = (0 nor *(0x55910)) & (arg_a1 + a0);   //determine what to round by (i.e. units of *(0x55910) + 1)
+  }
+
+  a3 = a1 >> *(0x55908);            //...determine what power of 2 to divide by
+
+  if (arg_a0 == -2) { return arg_a1; }
+  v0 = a1;
+
+  if (arg_a0 != -1)
+  {
+    v1 = (a2 << 1) + *(0x558E4);
+    *(v1) = a3;   //store only a halfword
+    return a1;
+  }
+  else
+  {
+    return a3 & 0xFFFF;
+  }
+}
+  
+  
+
+    
+    
+    
+
+
+============

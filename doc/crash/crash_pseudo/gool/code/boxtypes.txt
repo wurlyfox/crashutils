@@ -1,0 +1,23 @@
+TNT   : 0 = 1A = sub_1280, perframe = sub_1368, event handler = sub_12f8
+?     : 1 = 1F = sub_1838
+NORMAL: 2 = 0  = sub_44C,  perframe  = sub_63C, event handler = sub_5A8 
+ARROW : 3 = 10 = sub_d28
+CHKPT : 4 = B  = sub_a24
+IRON  : 5 = 2  = sub_660 
+APPLE : 6 = 14 = sub_f80
+EXCLM : 7 = 7  = sub_7e8
+LIFE  : 8 = 0  = sub_44C
+AKU   : 9 = 0  = sub_44C
+QUESTN: 10= 0  = sub_44C
+?     : 11= 1A = sub_1280
+?     : 12= 1F = sub_1838
+?     : 13= 4  = sub_678
+?     : 14= F  = sub_c48
+IRONAR: 15= 10 = sub_d28
+?     : 16= 1A = sub_1280
+?     : 17= 0  = sub_44C
+?     : 18= 20 = sub_1a88
+?     : 19= 4  = sub_678
+?     : 20= 0  = sub_44C
+?     : 21= 0  = sub_44C
+?     : 22= E  = sub_BAC

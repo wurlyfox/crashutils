@@ -1,0 +1,53 @@
+
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE TYPE 0x23/35):
+---------
+ (pushes a color vector of a processes' link onto its stack)
+ (BBB = link)
+ (CCCCCC  = vector)
+ 
+GOOL OPCODE TYPE W:
+
+00100011 000CCCCC CBBBAAAA AAAAAAAA
+
+link = process[0x60 + (bbits*4)];
+result = link[0x30 + (cbits*2)];
+
+
+
+---------------------------
+
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE TYPE 0X24/36):
+---------------------------
+ (changes a process link's color vector to translated source)
+   
+ (AAAAAAAAAAAA = source)
+ (CCCCCC = link)
+ (BBB = vector)
+  
+link = process[0x60 + (cbits*4)];
+
+if (abits != 0xE00) //111000000000
+{
+  a0   =        process;
+  a1   =          abits;
+  addr = sub_8001FB34();  
+}
+else
+{
+  if (fp == abits)
+  {
+    addr = &process[0x60 + ((abits & 0x1FF) * 4)];
+  }
+  else
+  {
+    process[0xDC] = process[0xDC] - 4;
+
+    addr = process[0xDC];
+  }
+}
+
+link[0x30 + (bbits*2)] = *(addr);
+
+
+
+  

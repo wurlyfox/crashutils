@@ -1,0 +1,221 @@
+TODO: FINISH CASE 6 AND DO CASE 7
+
+GOOL SUBSYSTEM OPCODE 0x85 (loc_8002330C):  
+
+10000101 DDDCCCBB BAAASSSS SSSSSSSS
+
+
+loc_8002330C:
+
+//v0 = abits
+//v1 = (abits*12) + 0x80
+//s4 = &process[0x80 + abits*12]
+//s3 = translated S bits by the usual process (including stack shift)
+//cbits = jumptable 8 cases
+
+
+//FUNCTION STILL UNCLEAR FOR SUB_8001AC9C IS UNCLEAR
+//guess: modifies a specified process vector given a vector/scale pair (src) that determines the independence of path and path scale???
+----------------------------------
+case 0:
+{
+  //if source is null or no associated entity item...
+  if (src == 0)            { next instruction }
+  if (process[0x110] == 0) { next instruction }
+
+  struct3 = process[0x80 + (abits*12)]; //abits determine the index of a process vector
+
+  var_118 = struct3[0];
+  var_114 = struct3[4];
+  var_110 = struct3[8];
+
+  sub_8001AC9C(process, *(src), &var_118);   //modifies the specified process vector
+                                             //given a vector/scale pair (src) that determines the independence of path and path scale???
+
+  struct3[0] = var_118;                      //change the vector with the modified values
+  struct3[4] = var_114;
+  struct3[8] = var_110;
+
+  process[0x11C] = struct3[4];               //y distance to travel?
+
+  //next instruction
+}
+
+//seems to scale a source vector with output of sub given process 
+//translation vector and bbits specified process vector
+case 1:
+{
+  //a0 = s4
+
+  //transforms a vector with rotation and translation matrices
+  //returning the corresponding 'screen equivalent coordinates' (with Z equivalent to the drawing priority) 
+
+  struct3A = process[0x80 +     (0*12)];
+  struct3B = process[0x80 + (bbits*12)];
+
+  sub_800249E0(struct3A, struct3B);
+
+  zval = struct3B[8]/256;
+
+  if (zval == 0) { next instruction; }
+
+  valA = (src[0]*280)/zval;
+  valB = (src[4]*280)/zval;
+  valC = (src[8]*280)/zval;
+
+  src[0] = valA;
+  src[4] = valB;
+  src[8] = valC;
+ 
+  next instruction
+}
+
+case 2:
+{
+  //seems to calculate a new (translation) vector in the XZ or XY plane
+  //based on angle of approach and scalar value from source
+  
+  //sets process[0x124] to scalar value supplied by source
+  //changes a process vector (bbits) to:   *(src)*<sin(process[0xB4]),          unchanged, cos(process[0xB4])>
+  //OR (IF bits 10 & 22 not set)       :   *(src)*<sin(process[0xB4]), cos(process[0xB4]),          unchanged>  
+  //------------------------
+  
+  rval = sin(process[0xB4]&0xFFF);
+
+  struct3 = process[0x80 + (bbits*12)];
+  struct3[0] = ((rval/16)*(*(src))) >> 8;
+
+  if ((process[0xCC] & 0x00200200) == 0)
+  {
+    rval = cos(process[0xB4] & 0xFFF);
+    struct3[8] = ((rval/16)*(*(src))) >> 8;       
+  }
+  else
+  {
+    rval = cos(process[0xB4] & 0xFFF);
+    struct3[4] = ((rval/16)*(*(src))) >> 8;    
+  }
+    
+  process[0x124] = *(src);
+}
+    
+
+case 3:
+
+NOP
+
+//FUNCTION UNKNOWN UNTIL SUB_8002465C FUNCTION IS KNOWN
+------------------------------
+case 4,5:
+{
+  var_120 = *(src);
+  var_124 = process.pop();
+  var_128 = process.pop();
+
+  struct3A = process[0x80 + (abits*12)];
+  struct3B = process[0x80 + (bbits*12)];
+
+  var_130 = struct3B;
+
+  //linearly transforms a given vector based on given tait-bryan angles for a rotation matrix
+  //confined to the bounds of the given scale vector, and adds the resultant vector to a given
+  //'translate' vector
+  if (cbits == 4)
+  {
+    sub_8002465C(&var_128, struct3A, process+0x8C, process+0x98);
+  }
+  else
+  {
+    sub_8002465C(&var_128, struct3A, process+0xB0, 0);
+  }
+}
+
+//transforms a vector based on moving towards the direction of a 
+//specified link's specified vertex
+case 6:
+{
+  link      = process[0x60 + dbits*4];
+  destTrans = process[0x80 + abits*12];
+  
+  if (link[0x108] == 0) { next instruction; }
+ 
+  linkAnim = link[0x108];
+
+  if (linkAnim[0] == 1)  //lbu, animation type, if animation involves svtx models
+  {
+    svtxEID   = linkAnim[4];
+
+    svtxEntry      = EID_PROCESS(svtxEID);
+    linkFrame      = link[0x10C] >> 8;
+    svtxFrameItemA = svtxEntry[0x10 + (linkFrame*4)]; 
+
+    svtxEntry      = EID_PROCESS(svtxEID);
+    linkFrame      = link[0x10C] >> 8;
+    svtxFrameItemB = svtxEntry[0x10 + (linkFrame*4)]; 
+    
+    tgeoEID = svtxFrameItemB[4];
+    
+    //we do this again for process the TGEO item
+    tgeoEntry = EID_PROCESS(tgeoEID);
+     
+    srcval      = *(src);
+    vertexIndex = (srcval >> 8);
+  
+    vertex = svtxFrameItemA[0x38 + (vertexIndex*6)];
+    
+    modelXOffset = svtxFrameItemA[0x8];
+    modelYOffset = svtxFrameItemA[0xC];
+    modelZOffset = svtxFrameItemA[0x10];
+    vertexX      = (vertex[0] - 0x80) + modelXOffset;  //lbu
+    vertexY      = (vertex[1] - 0x80) + modelYOffset;
+    vertexZ      = (vertex[2] - 0x80) + modelZOffset;
+    
+    //var_108
+    vector[0] = vertexX << 10;
+    vector[4] = vertexY << 10;
+    vector[8] = vertexZ << 10;
+    
+    tgeoItem1   = tgeoEntry[0x10];
+    modelXScale = tgeoItem1[0x4];
+    modelYScale = tgeoItem1[0x8];
+    modelZScale = tgeoItem1[0xC];
+    
+    objXScale = link[0x98];
+    objYScale = link[0x9C];
+    objZScale = link[0xA0];
+    
+    //var_F0
+    XScale = (modelXScale * objXScale) >> 12;
+    YScale = (modelYScale * objYScale) >> 12;
+    ZScale = (modelZScale * objZScale) >> 12;
+    
+    scale[0] = XScale;
+    scale[4] = YScale;
+    scale[8] = ZScale;
+    
+    sub_8002465C(vector, link+0x80, link+0x8C, scale, destTrans);
+  }
+}
+
+case 7:
+{
+  vectA = process[0x80 + (abits*12)];
+  vectB = process[0x80 + (bbits*12)];
+  
+  sub_800248A0(vectA, vectB, 0);
+}
+
+
+
+    
+  
+    
+    
+    
+
+    
+    
+    
+    
+    
+}

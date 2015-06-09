@@ -1,0 +1,114 @@
+struct world
+{
+  union
+  {
+    word         EID;
+    word *modelEntry;   //pointer to a T3 entry
+  }
+                        
+  //modelEntry.item1[0x1C] is a flag indicating whether there is translation... otherwise these values are 0
+  word TranslateX;    //(modelEntry.item1[0] - global translation matrix X) scaled by 57804 matrix (X portion),     and averaged (/4096)
+  word TranslateY;    //(modelEntry.item1[4] - global translation matrix Y) scaled by 57804 matrix (Y portion),     and averaged
+  word TranslateZ;    //(modelEntry.item1[8] - global translation matrix Z) scaled by 57804 matrix (Z portion),     and averaged
+
+  word  *header;       //just points to modelEntry.item1  
+  dword *polygons;     //     points to modelEntry.item2, each dword contains 3 seperate indicies into     the point list (describing a polygon)  
+  dword *vertices;     //     points to modelEntry.item3, contains a list of vectices for the entire model
+  dword *texcol;       //     points to modelEntry.item1 + 0x40; texture, color info for primitive
+        
+  word *miscEntries[8];  //determined by (modelEntry.item1[0x18] count) EIDs at modelEntry.item1 + 0x20
+
+};                 
+
+
+struct zone
+{
+  word  worldCount;
+  world modelsToTransform[8];
+ 
+  ...
+}
+
+
+sub_8001922C(curZone)  //this is where the wgeo entries are actually loaded
+{
+
+  s6 = curZone;
+  s7 = 0;
+  s4 = curZone;
+  s5 = 0;
+
+  if (curZone[0] > 0)
+  {
+    do
+    {
+      modelEntry = EID_PROCESS(curZone.modelsToTransform[s4].EID);  /
+
+      modelHeader = modelEntry[0x10];  //item1 of a modelEntry contains the model struct
+
+      if (modelHeader[0x1C] == 1)
+      {
+        curZone.modelsToTransform[s4].TranslateX = 0;
+        curZone.modelsToTransform[s4].TranslateY = 0;
+        curZone.modelsToTransform[s4].TranslateZ = 0;
+      }
+      else
+      {
+        v0 = *(0x57864)/256;
+        v0 = *(0x57868)/256;
+        v0 = *(0x5786C)/256;
+
+        var_48 = modelHeader[0] - (*(0x57864)/256);
+        var_44 = modelHeader[4] - (*(0x57868)/256);
+        var_40 = modelHeader[8] - (*(0x5786C)/256);
+
+        scaleXA = *(0x57804) * var_48; //57804-57814 = scaled viewpoint rotation matrix
+        scaleYA = *(0X57806) * var_44;
+        scaleZA = *(0x57808) * var_40;
+ 
+        curZone.modelsToTransform[s4].TranslateX = (scaleXA + scaleYA + scaleZA) >> 12;
+
+        scaleXB = *(0x5780A) * var_48;
+        scaleYB = *(0x5780C) * var_44;
+        scaleZB = *(0x5780E) * var_40;
+
+        curZone.modelsToTransform[s4].TranslateY = (scaleXB + scaleYB + scaleZB) >> 12;      
+
+        scaleXC = *(0x57810) * var_48;
+        scaleYC = *(0x57812) * var_44;
+        scaleZC = *(0x57814) * var_40;
+
+        curZone.modelsToTransform[s4].TranslateZ = (scaleXC + scaleYC + scaleZC) >> 12;    
+      }
+
+      curZone.modelsToTransform[s4].header   = modelEntry.item1;
+      curZone.modelsToTransform[s4].polygons = modelEntry.item2; 
+      curZone.modelsToTransform[s4].vertices = modelEntry.item3;
+      curZone.modelsToTransform[s4].texcol   = modelEntry.item1 + 0x40;
+
+      modelMiscEIDCount = modelHeader[0x18];
+
+      if (modelMiscEIDCount > 0)
+      {
+        count = 0;
+      
+        do
+        {
+          entry = EID_PROCESS(modelHeader[0x20 + (count*4)]);
+
+          curZone.modelsToTransform[s4].miscEntries[count] = entry;
+        } while (count < modelMiscEIDCount)
+      }
+
+    } while (s4 < curZone[0])
+  }
+
+  if (*(0x5C53C)[4] != 0x19) { return 0xF; }
+  else
+  {
+    if (*(0x618D4) == 0xF)
+    {
+      sub_8001A460(0x619B0, 0x619B8);          //additional stuff for the titles
+    }
+  }     
+}

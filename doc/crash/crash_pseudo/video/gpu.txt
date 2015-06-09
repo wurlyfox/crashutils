@@ -1,0 +1,285 @@
+sub_80016e5c:
+
+*(0x57968) = *(0x5796C) //note: 4th byte or 3rd byte not copied
+
+v0 = *(0x34520);  //? why if this jsut gets overwritten
+v0 = *(0x56400);  
+
+if (*(0x56400) && (*(0x618B0) & 0x1000)) 
+{
+  *(0x57960)++;
+}
+
+if (*(0x61A34) != 0)  //else 16f7c
+{
+  if (*(0x61A34) <= 0) 
+  { 
+    if (*(0x61A34) >= -2)
+    {
+      sub_80017448(0x100)
+    }
+    else
+    {
+      *(0x61A34) = *(0x61A38) + *(0x61A34) + 0x100;  
+
+      a0 = *(0x61A34);
+      sub_80017448(a0);
+      
+      if (*(0x61A34) == 0)
+      {
+        if ( (*(0x618B0) & 0x200000) == 0)
+        {
+          *(0x61A34) = 0xFFFFFFE;
+        }
+      }
+    }    
+  }
+  else
+  {
+    *(0x61A34) = *(0x61A34) - *(0x61A38);
+    
+    a0 = *(0x61A34);
+    sub_80017448(a0);
+  }
+}
+
+if ((*(0x618B0) & 0x80000) == 0)
+{
+  if ((*(0x618B0) & 0x2000) != 0)
+  {
+    curZone       = *(0x57914);
+    curZoneHeader = curZone[0x10];
+
+    R = *(0x57968);  //lb
+    G = *(0x57969);  //lb
+    B = *(0x5796A);  //lb
+   
+    sub_80017358(0, 0, 512, curZone[0x2E0], R, G, B);
+
+    R = curZone[0x310];
+    G = curZone[0x311];
+    B = curZone[0x312];
+    
+    sub_80017358(0, curZone[0x2E0], 512, 216-curZone[0x2E0], R, G, B);
+  }
+  else
+  {
+    sub_80017358(0, 0, 512, 216, R, G, B);
+  }
+}
+
+
+//SPU ROUTINE
+sub_80030CC0();
+
+//here we wait for drawing to complete, saving a timestamp at the instant of this draw sync
+*(0x58408)[0x80] = *(0x34520);  
+DrawSync(0);
+
+//calculate approximately how long we've been executing since the previous draw
+if (*(0x61A30) == 0)
+{
+  *(0x61938) = *(0x34520) - *(0x58408)[0x7C];  // 
+}                                              //
+else
+{
+  *(0x61938) = 0x11;
+}
+
+//swap the draw/display buffers
+if (*(0x5c54C) == 0)
+{
+  *(0x58404) = *(0x58408);
+  *(0x58408) = *(0x5840C);
+  *(0x5840C) = *(0x58404);
+}
+
+//NOW we can wait for vblank
+VSync(0);
+
+
+//if by waiting the time elapsed since last draw is still relatively short, we can wait an additional
+//vblank
+elapsed = *(0x34520) - *(0x58404)[0x7C];
+if (elapsed < 0x19)
+{
+  VSync(0);
+}
+
+//we use the display bitfield to hold the memory card flag
+if (*(0x618B0) & 0x100000)
+{
+  //if the root counter has not yet been stopped due to memory card i/o
+  if (!gp[0x30])
+  {
+    EnterCriticalSection();
+    StopRCnt(0xF2000002);  //stop the root counter
+    ExitCriticalSection();
+  }
+
+  //set flag for root counter has been stopped
+  gp[0x30] = true;
+  
+  //do memory card i/o
+  sub_8003A94C();
+
+  //assume 0x22 1/8th cpu cycles will have elapsed
+  *(0x34520) = *(0x34520) + 0x22;
+}
+else
+{
+  //if the root counter is stopped due to memory card I/0
+  if (gp[0x30])
+  {
+    EnterCriticalSection();
+    StartRCnt(0xF2000002);   //start it up again
+    ExitCriticalSection();
+  }
+
+  //set flag for root counter is not/is no longer stopped
+  gp[0x30] = false;  
+}
+
+//now we record time elapsed at instance of draw (we will be drawing) in current draw buffer
+EnterCriticalSection()
+
+  //still unsure about this, i.e what are we replacing the counter with
+  if (*(0x61A30) == 2)
+  {
+    v0 = gp[0x2AC];
+    *(0x34520) = v0[0];
+  }
+
+*(0x58408)[0x7C] = *(0x34520);
+
+ExitCriticalSection();
+  
+//since draw and display buffers are swapped, then the difference in their elapsed time at instance
+//of draw is just elapsed time from one draw to the next OR elapsed time in one frame
+elapsed = *(0x58408)[0x7C] - *(0x58404)[0x7C];
+
+//this routine rounds the frame time to the nearest appropriate value to record in the display buffer
+//so game objects can use this value to operate at a speed synchronous with the draw
+rounded = sub_80017D50(elapsed);
+*(0x58404)[0x84] = rounded;
+
+//now we put the display and draw environments of the respective draw/display buffers
+PutDispEnv(*(0x58404) + 4);
+PutDrawEnv(*(0x58408) + 0x18);
+
+
+//finally draw all primitives in the draw buffer if we are set to draw this frame
+//(0x5C54C) then means we'll draw only at multiples of this many frames
+if (*(0x5C54C) > 0)
+  *(0x5C54C)--;
+
+if (*(0x5C54C) == 0)
+{
+  DrawOTag(*(0x58408) + 0x88);
+}
+
+
+//*(0x5840C)[0x74] = pointer to front of prim list
+//*(0x5840C)[0x78] = pointer to rear of prim list
+//this resets the rear of the prim list to the beginning
+*(0x5840C)[0x78] = *(0x58408)[0x74];
+
+//this resets the prim list with 0x800 consecutive pointers/links
+sub_800342D8(&(*(0x5840C)[0x88]), 0x800);
+
+//here is where we copy the display/animate flags
+*(0x618B0) = *(0x6189C);
+
+}
+
+sub_80017358(x, y, w, h, R, G, B)
+{
+  //v1 = *(0x5840C)
+  //s1 = a0
+  //s2 = a1
+  //s6 = a2
+  //s7 = a3
+  
+  newPrim = *(0x5840C)[0x78];
+  *(0x5840C)[0x78] += 0x10;
+  
+  newPrim[0x3] = 3; //sb, not sure...
+  newPrim[0x7] = 2; //we want a plain sprite prim
+  newPrim[0xC] = w; //sprite w
+  newPrim[0xE] = h; //sprite h
+  newPrim[0x4] = R; //block fill sprite with this color
+  newPrim[0x5] = G;
+  newPrim[0x6] = B;
+  newPrim[0x8] = *(0x5840C)[0x18] + x;  //position sprite at offset from 
+  newPrim[0xA] = *(0x5840C)[0x1A] + y;  //draw environment x and y
+  
+  AddPrim(*(0x5840C) + 0x88, newPrim);
+}
+
+//SVTX A
+//(dependent on current game mode/level/0x56710)
+
+sub_80016c18:
+
+v0 = *(0x56710) - 0x19;
+
+if (v0 >= 0x1C) { goto jumptable 16c54 default case; }
+else
+{
+  goto jumptable 16c54 case v0;
+}
+
+---
+
+cases 25, 36, 37, 45, 51, 52:     //titles, tawna bonus A, n.brio bonus, level completion, tawna bonus B, cortex bonus
+
+sub_8003CE20();  //before going to default case
+
+goto default case;
+
+default case:
+
+
+if (*(0x58400) > 0)
+{
+  count  = 0;  //s0
+  offset = 0;  //s2
+
+  do
+  {
+    s1 = 0x58410 + offset;
+    
+    if (*(0x56710) == 0x19)
+    {
+      a0 = 0x1E000;
+    }
+    else if (*(0x56710) == 0x38)       //intro sequence 
+    { 
+      a0 = 0x1CC00;
+    }
+    else
+    {
+      a0 = 0x16000;
+    }
+
+    if ( (s1[0x74] = PAGE_ALLOCATE(a0)) == 0 )
+    {
+      exit (0xFFFFFFF1);
+    }
+
+    sub_80016DCC(s1);  //new sub
+
+    count++;
+    offset+=0x2088;
+
+  } while (count < *(0x58400))
+}
+
+return 0xFFFFFF01;
+
+
+
+    
+
+    
+    

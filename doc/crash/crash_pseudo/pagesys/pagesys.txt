@@ -1,0 +1,1471 @@
+//1) A LISTENTRY CONTAINS 2 WORDS: 
+
+    WHEN BIT ONE OF THE FIRST WORD SET:
+    -THE CID FOR A CHUNK CONTAINING SOME ENTRY
+    -THE EID FOR THE CORRESPONDING ENTRY
+
+    WHEN BIT ONE OF THE FIRST WORD NOT SET
+    -THE CORRESPONDING ENTRY FOR THE EID
+    -THE EID OF AN ENTRY IN SOME CHUNK
+
+//2) A LISTENTRY -LIST- CONTAINS A VARIABLE NUMBER OF LISTENTRIES.
+     ALL LISTENTRYS/LISTENTRY LISTS RESIDE IN CONSECUTIVE MEMORY LOCATIONS
+
+//3) LISTENTRYLISTPTRS ARE A LIST OF POINTERS TO LISTENTRY LISTS
+
+//NOTE: ALL ENTRY IDS MUST HAVE THEIR LEAST SIGNIFICANT BIT SET..
+        THIS ALLOWS THE GAME TO DIFFERENTIATE BETWEEN EIDS AND POINTERS
+
+EID_PROCESS(word &EID)
+{
+  if (EID & 1)                    //if the argument is still an EID
+  {
+    listIndex = ((EID >> 13) & 0x3FC);
+    entryList = entryLists[listIndex]; 
+
+    while (entryList[count] != EID)
+      count++;
+      
+    listEntry = entryList[count];                        
+    EID       = listEntry;        //-replace- the EID with the pointer to its corresponding LIST entry pair 
+  }                               //(so next call to this function will just grab the pointer to the pair directly) 
+  else                            //otherwise the EID has already been processed into a listEntry        
+  {
+    listEntry = EID;                                  
+  }
+
+  CIDorentry = listEntry[0];  
+  EID        = listEntry[4];
+  
+  if (CIDorentry & 1)            //if the listEntry pair is CID/EID         
+  {
+    #define CID CIDorentry
+    LISTENTRY_PROCESS(&CID, EID);//then the listEntry pair needs to have its CID replaced with something useful (entry/data)
+    
+    if (CIDorentry & 1) { return 0xFFFFFFF6; }  //if its still a CID after processing, then return error
+  }
+  
+  #define entry CIDorentry     //at this point we know its an entry (BUT FOR TPAGES ISNT IT PROCESSED INTO TEXTURE DATA???)
+  return entry;
+}
+
+//here we check whether the chunk has already been allocated 
+//a page
+
+LISTENTRY_PROCESS(word &CID, word EID)  //arg_a0 = (index*2) to grab into 5CFBC wordlist
+{           
+  page = *(0x5CFBC)[((CID >> 1) * 4)];    //0x5CFBC is then a list with pointers to entrys for unprocessed listentry pairs
+
+  //if the chunk has not yet been allocated a page
+  if (page >= 0xFFFFFF02)                 //if a non-page is at this index (i
+  {
+    //a0 = 0;
+    //a1 = arg_a0;                 //pointer to the entry
+    //a2 = arg_a1;                 //EID for the entry
+    //a3 = &var_10;                //ptr to a struct on the stack that is passed in the sub args
+    //var_18 = 1;  
+    //var_10 = 1;
+ 
+    numPages = 1;
+    newPage = page_new(0, CID, EID, &numPages);  //call the sub with these vals...
+
+    if (newPage >= 0xFFFFFF02)
+    {
+      #define error newPage
+      return error;
+    }
+  }
+  else                                        //if a page (or 0xFFFFFF01) is already at this index
+  {                                                  
+    if (page == 0xFFFFFF01) { return 0xFFFFFF01; } //if its this then just return it 
+
+    if (page[6] == 2 || page[6] == 3) { return page; }  //if it points to struct with index 6 == 2 or 3 then return pointer to the struct
+    if (page[6] == 0)                              //if it points to struct with index 6 == 0                     
+    { 
+      //var_C = 1;
+      //v0 = 0x14;
+      //a0 = a0_val;
+      //a1 = arg_a0;                                   //pointer to the entry
+      //a2 = arg_a1;                                   //EID for the entry
+      //a3 = &var_C;
+      //var_18 = 0x14;
+
+      numPages = 1;
+      newPage  = page_new(page, CID, EID, &numPages );                    //then call the sub with these vals, 
+
+      if (newPage >= 0xFFFFFF02)
+      {
+        #define error newPage
+        return error
+      }
+    }
+    else                                              //otherwise the structs index 6 == 1 or >= 4
+    {
+      page[0x18] = EID;                          //so set struct index 0x18 to arg from the sub
+      if (page[4] == 0x14) { return page; }    //if it has a case 0x14, then return pointer to the struct
+    }
+  }
+  
+  page_CREATEANDPROCESS(CID);
+
+  page = *(0x5CFBC)[((CID >> 1) * 4)];          //we could use newpage, but we want to verify that it has been written to the correct place in CIDlist
+  return page;  
+}
+
+pages_CREATEANDPROCESS(CID)  
+{
+  if (*(0x5CFA8) == 0) { return 0; }
+
+  specialPage = *(0x5CFAC)
+  if (specialPage && CID != -1) //if there is a 'special' page
+  {
+    goBack = specialPage[0x1C];
+      
+    count = 0;
+    
+    startPage = specialPage - ((goBack+1) * 0x2C);  //go back that many chunkinfos...
+
+    curPage = startPage;
+    if (goBack > 0)          //if we went back at least one chunkinfo...
+    {
+      do                     //**process chunkinfos here, going forward in the list till we reach the original position
+      {
+        case = curPage[0x4];
+        
+        if (case == 3 || case == 0xD)
+        {
+          page_process(curPage, CID);  
+        }
+
+        count++;
+        curPage += 0x2C;          
+      } while (count < goBack);
+    }        
+  }
+
+  if (!specialPage && CID == -1)   //now if there is no chunkinfo at this pointer, (but the entry pair ptr from sub args still refers to a valid entry..)
+  {
+                
+    //this code seems to find the lowest CID of all chunks who have
+    //swapped pages allocated to them on case 2, and records index
+    //of the swapped page allocated to that chunk with the lowest
+    //CID
+
+    virtualPageCount = *(0x5C91C)
+
+    index     = -1;    
+    count     =  0;
+    lowestCID =  0;
+    
+    if (virtualPageCount > 0)      //count   
+    {
+      virtualPages = 0x5C920;
+      
+      curPage = virtualPages;
+      do
+      {
+        if (curPage[4] == 2)           //  if case is 2  (unprocessed CID?)
+        {
+          if (index == -1 || curPage[0x14] < lowestCID)    //this always passes the first iteration...
+          {
+            minCID = curPage[0x14];                  //set s3
+            index  = count;                        //remember the index of the lowest chunkinfo
+          }
+        }
+        
+        count++;
+      } while (count < virtualPageCount); 
+    }
+
+    //if we even find a swapped page running case 2
+    if (index != -1)        
+    {
+      v1 = gp[0x14];
+      
+      conseqChunks = 1;
+      if (gp[0x14] != 0)   //not sure were this is used
+      {
+        //we will start one chunk after the one with the lowest CID
+        startChunk = (minCID >> 1) + 1;
+        chunkCount = *(0x5C540)[0x400] - 1;  //num. of chunks is recorded in the NSD
+        
+        //we are basically finding (starting at the chunk with the
+        //lowest CID of all swapped chunks on case 2) to see if 
+        //there are a number of consecutive chunks in terms of CID
+        //[using the CIDlist] that have a field[6] of 0
+        
+        count = startChunk;         
+        if (count < chunkCount)   
+        {
+          do
+          {                  
+            chunkPage = *(0x5CFBC)[index*4];         //and used as word index into ptr at 5cfbc...        
+
+            if ((chunkPage < 0xFFFFFF02) && (chunkPage[6] == 0))       //if this index refers to a valid pointer & points to a struct with index[6] == 0                          
+              conseqChunks++;                  //add to counter..
+            else
+              break;
+              
+            count++;
+          } while (count < chunkCount);
+        }
+      }
+    }
+    
+
+    //index = index of swapped page on case 2 with lowest CID 
+    startPage = &virtualPages[index];
+    
+    page_new(startPage, startPage[0x14], 0x6396347F, conseqChunks, 0);          //
+  }   
+
+  physicalPageCount = *(0x5C550);
+
+  if (physicalPageCount > 0) 
+  {
+    physicalPages = 0x5C554;
+    
+    physicalPage = physicalPages;
+    do
+    {             
+      page_process(physicalPage, CID);
+                  
+      count++;
+    } while (count < physicalPageCount);        
+  }
+}
+
+page_new(page, cid, eid, &count, flag)
+{               
+  //note: count is modified by page_allocate         
+  indexA = page_allocate(count, flag)
+  if (indexA == -1) { return 0xFFFFFFF4; }
+
+  indexB = count;
+
+  offset = (indexA + indexB) * 0x1C;
+
+  newPages = &0x5C528[offset];   //apparently page index 0 is the one where fields are all the nsd/nsf and page system pointers
+  sigPage  = newPages;
+
+  newPage = newPages;
+  if (page)                       //if the location of chunkinfo in 5c920 list passed in sub args is valid (refers to index with lowest cid)
+  {           
+    counter = count - 1;
+    refCID = page[0x14];
+    
+    if (counter >= 0)                         //if there as least one (valid struct after index (lowest CID) in 5cfbc list with index[6] = 0)
+    {                  
+      do
+      {
+        //determine the page that has been allocated by the chunk at (indexA-1) chunks ahead of the chunk allocated to the specified page
+        offset   = (counter + (refCID >> 1)) * 4;
+        nextPage = CIDlist[offset];
+
+        newPage[0x14] = nextPage[0x14];
+        
+        if (EID == 0x6396374F)
+          newPage[0x18] = nextPage[0x18];
+        else
+          newPage[0x18] = EID;
+
+        nextPage[0x4]  = 1;
+
+        newPage[0xA]  = nextPage[0xA];
+        newPage[0x28] = nextpage[0x28];
+        newPage[0x1C]  = count;  //notice difference between 'counter'
+        newPage[0x24] = sigPage;  
+
+        if (count - 1 == counter)
+          newPage[0x4] = 2;
+        else
+          newPage[0x4] = 0xC;
+       
+        offset          = ((newPage[0x14] >> 1) * 4);
+        CIDlist[offset] = newPage;
+        
+        newPage -= 0x2C;
+        counter--;      
+      } while (counter >= 0);
+    } 
+      
+    return newPages;
+  }
+  else
+  {
+    locations[0] = 1;
+                                        
+    newPage[0x14] = CID;
+    newPage[0x18] = EID;
+    newPage[0xA]  = 0;
+    newPage[0x28] = *(0x34520);    
+    
+    *(0x5CFA8)++;
+
+    newPage[0x1C] = 1;
+    newPage[0x24] = newPage;
+    newPage[0x4]  = 2;
+    
+    offset          = ((newPage[0x14] >> 1) * 4);
+    CIDList[offset] = newPage;
+   
+    return newPage;
+  }
+}
+
+//allocates 'count' count pages
+page_allocate(&count, flag)
+{
+  //s5 = locations
+  max_conseq_index = -1;
+
+  if (physicalPageCount > 0)
+  {
+    counter   = 0;
+    forward   = 0;
+    pagesLeft = physicalPageCount - counter;
+
+    do
+    {
+      if (pagesLeft < locations[0])        //if we have less than n pages to check    
+        condition = forward < pagesLeft;   //if we're at the last n pages
+      else
+        condition = forward < count; 
+ 
+      if (condition)
+      {
+        page = physicalPages[(counter + forward)*0x2C];
+
+        cond = ((page[4] == 0x14 || page[4] == 0x15) && page[0xA] <= 0);
+
+        if (page[4] == 1 || cond) 
+        {  
+          if (cond) { a3 = (a3 + 1) + page[0x28]; }
+
+          forward++;
+
+          //if this is the first time (max_conseq_index == -1)
+          //or we have found a number of consecutive pages (forward) from the current index (count)
+          // greater than the number recorded
+          //or we have found a number of consecutive pages (forward) from the current index (count)
+          // equal to the number recorded but the pages have a greater sum_val than the recorded
+          // pages' sumval
+          if (max_conseq_index == -1 
+            || forward  > max_conseq_count ||
+              (forward == max_conseq_count && sumval >= max_conseq_sumval))
+          {
+            //then we are to record the current values as the 'maximum'
+            max_conseq_index  = counter;  //remember at this index
+            max_conseq_count  = forward;  //that this many pages forward from it (including itself) meet the conditions
+            max_conseq_sumval = sumval;   //also record the sumval
+          }
+
+          continue;
+        }
+      }
+
+      counter++;
+      pagesLeft = physicalPageCount - counter;
+      sumval    = 0;
+      forward   = 0;
+    } while (counter < physicalPageCount);
+  }
+
+  if (max_conseq_index != -1)  //if we have found the index of a maximum number of consecutive pages
+  { 
+    start = max_conseq_index;
+    end   = max_conseq_index + max_conseq_count;
+
+    if (start < end)
+    {
+      for (int lp=start; lp<end; lp++)
+      { 
+        page = physicalPages[lp*0x2C];
+
+        page_free(page);
+      }
+    }
+
+    counter = max_conseq_count;  //passed by reference, a 'second' return value
+    return max_conseq_index;
+  }
+  else
+  {
+    counter = 0;                 //passed by reference, a 'second' return value
+    return -1;
+  }
+}
+ 
+page_free(page)
+{
+  //if page is the one in the buffer
+  if (*(0x5CFAC) == page)
+    *(0x5CFAC) = 0;
+
+  //if page is of these types (can be freed?)
+  if (page[4] == 0x14 || page[4] == 0x15)
+  {
+    chunk = page[0];
+    if (chunk[2] != 0) //if the chunk that has this page allocated is not a normal chunk (i.e texture, sound)
+    { 
+      //then simply nullify its entry in the CIDList
+      CID = page[0x14];
+      CIDList[(CID>>1)*4] = 0xFFFFFFEE; 
+
+      //and set the page mode to 1 (new, free, available)
+      page[4] = 1;
+
+      return 0xFFFFFF01; //return success
+    }
+    else
+    {
+      //otherwise we have to notify the chunk's associated entries of freeing/deallocation
+
+      //get the first entry associated with the chunk and grab it's EID
+      entryA = chunk[0x10];
+      EID    = entryA[0x4];
+
+      //compute the hash to get the index of the bucket pointer which points to the
+      //bucket in the hash table that contains this entry 
+      index  = (EID >> 13) & 0x3FC;
+      bucket = entryBuckets[index];
+
+      //grab the first EID/entry pair
+      pair = bucket;
+
+      //grab number of entrys associated with the chunk
+      entryCount = chunk[0x8];
+
+      //grab CID used by this page
+      CID = page[0x14];
+
+      count = 0;
+
+      if (entryCount > 0)
+      {
+        do
+        {
+          entry = chunk[0x10 + (count*4)];  
+
+          //find the EID/entry pair for the entry in the bucket      
+          pairEID  = pair[4];
+          entryEID = entry[4];
+  
+          while (pairEID != entryEID)
+          {
+            pair += 8; 
+            pairEID = pair[4];
+          }
+
+          //execute the type-specific deallocation routine on the entry
+          type = entry[8];
+          (*subsystemTables[type].killA)(entry);
+ 
+          //replace the entry in the EID/entry pair with the CID used by the page
+          pair[4] = CID;
+     
+        } while (++count < entryCount);
+      }
+
+      //NOW nullify its entry in the CIDList
+      CID = page[0x14];
+      CIDList[(CID>>1)*4] = 0xFFFFFFEE; 
+
+      //and set the page mode to 1 (new, free, available)
+      page[4] = 1;
+
+      return 0xFFFFFF01; //return success
+    }
+  }
+  else
+  {
+    //this is all we do for pages not on mode 0x14 or 0x15
+
+    //set the page mode to 1 (new, free, available)
+    page[4] = 1;
+
+    return 0xFFFFFF01; //return success
+  }
+}
+      
+page_process(page, CID)
+{
+  //s0 = page
+  //s2 = CID
+  do
+  {
+    switch(page[4])
+    {
+      case 2:  //0 in asm
+      {
+        //apparently this is where that page gets set
+        specialPage = *(0x5CFAC);
+        if (specialPage) { return -1; }
+        
+        //slightly different order than assembly for readability here
+        link    = page[0x24];
+        linkCID = link[0x14];
+          
+        selfIndex =     CID >> 1;
+        linkIndex = linkCID >> 1;
+          
+        if (CID == -1 || 
+           (linkIndex >= selfIndex && linkIndex - page[0x1C] < selfIndex))
+        {  
+          *(0x5CFB8) = page[0x14];
+          
+          if (gp[0x14] == 0) { goto clear; //13fe8 }
+          
+          result = CD_Sync(1, 0);
+          if (result != 2 && CID == -1)
+            return -1;
+            
+          firstPage = page_decompressTranslate(page); //first page in the sequence if multi-paged
+
+          *(0x5CFAC) = page;  //remember the (current page) last page in the sequence
+          
+          v1 = page[0x1C];
+
+          compressed = firstPage[0xE];
+          newCID     = firstPage[0x14];
+          
+          if (compressed)
+          {
+            //page[0x1C]        = number of 'actual' chunks from the page itself to the last page in its sequence 
+                                  would make up after being uncompressed
+            //(page[0x1C] * 32) = number of 'actual' sectors from the page itself to the last page in its sequence
+                                  would make up after being uncompressed
+            //page[0xC]         = number of sectors saved by the compression used by compressed chunks from the
+                                  page itself to the last page in its sequence
+            
+            //[in terms of from the Nth page (i.e. 'page' pointer) in its sequence to the last]
+            //uncompressed length (sectors) = compressed length (sectors) + space saved by compression (sectors)
+            //uncompressed length        (sectors) = page[0x1C] * 32
+            //space saved by compression (sectors) = page[0xC]
+            //compressed length (sectors) = uncompressed length (sectors) - space saved by compression (sectors)
+            
+            //compressed length (sectors) = (page[0x1C] * 32) - page[0xC]; 
+            //by using the first page in the sequence as the Nth page, this calculation will determine the 
+            //compressed length of its entire sequence of pages            
+            sectorsToRead = (page[0x1C] * 32) - firstPage[0xC];     
+            
+            //when reading from disc, destination will be relative to the first page in the sequence, (i.e. sequence's
+            //first page's chunk)
+            chunk = firstPage[0];
+            
+            //skip a number of sectors worth of mem from the beginning of the pages, effectively leaving blank space; 
+            //compressed chunks will be read to the location -after- the blank space. when decompressing the chunks, 
+            //expansion will occur to the left, thus filling the blank space and avoiding replacement of any chunks 
+            //in the sequence that have yet to be uncompressed. the number of sectors to skip is ideally the number
+            //of sectors saved by compression of the sequence
+            destLocation = &chunk[(firstPage[0xC] * 2048)]
+            
+            //get sector position of compressed chunk of first page in sequence relative to NSF file
+            offset        = (newCID >> 1) * 4;
+            NSD           = *(0x5C540);
+            chunkLocation = NSD[0x420 + offset] >> 6;  //compressed chunk sector location are formatted OOOOOOOO OOOOOOOO OOOOOOOO OOLLLLLL 
+                                                       //where O = chunk sector location, and are relative to sector location of start of NSF file
+            //get sector pos of NSF file
+            address = *(0x5C548);   
+          }
+          else
+          {          
+            sectorsToRead = (page[0x1C] * 32);  
+            
+            destLocation = chunk;
+            
+            offset = (newCID >> 1) * 32;
+            chunkLocation = offset;
+            
+            //uncompressed chunks start at NSD[0x418] sectors into the NSF file
+            NSFAddress     = *(0x5C548); 
+            address        = NSD[0x418] + NSFAddress;
+          }
+
+          //important things to know:
+          //-------------------------
+          //size of 1 chunk  = 64KB = 0x10000 bytes = 65536 bytes
+          //size of 1 sector =  2KB =   0x800 bytes =  2048 bytes
+          //(1 sector = 2KB) * 32 = (1 chunk = 64KB)
+          //
+          //therefore there are 32 sectors in one chunk
+          
+          offset = address + chunkLocation;
+          CdIntToPos(offset, &var_28);
+
+          CdControlF(2, &var_28);
+          
+          //sector size = 2048 = 0x800
+          
+          //sectorsToRead = sector count
+          //destLocation = read location (buffer to store result of read)
+          //0x80 = read mode
+          //
+          //executes a CdRead a max of 3 times while failure
+          CdRead(sectorsToRead, destLocation, 0x80);
+          
+          continue;
+        }
+      }
+      
+      break;
+      
+      case 3:
+      {
+        specialPage = *(0x5CFAC);
+                
+        if (gp[0x14] != 0 && page == specialPage)
+        {
+          if (CID == -1)
+          {
+            statusStorageBuffer = 0;
+            status = CdReadSync(1, &statusStorageBuffer); //1 = just get status
+            
+            if (status <= 0)
+              return;
+          }
+          else
+          {
+            //0 = wait for operation to complete
+            //we are pretty much waiting for the data from the chunk to be
+            //read from CD into memory
+            status = CdReadSync(0, &statusStorageBuffer);     
+              
+            if (status <= 0)
+              return;
+          }
+          
+          //before we actually decompress the page data
+          newPage = page_decompressTranslate(page);
+        
+          *(0x5CFAC) = 0;  
+        }
+        else
+        {
+          page_clearentry(page);
+        
+          *(0x5CFA8)--;
+          *(0x5CFAC) = 0;
+        
+          return;
+        }
+      
+        //NO BREAK! ON TO CASE 4
+      }
+      
+      case 4:
+      {
+        chunk     =  page[0];
+        chunkType = chunk[2];
+        
+        //we handle non-sound/normal chunks normally
+        if (chunkType != 3 && chunkType != 4) 
+        {
+          page_handlechunkentries(page);
+          
+          *(0x5CFA8)--;  //decrement number of page chunk's waiting to have entries handled
+          
+          return;
+        }
+        else
+        {
+          page[0x4] = 10;  //set mode/case to 0xA or 10
+        }
+      
+        //NO BREAK! ON TO CASE 10
+      }
+      
+      case 10:
+      {
+        if (*(0x5CFB4))
+        {
+          if (CID != -1 && CID != page[0x14])
+            return;
+         
+          chunk     =  page[0];
+          chunkType = chunk[2];
+          
+          partNumOffset = 0;
+          if (chunkType == 4)
+          {
+            chunkEntryA = chunk[0x10];
+            chunkItemA = chunkEntryA[0x10];
+            partNum = chunkItemA[0];
+            
+            partNumOffset = *(0x5CFB0) + partNum;
+          }
+            
+          //perhaps something to do strictly with sound chunks
+          result = sub_800145C8(chunkType, partNumOffset);
+          
+          if (result == 0xFFFFFFF4)
+          {
+            page_clearentry(page);
+            
+            *(0x5CFA8)--;
+            
+            return;
+          }
+          else
+          {
+            audioPage = 0x57F40[result * 0x2C];
+            
+            page[0x4]  =        11; //set mode/case to 0xB or 11
+            page[0x24] = audioPage;
+            
+            *(0x5CFB4) = page;
+            
+            audioPage[0x4]  =         11; //also set this to the mode of the audio page
+            audioPage[0x14] = page[0x14]; //and copy the orig page CID
+
+            //still unsure about this subroutine
+            sub_80048A18(audioPage[0x1C]);             
+            
+            chunkEntryA = chunk[0x10];
+            chunkItemA  = chunkEntryA[0x10];
+            chunkItemB  = chunkEntryA[0x14];
+            
+            if (chunkType == 3)
+              sub_800489B8(chunk, 1);
+            else
+              sub_800489B8(chunkItemB, chunkItemA[0x4]);
+        
+            //no break, go to case 11
+          }
+        }
+        
+        case 11:
+        {
+          if (*(0x5CFB4) == page)
+          {
+            cond = (CID ^ chunk[0x14]) < 1;
+            result = sub_80048A88(cond);
+          
+            if (result)
+            {
+              index = page[0x8];  //so sometimes handlechunkentries is passed
+                                  //non-page in arguments
+              page_handlechunkentries(index);
+            
+              *(0x5CFA8)--;
+              *(0x5CFB4) = 0;
+            }
+          }
+        }
+        break;
+        
+        case 13: //case 0xD
+        {
+          if (CID == -1)
+          {
+            page_unknown = page[0x10];
+            
+            if (page_unknown[0] == 0x8765)
+              return;
+          }
+          else
+          {
+            status = CdReadA(0, &statusStorageBuffer);
+            
+            if (status > 0)
+              return;
+          }
+          
+          result = page_decompresstranslate(page);
+          if (result != -1 && page[0x24] != -1)
+            page_process(page+0x2C, CID);  //recursive call to process the next consecutive page using same CID
+          
+          goto case 2;
+        }
+          
+        case 31: //case 0x1F
+        {
+          page[0x4] = 1;   //set back to mode/case 1
+        }
+        break;
+      } 
+    }
+  }
+}
+        
+page_decompresstranslate(page)
+{
+  //s0 = page;
+  //t1 = page[0x1C];
+  //t0 = 0;
+  
+  if (page[4] != 3 && page[4] != 0xD)   //testing a3
+  {
+    NSD = *(0x5C540);
+    
+    pageCID = page[0x14];  //v1
+    pageChunkIndex = (pageCID >> 1);
+    
+    index = NSD[0x41C];  //number of compressed chunks
+    
+    if (pageChunkIndex < index) //if the chunk lies in the index of compressed
+    {
+      compressed = 0 < *(0x5CFC0);    //sub_80015B58 sets this var to 1
+    }
+    else
+      compressed = 0;
+
+    countChunks = page[0x1C];  //t1
+    
+    firstPageMode = page[0x4];
+    while (countChunks > 0)
+    {
+      if (firstPageMode == 2)    //as long as we are on mode 2
+      {
+        page[0xE] = compressed;  //
+        
+        if (compressed)
+        {
+          pageCID        = page[0x14];
+          pageChunkIndex = pageCID >> 1;
+            
+          //these are formatted like so:
+          //OOOOOOOO OOOOOOOO OOOOOOOO OOLLLLLL
+          //L = length (in sectors) of compressed portion of chunk (*2048 for actual byte length)
+          //O = sector offset of chunk in NSF file                 (*2048 for actual address)
+          
+          lengths = &NSD[0x420];
+          length = lengths[pageChunkIndex*4] & 0x3F;  //max length of 64
+          
+          //this is calculating the total number of sectors not needed to be read that will eventually
+          //be expanded to fit the (32 x N) sectors worth of chunks, where N is the number of chunks 
+          //starting from this chunk to the end of the sequence
+          //i.e. this is the space SAVED in sectors by the group of compressed chunks starting at
+          //this chunk to the end of the sequence
+          t0 = (t0 + 32) - length;
+          
+          page[0xC] = t0;
+        }
+        
+        if (firstPageMode == page[0x4])
+        {
+          page[0x4] = 3;        
+        }
+        else
+        {
+          page[0x4] = 0xD;
+          
+          if (compressed)  //if first page was compressed
+          {
+            pageCID        = page[0x14];
+            pageChunkIndex = pageCID >> 1;
+            
+            lengths = &NSD[0x420];
+            length  = lengths[pageChunkIndex*4] & 0x3F;  //max length of 64
+            
+            offset     = (page[0xC] + length) << 11;
+            
+            pageChunk  = page[0];
+            page[0x10] = &pageChunk[offset];
+            
+            pageChunk[0] = 0x8765;  //sh
+          }
+          else
+          {
+            nextChunk  = page[0x2C];  //not a field of the page, but the chunk field of the following page
+            
+            page[0x10]   = nextChunk;
+            nextChunk[0] =    0x8765;
+          }
+        }
+      }
+      
+      countChunks--;
+      page -= 0x2C;
+    }
+
+    return page;  //last page left off on in the sequence
+  }        
+  else
+  {   
+    if (page[0xE] != 0)  //does the page need to be decompressed?  
+    {
+      length = page[0xC];  //length of compressed part of chunk
+
+      dst = chunk;
+      src   = chunk + (page[0xC] << 11);
+      NSF_DECOMPRESS(src, dst);
+    }
+
+    chunk = s0[0];    //pointer to chunk
+    s0[4] = 4;        //and set this chunkinfos case to (4-2) = 2
+
+    numEntries = chunk[8];      //chunk[8] = entry count
+    entriesPtr = chunk + 0x10;          //ptr to (array of offsets to entries) in chunk = t2
+
+    if (chunk[2] != 1)          //if not a texture chunk
+    {
+      v1 = chunk[0];
+      v0 = 0x1234;    //Magic Number for chunk headers
+
+      entryCounter = numEntries - 1;
+
+      if (v1 == v0)
+      {
+        if (entryCounter >= 0)                       //if number of entries is valid for this chunk
+        {
+          entryOffset = (entryCounter*4) + entriesPtr;  //grab the [address of the] offset for the corresponding entry counter value in the chunk    
+                                                        //(this works in reverse)    = a2
+          do
+          {
+            entry = chunk + *(entryOffset);           //now calculate the location of this entry with the offset relative to the chunk = a1        
+            *(entryOffset) = entry;                   //replace this relative offset with the actual location of the entry (so we dont have to calc)     
+            itemCounter = entry[0xC];                  /grab number of items in this entry = a0
+
+            itemsPtr = entry + 0x10;                  //..and grab ptr to (array of offsets of items) in entry = v1
+            if (itemCounter >= 0)
+            {
+              itemsPtr += (itemCounter * 4);          //..but start at the end of the offset array and work in reverse
+              
+              do
+              {
+                *(itemsPtr) = (*(itemsPtr) + entry);  //..and replace these relative offsets with the actual location of items
+                itemCounter--;
+                itemsPtr = itemsPtr - 4;              //..the next item (from last to first)
+              } while (itemCounter >= 0) 
+            }
+
+            entryCounter--;
+            entryOffset = entryOffset - 4;            //...the next entry (from last to first)
+          }
+          while (entryCounter >= 0)
+        }
+      }
+
+      v1 = (numEntries * 4) + entriesPtr;             //
+      *(v1) = *(v1) + itemsPtr;                       // also update the last index
+    }
+                
+    return 0;
+  }
+}  
+         
+          
+
+        
+        
+//There is a main array of pages at 0x5C554.
+//Given the index of a page in the array, this subroutine does the following:
+//
+//  FOR NORMAL CHUNKS:
+//  1) Sets page mode to 0x1E  (designates this sub is currently being called on it)
+//  2) For each entry in the corresponding chunk:
+//     A) Finds the listEntry pair in the listEntryList corrseponding to the entry's EID
+//     B) Replace's the pair's CID with the entry
+//     C) Runs subsystem routine for the entry if != T0
+//  3) Sets page mode to 0x14  (designates this sub is no longer being called on it)
+//
+//  FOR TEXTURE CHUNKS:
+//  TODO
+//
+//  FOR SOUND CHUNKS/WAVEBANK CHUNKS:
+//  TODO    
+
+page_handlechunkentries(pageIndex)
+{
+
+  page = 0x5C554[pageIndex * 0x2C];
+
+  if (page == *(0x5CFAC)) { *(0x5CFAC) = 0; }       
+
+  chunk   = page[0];    //get ptr to chunk's data
+  page[4] =    0x1E;    //set the case to (30-2 = 28)
+
+  chunkType = chunk[2]   //get chunk type
+
+  if (chunkType == 0)      { goto 12FB4; }     //normal chunk
+  if (chunkType == 1)      { goto 13094; }     //texture chunk
+  if (chunkType == 3 or 4) { goto 1317c; }     //sound chunk or wavebank chunk
+
+  if (chunkType < 0 or chunkType == 2 or chunkType >= 5) { goto 132e8; }   //old sound chunk or speech chunk
+
+
+  ---
+
+  12fb4:               
+
+  entry1    = chunk[0x10];            //grab first entry pointer for chunk
+  EID       =   entry1[4];            //grab EID of entry
+  entryType =   entry1[8];
+
+  listEntryListPtrs = *(0x5C530);     //pointer to listEntry lists
+
+  majorID = (EID >> 13) & 0x3FC;
+
+  listEntryList = listEntryListPtrs[majorID];
+
+  if (listEntryList == 0) { goto 132e8; }
+
+  count = 0;
+
+  listEntryEID = (listEntryList[4]);  //grab the eid for the first listentry/(entry/eid pair)
+
+  do
+  {
+    //chunk = page[0];
+    entry = chunk[0x10 + (count * 4)];  //for each entry in the chunk
+
+    listEntry     = listEntryList[0];
+    listEntryEID  =     listEntry[4];
+
+    EID           =         entry[4];
+
+    foundIndex = 0;
+    if (listEntryEID != EID)
+    {
+
+      do
+      {
+        foundIndex    +=                            8;            //go to next listEntry
+        listEntry      =    listEntryList[foundIndex];  
+        listEntryEID   =                 listEntry[4];
+
+      } while (listEntryEID != EID)                  //keep trying till we find the listEntry with our entry's EID
+
+    }
+
+    listEntry    = listEntryList[foundIndex];
+    listEntry[0] =                     entry;        //update the listEntry with our entry's EID to point to our entry
+
+    page[0xA]++;                     //add to counter for num of list entries to process
+
+    entryType = entry[8];
+  
+    if (entryType != 0)
+    {
+      count++;
+      (subsystemRoutines[4][entryType](entry));  //call the proper subsystem routine for this entry type
+    }
+
+    page[0xA]--;
+
+    chunk  = page[0];
+    numEntries = chunk[8];
+  } while (count < numEntries)
+    
+goto 132e8
+
+
+-----------
+
+13094:       //here if we're handling a texture chunk
+
+index = sub_8001439C();  //seems to find index of first page (working backwards) on case 1 or 0x15
+
+if (index != 0xFFFFFFF4 || page[0xA] != 0)
+{
+  if (index == 0xFFFFFFF4) { index = 0x15; }
+
+  indexcopy = index;
+
+  //v0 = index*0x2C
+  init16infos = 0x580A0;
+  if (index < 0)
+    indexcopy+=3;
+  
+  newPage = texturePages[index*0x2C]; //s1
+
+  gp[0x24] = (indexcopy % 4) * 256;
+  gp[0x26] = (indexcopy / 4) * 128;
+
+  texChunk = page[0];
+  LoadImage(0x56420, texChunk);      //get orig texture chunk  
+
+  listEntry = EID_FINDLISTENTRY(newPage[0x18]); //find position in the list
+
+  newPage[4]    =            0x14;      //set new page case
+  newPage[0x14] =      page[0x14];      //same CID
+  newPage[0x18] =     texChunk[4];      //since texture chunks have EID at index 4
+  newPage[0x20] =       listEntry;
+
+  listEntry[0] = newPage[0x1C]; //setting CID/entry field of the corresponding list entry
+}                               //does this maybe correspond to bit 2 somehow?
+							    //EDIT: this is VERY important!
+								//TEXTURE CHUNKS use the entryLists differently than normal 'entrys'
+								//instead of linking the EID of the associated texture chunk with an entry
+								//(for it doesnt actually refer to an entry, but chunk data)
+								//..calling EID_PROCESS on the EID associated with the texture chunk will return
+								//the bitfield involved with determining the proper location of the texture chunk
+								//in the gpu frame buffer
+								
+CID                     = page[0x14];		  
+page[4]                 =          1;
+0x5CFBC[(CID >> 1) * 4] =    newPage;  //what if newPage never initialized
+return index * 2;                           //due to if statement above?
+
+------
+
+132e8:
+  chunk = page[0];
+  page[4]  = 0x14;
+
+return chunk;
+---------
+==================================================================================
+
+1) Sets a page's mode to 1
+2) Clears (places 0xFFFFFFEE) at its location in the CIDlist 
+
+page_clearentry(page)
+{
+  CID = page[0x14];
+ 
+  page[4] = 1;  //set mode to 1
+  
+  CIDlistIndex    = &0x5CFBC[(CID>>1) * 4];
+  *(CIDlistIndex) = 0xFFFFFFEE;
+}
+
+-----------------------
+
+
+//1) Resolves an EIDorlistEntryPtr to a listEntryPtr (if not already)
+//2) Checks the pointed listEntry:
+    
+If entry(ptr)/EID pair:
+==
+1) if increment argument is 0 then JUST return the entry from the pair
+
+2) otherwise find the main page that refers to a chunk containing the entry from the pair (if cant find or no main pages return 0)
+3) -if flag set: 
+     LIST_ENTRYPROCESS with its CID and the EID of the entry from the pair 
+     increment the resultant pages field[0xA] if its a valid one
+     return the entry if the listEntry is still an entry/EID pair, else return 0
+   -if flag not set:
+     =if the main page has a CID that has an empty (0xFFFFFFEE) CIDlist entry: 
+        go through non-main pages and dedicate the first one on case 1 to this chunk/entry 
+        (setting CID/EID/some other fields -see below- and creating its reference in the CIDlist)
+     =otherwise set this page's EID to the entry's EID and increment field [0xA]
+     -return the entry
+
+If CID/EID pair:
+==
+   -if flag set: 
+     LIST_ENTRYPROCESS with the pairs CID and EID 
+     increment the resultant pages field[0xA] if its a valid one
+     return the entry if the listEntry is still an entry/EID pair, else return 0
+   -if flag not set:
+     =if the main page has a CID that has an empty (0xFFFFFFEE) CIDlist entry: 
+        go through non-main pages and dedicate the first one on case 1 to this chunk/entry 
+        (setting CID/EID/some other fields -see below- and creating its reference in the CIDlist)
+     =otherwise set this page's EID to the entry's EID and increment field [0xA]
+     -return the entry
+      
+
+//1) resolve the pair in the entry hash for the specified EID 
+     (or use directly if argument specified as a pair)
+//2) if the pair has been processed/contains an entry rather than a CID
+     find the ACTIVE page allocated for the chunk that contains the entry if it exists
+     and use that pages CID, effectively resolved
+//3) if flag is set:
+       if one has not already been allocated, allocate a new page for the chunk with CID (and process)
+       else if page allocated for chunk with CID has 
+       field[6] == 0: create a copy of the page (and process)
+       field[6] == 1: reuse the page (but replace the reference EID) (and process if not case 0x14)
+       field[6] == 2: reuse the page
+       field[6] == 3: reuse the page
+       
+       
+sub_80015118(EIDorlistEntryPtr, flag, increment):
+{
+  if (EIDorlistEntryPtr == 0x6396347F) { return 0xFFFFFFF6; } //if arg is an EID and an invalid one
+
+  //to help make this union easier to understand...
+  EID          = EIDorlistEntryPtr;
+  listEntryPtr = EIDorlistEntryPtr;
+
+  //check: do we have an EID or a pointer to a listEntry?
+  if ((EIDorlistEntry & 1) != 0)              
+    *(listEntryPtr) = EID_FINDLISTENTRY(EID); //if its an EID, then replace it with a resolved ptr to its 
+                                              //listEntry
+
+  //at this point we will always have a listEntry
+  listEntryCIDorentry = listEntry[0];         //first field of the listEntry is either CID or entry (pointer)
+                                              
+  //check: is the listEntry pair an CID/EID or entry(ptr)/EID?
+  if (listEntryCIDorentry & 1 == 0)           //if its an entry (pointer)
+  {
+    entry = listEntryCIDorentry; 
+      
+    //if flagB of function arguments not set:
+    if (!increment) { return entry; }         //then just return the entry                           
+
+    //otherwise we want to find the chunk that contains this entry (looping through chunks referred to by main pages)
+    pageFound = 0;                     
+    if (entry & 2 == 0)                       //if entry (pointer) refers to a valid word-aligned address
+    {
+      count = physicalPageCount;
+
+      counter = 0;
+      if (count > 0)
+      {
+        do
+        {
+          chunk = physicalPages[counter].chunk; 
+           
+          if (entry < chunk || entry > (chunk + 0x10000)) //if the entry lies outside the chunk memorywise, then keep trying pages
+            counter++;
+          else                                                 
+            pageFound = physicalPages[counter];        //till we find the page referring to the chunk that contains this entry
+        }
+        while (counter < count)
+      }
+    }
+       
+    if (!pageFound)                                  //if we dont even find the page referring to the chunk that contains the entry (granted we had a valid entry address and chunk count)
+      return listEntry[0];                           //then return 0
+
+    //else we found the page whos chunk has our entry
+    CID = pageFound.CID;                             //grab that chunks CID
+    EID =      entry.ID;                             //and grab the entrys EID
+  }
+  else
+  {
+    CID = listEntry[0];
+    EID = listEntry[4];
+  }
+
+  if (flag) 
+  {
+    page = LISTENTRY_PROCESS(CID, EID);                 
+    if (page != 0xFFFFFF01)      { page[0xA] += increment; }
+    if (listEntry[0] & 1 == 0)   { return entry; }
+    else                         { return     0; }
+  }
+  else
+  {
+    page = CIDlist[(CID >> 1) * 4];
+          
+    if (page != 0xFFFFFFEE) 
+    {
+      if (page != 0xFFFFFF01)
+      {
+        page.EID   =       EID;  
+      }
+      
+      page[0xA] += increment;
+      return listEntry[0];
+    }
+    else                                          //the main page referring to the chunk that contains the entry has the CID of a position in the CIDlist that has been cleared
+    {
+      virtualPages = 0x5C920;
+      if (*(0x5C91C) > 0)                      
+      {
+        do                                        //so find the first unused (case 1) nonmain page 
+        {                                         //and set it up with our CID and EID etc..
+          page     = virtualPages[count*0x2C];
+          pageCase =                  page[4];     
+          if (pageCase == 1)                            
+          {
+            page[4] = 2;                     //set case to 2 (use)
+                 
+            page[0x14] = CID;
+            page[0xA]  =   0;
+            page[0x18] = EID;                  
+            page[0x28] = *(0x34520);         //also this
+                 
+            *(0x5CFA8) = *(0x5CFA8) + 1;          //increment CIDlist 'valid page' count
+            CIDlist[(CID>>1) * 4] = page;    //and add it to the right place in the CIDlist
+            if (page != 0xFFFFFF01)
+            {
+              page[0xA] += flagB;            //additionally increment w/this count
+            }
+
+            return listEntry[0];                
+          }
+
+          count++;
+        } while (count < *(0x5C91C))
+      }
+    }
+  }
+  
+  return entry;
+}
+
+//returns the number of pages not yet allocated for the given
+//list of EIDs
+sub_8001579C(list, count)
+{
+  //s4 = count
+  //s1 = 0;
+  //s3 = 0
+  //s0 = 0
+  
+  //s5 = 0x10000
+  
+  //s2 = list
+  //s6 = physicalPages
+  
+  listItem = list;
+  for (lp = 0; lp < count; lp++)
+  {
+    EIDorhashEntryPtr = listItem[0];
+    EIDorhashEntry = *(EIDorhashEntryPtr);
+    
+    if (EIDorhashEntry & 1)
+    {
+      EID       = EIDorhashEntry;
+      hashEntry = EID_FINDLISTENTRY(&EID);
+  
+      EIDPtr    = listItem[0];
+      EIDPtr[0] = hashEntry;  //replace the EID pointer with the hash entry pointer
+    }
+    else
+      hashEntry = EIDorhashEntry;
+
+    CIDorEntry = hashEntry[0];
+    
+    if (CIDorEntry & 1 == 0)  //if we have an entry or texture page info/wavebank info
+    {
+      if (CIDorEntry & 2 == 0) //if not texture page info or wavebank info
+      {
+        entry = CIDorEntry;
+        if (physicalPageCount > 0)
+        {
+          countB = 0;
+          
+          physicalPage = physicalPages;
+          do
+          {
+            chunk = physicalPage[0];
+            if (entry >= chunk && entry < chunk + 0x10000)
+              break;
+
+            countB++;
+          } while (countB < physicalPageCount);
+
+          if (countB == physicalPageCount)
+            page = 0;
+          else
+            page = physicalPage;
+        }
+      }
+      else
+        page = 0;
+        
+      if (page)
+      {
+        if (page[0x4] == 1 || page[0xA] == 0) 
+          freeCount++;
+      }
+    }
+    else
+    {
+      CID = CIDorEntry;
+      
+      index = (CID >> 1);
+      
+      if (CIDlist[index*4] == 0xFFFFFFEE)
+      {
+        if (s1 > 0)
+        {
+          countB = 0;
+          do
+          {
+            
+            if (CID == tempList[count*4])
+              break;
+              
+            countB++;
+          } while (countB < s1);
+        }
+        
+        if (countB == s1)
+        {
+          freeCount++;
+          s1++;
+          
+          //keep a temp cache of CIDs used so we don't add again for
+          //the same chunk/page
+          tempList[s1*4] = CID; //is this right?
+        }
+      }
+      else
+      {
+        if (CIDList[index*4] != 0xFFFFFF01)
+        {
+          if (page[0xA] == 0)
+            freeCount++;
+        }
+      }
+    }
+  }    
+  
+  return freeCount;
+}
+
+--------------------------------------------------------------------------
+
+
+sub_80014514(int index)  //clears old/allocates a new texture chunk
+{
+  init16infos = 0x580A0;
+  
+  page = &init16infos[index*0x2C];
+  
+  if (page[4] == 0x14)
+  {
+    listEntry = page[0x20];
+    CID       = page[0x14];
+    
+    listEntry[0] = CID;  //replace entry pointer with CID if there is
+    CIDlist[(CID >> 1) * 4] = 0xFFFFFFEE;  //clear its entry in the CIDlist
+  }
+  
+  if (page[4] == 0x14 | 0x15)
+  {
+    page[4] = 1;
+  }
+  
+  return 0xFFFFFF02;
+}
+    
+------------------------------------------------------------------
+
+//returns num of available pages?
+sub_800156D4()
+{
+  //v1 = physicalPageCount
+  //v0 = virtualPageCount
+  //a2 = physicalPageCount
+  //a3 = virtualPageCount
+  //a1 = virtualPages
+  
+  count = 0;
+  total = physicalPageCount;
+  if (virtualPageCount > 0)
+  {
+    do
+    {
+      page = virtualPages[count*0x1C];
+      
+      if (page[4] != 1 && page[0xA] != 0)
+         total--;
+      
+      count++;
+    } while (count < virtualPageCount);
+  }
+  
+  count = 0;
+  if (physicalPageCount > 0)
+  {
+    do
+    { 
+      page = physicalPages[count*0x1C];
+
+      if (page[4] != 1 && page[0xA] != 0)
+        total--;
+
+      count++;
+    } while (count < physicalPageCount);
+  }
+  
+  return total;
+}
+

@@ -1,0 +1,95 @@
+**FIXED POINT CONVERSION:
+
+SIIIFFFFFFFFFFFF
+
+S = SIGN
+I = INTEGRAL PORTION
+F = FRACTIONAL PORTION
+
+VALUE = (-1^S) * ((F/4096) * I);
+
+
+coordinates/coordinate systems formats
+======================================
+
+l = local coordinates
+d = << 8 local coords
+
+f = fixed point coordinates (>> 12 to convert to local coordinates, loses precision)
+o = object coordintes (<< 2 to convert to local coordinates)
+w = world coordinates (<< 3 to convert to local coordinates)
+
+Ml  = model  position vector (from T3 entry index 0,4,8), 32 bit/word size components
+Cd  = camera position vector (only upper 24 bit decimal portion, implies a shift right by 8 for calculations)
+Cl  = camera position vector (entire 32 bit float point value)
+
+Rf  = rotation matrix (composed from X, Y, and Z rotation matrices respectively, deriving from the standard      
+                       rotation matrices for the corresponding angle values per axis)
+      entries are FIXED POINT values (1 sign 3 decimal 12 fractional, range = -8.00 <-> 8.00, 0x1000 = 1.0)
+
+RVf = calculated rotation matrix (after translation, scale and flip by 5/8 in y, also flip in z)
+
+To get 'translation values' to send to the GTE:
+RVf(Ml - Cl)/4096
+(dividing by 4096 makes up for multiplying by a fixed point matrix)
+
+Pw  = WGEO point (from a polygon)
+
+wgeo polygon points are the following scale in fixed point:
+
+  PPPPPPPPPPPPP000     = coordinate  format
+  SDDDFFFFFFFFFFFF     = fixed point format
+
+  therefore the coordinate can be broken into:
+
+  SDDDFFFFFFFFF
+
+  then the formula for calculating the actual 'value' that the gte claims to interpret:
+
+  ((-1^S)*D) + F/512
+
+Unlike world position-which is given directly in local coordinates-object position is
+given in object coordinates, just like its vertices; this is first converted to local 
+coordinates and then added to the relative zone coordinates to get the total object model position
+--------------------------------------------------------------------------------------
+
+Po   = TGEO point (from a polygon)
+Zl   = zone position
+MZo  = object/model position relative to zone position
+       (when Mz is loaded from the object entity, where the path of vectors is described, it also << 2)
+MZl  = object/model position relative to zone position (<< 2)
+       shifted left 2 indicates the conversion to local coordinate system
+Ml   = total object model/position
+
+to calculate model position (which is stored as CVectors, naturally << 8):
+
+  MZl = (MZo << 2)
+  Ml  = (MZl + Zl) << 8;
+
+then when rendering, pre-translation with the GTE is done by setting the values for TR
+
+  TR = Rv(Ml - Cl) >> 8;
+  
+  when rendering this model position is 
+To   = model offset          (<<2 before summed with Ps...)
+Po   = total point position  (<<2 to sum with T so that it can be sent to GTE as a fixed point value)
+Oo   = [-128]
+       [-128]
+       [-128]
+
+To get 'translation values' to send to the GTE:
+
+  Rv(Ml - Cl)
+
+tgeo polygon points are the following scale in fixed point
+
+  TTTTTTTTTTTTTT00
++ 000000PPPPPPPP00
+  ----------------
+= SDDDFFFFFFFFFFFF
+= total vertex position
+  M = translate
+
+Pl  = (Ml + ((Oo + Po) << 2) )
+  
+Fixed point value = (Ml + ((Oo + Po) << 2) )/4096

@@ -1,0 +1,159 @@
+NOTE: THIS GUIDE IS DEPRECATED
+
+-----------------
+-  T11 ENTRIES  - 
+-----------------
+
+  6 item entries containing the proper GOOL code for some object and the structures necessary               to create an instance of a 'process' for the item)
+
+----------
+
+ITEM 1: HEADER  (0x18 bytes)
+---
+0x0:  object type this code corresponds to (corresponds to index in list of 64 code entries in NSD)
+0x4:  executable type/object subtype?
+0x8:
+0xC:  initial stack frame  (up to 7 max frames?)
+0x10: list item offset
+0x14: 
+
+-----
+
+ITEM 2: GOOL CODE (??? bytes)
+
+
+
+
+----
+
+ITEM 3: GOOL DATA 
+
+
+
+----
+
+ITEM 4: LIST ITEMS  (the game provides an index into THIS list)
+
+a list of halfwords is here:
+
+ these halfwords each refer to one of the frame information structs
+ if a halfword is 0x00FF, then this is a null list item  
+ 
+
+
+----
+
+ITEM 5: FRAME INFORMATION:  (contains FRAMEINFO_SIZE of these structs)
+
+struct
+{
+
+  word header;        //seems to always be '1', object's gool struct's [0x120] is set to this
+  word header2;       //seems to always be either '2' or '0', object's gool struct's [0xD0] is set to this
+  hword EIDListIndex; //this index refers to an EID in ITEM 3, whose entry holds the gool code for the frame
+  hword codePtrA;     //refers to an index into gool code (object's gool struct's [0xEC] is set to this)
+  hword codePtrB;     //refers to an index into gool code (object's gool struct's [0xE8] is set to this)
+  hword initialPC;    //refers to an index into gool code (object's gool struct's [0xE0] is set to this)
+
+} frameinfo[FRAMEINFO_SIZE];
+
+additionally: codePtrA, codePtrB, and initialPC refer to an null index into gool code if they are 0x3FFF
+
+---
+
+ITEM 6: DISPLAY INFORMATION:
+
+contains structures describing animation sequences for the object
+
+(first byte determines type)
+
+type 1
+*******
+struct
+{
+  byte type = 1;
+  byte unused;
+  byte frameCount;
+  byte unused;
+  
+  word svtx;    //EID for the SVTX model entry with each item as the anim frames
+}
+
+this is the simplest of types, used for most objects?
+svtx is the EID for the svtx entry containing the models for each frame in the 
+sequence; has 'frameCount' frames
+
+for this type, color information is additionally to be copied from the 
+zone containing the object if bit 21 of it's 0xCC bitfield is set
+ 
+type 2
+*******
+struct
+{
+  byte type = 2;
+  byte unused;
+  byte frameCount;
+  byte unused;
+  
+  word tPage;    //texture chunk/page EID
+  struct         //just like the color/texture pairs from model entries
+  {
+    word colorinfo;     
+    word textureinfo;
+  } ctInfo[frameCount];
+}
+
+describes a separate square for each frame of the object, this square to
+be transformed and rendered as a textured blended 4-point polygon primitve
+ 
+NOTES: since the square dimensions aren't indicated in the struct, 
+a process created for the code entry will render its object by calculating
+ 
+  200 * 2^(scale.x/27279)
+
+where scale.x is the x component of the process/object's scale vector
+
+this value is used as both x & y dimensions of the generated texture blended
+square primitive corresponding to the texture/color information listed
+in the structure
+
+type 4
+*******
+undocumented
+
+-seems to be a 'font'/'text' item??
+calls to sub_8001E7D8 which handles similar to the other types but then
+calls an undocumented sub above it which has calls to atoi 
+
+type 5
+*******
+struct
+{
+  byte type = 5;
+  byte unused;
+  byte frameCount;
+  byte unused;
+  
+  word tPage;    //texture chunk/page EID
+  word rectCount;
+  
+  struct         //just like the color/texture pairs from model entries
+  {
+    word colorinfo;     
+    word textureinfo;
+    hword y2;
+    hword x2;
+    hword y1;
+    hword x1;
+  } ctInfo[rectCount][frameCount];
+}
+
+describes multiple rectangles that compose a mini 'model' for each frame 
+of the object; these are to be transformed and rendered as multiple textured 
+blended 4-point polygon primitves corresponding to the texture/color 
+information listed in the structure for each rectangle (for that frame)
+
+
+
+
+ 

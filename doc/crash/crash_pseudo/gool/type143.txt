@@ -1,0 +1,256 @@
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE 0x8F/143):
+
+//...
+GOOL OPCODE TYPE:
+
+________ DDDCCCBB BBBBAAAA AAAAAAAA
+
+//for type 0x87:
+// 1) clears bit 14 of statusA
+// 2) issues event specified in value of translated abits
+//    from process to one of its links (specified by dbits)
+//    (bbits is index of a proc link that additionally must 
+//     exist before issuing the event; else process 
+//     multi-purpose data field cleared if this or any 
+       other specified inputs are null)
+//    cbits determines how many words to peek back from the 
+//    stack to send as data array with the issued event
+// 3) bit 14 checked if still cleared
+      -if cleared then finally pop the data words sent with
+      event from stack
+      -if set then:
+        -if interpreter status flags bit 2 set then halt
+         execution
+        -otherwise, only pop a single word
+        
+
+if (abits != 0xE00) //111000000000
+{
+  a0   =        process;
+  a1   =          abits;
+  addr = sub_8001FB34(); 
+}
+else
+{
+  if (fp == abits)
+  {
+    addr = &process[0x60 + ((abits & 0x1FF) * 4)];
+  }
+  else
+  {
+    process[0xDC] = process[0xDC] - 4;
+
+    addr = process[0xDC];
+  }
+}
+
+//t0 = addr
+
+process[0xC8] = process[0xC8] & 0xFFFDFFFF; //clear bit 14
+
+if (bbits == 0x1F)
+{
+  data = process.pop();
+}
+else
+{
+  data = process[0x60 + (bbits*4)];
+}
+
+if (data == 0 || addr == 0 || (s5 != 0x8F && var_60 == 0))
+{
+  process[0xF4] = 0;
+}
+else
+{
+  if (cbits)  //else a0 = 0
+  {
+    //peeks 'cbits' words off the stack (back from current position)
+    count = 0;
+    do
+    {
+      stackoffset = (count - cbits) * 4;
+	
+  	  stackpos    = process[0xDC] + stackoffset;
+	
+	    stackdata = *(stackpos);
+	
+	    var_B0[(count*4)] = stackdata;
+	
+	    count++;
+    } while (count < cbits)
+  }
+
+  if (s5 == 0x8F)
+    sub_80025134(process, *(addr), dbits, &var_B0);
+  else if (s5 == 0x87)
+    sub_80024040(process, var_60, *(addr), &var_B0);
+  else if (s5 == 0x90)
+    sub_800251B8(process, var_60, *(addr), dbits, cbits, &var_B0);	 
+}
+
+if (process[0xC8] & 0x20000 == 0)
+{
+  process.popback(cbits*4);  //now pop the words back
+  
+  next instruction
+}
+else
+{
+  if (var_70 & 2 == 0) { process[0xDC] -= 4;  next instruction; }
+  else                 { end execution returning 0xFFFFFF01; }
+}
+
+
+   
+sub_80025134(recipient, event, mode, count, args)
+{
+  objLists = 0x60DB8;
+  
+  struct = { recipient, event, count, mode, 0, args };
+  
+  for (int lp = 0; lp < 8; lp++)
+  {
+    sub_8001B92C(objLists[lp], sub_80024CC8, struct);
+  }
+  
+  return 0xFFFFFF01;
+}
+
+//tests for collision in 1 of 5 different ways between 'obj' and
+//the object specified in 'struct' before issuing a specified event 
+//in struct from 'obj' to the object specified in struct (if the 
+//collision test passes). counter in struct is incremented for a
+//collision test pass
+
+sub_80024CC8(obj, struct)
+{
+                                V-----this incremented in default case
+  //struct:  { 0, 0x1300, 0, 0, 0, 0 } 
+                             ^___case based off of 0xC
+
+  case = struct[0xC];                       
+
+  switch(case)
+  {
+    case 4:            
+   
+    codeEntry  = obj[0x20];       
+    codeHeader = codeEntry[0x10];
+    codeType   = codeHeader[4];       
+
+    if (codeType == 0x300 || codeType == 0x400) { goto case 1; }  //if an enemy
+    else { return 0xFFFFFF01; }
+  
+    case 1:           
+
+    objVol.X1 = obj[8]    + obj[0x80];
+    objVol.Y1 = obj[0xC]  + obj[0x84];
+    objVol.Z1 = obj[0x10] + obj[0x88];
+         
+    objVol.X2 = obj[0x14] + obj[0x80];
+    objVol.Y2 = obj[0x18] + obj[0x84];
+    objVol.Z2 = obj[0x1C] + obj[0x88];
+  
+    structObj = struct[0];   
+                    
+    structObjVol.X1 = structObj[8]    + structObj[0x80];
+    structObjVol.Y1 = structObj[0xC]  + structObj[0x84];
+    structObjVol.Z1 = structObj[0x10] + structObj[0x88];
+                                        
+    structObjVol.X2 = structObj[0x14] + structObj[0x80];
+    structObjVol.Y2 = structObj[0x18] + structObj[0x84];   
+    structObjVol.Z2 = structObj[0x1C] + structObj[0x88];
+
+    colliding = isColliding(objVol, structObjVol);
+
+    if (!colliding) { return 0xFFFFFF01; }
+    else            { goto default case; }
+
+    case 3:                    //like case 4, except goto case 2 when the test passes
+
+    v0 = arg_a0[0x20];   //entry that initialized the process
+    v0 = v0[0x10];       //item1
+    v1 =    v0[4];       //second word
+
+    if (v1 == 0x300) { goto case 2; }
+    if (v1 != 0x400) { return 0xFFFFFF01; }
+
+    case 2:          
+
+    structObj = struct[0];   
+                    
+    structObjVol.X1 = structObj[8]    + structObj[0x80];
+    structObjVol.Y1 = structObj[0xC]  + structObj[0x84];
+    structObjVol.Z1 = structObj[0x10] + structObj[0x88];
+                                        
+    structObjVol.X2 = structObj[0x14] + structObj[0x80];
+    structObjVol.Y2 = structObj[0x18] + structObj[0x84];   
+    structObjVol.Z2 = structObj[0x1C] + structObj[0x88];
+    
+    colliding = isColliding(&obj->process[0x80], structObjVol);
+    
+    if (!colliding) { return 0xFFFFFF01; }
+    else            { goto default case; }  //something with var_40 when go to 
+
+    case 5:           
+
+    v0 = arg_a0[0x20];   //entry that initialized the process
+    v0 = v0[0x10];       //item1
+    v1 =    v0[4];       //second word
+
+    if (v1 == 0x300) { skip check of if v1!=0x400; }
+    if (v1 != 0x400) { return 0xFFFFFF01; }
+
+    objVol.X1 = obj[8]    + obj[0x80];
+    objVol.Y1 = obj[0xC]  + obj[0x84];
+    objVol.Z1 = obj[0x10] + obj[0x88];
+                
+    objVol.X2 = obj[0x14] + obj[0x80];
+    objVol.Y2 = obj[0x18] + obj[0x84];   
+    objVol.Z2 = obj[0x1C] + obj[0x88];
+
+    structObj = struct[0];
+
+    structObjVol.X1 = structObj[0x80] - structObj[0xB0];
+    structObjVol.Y1 = structObj[0x84] - structObj[0xB4];
+    structObjVol.Z1 = structObj[0x88] - structObj[0xB8];
+
+    structObjVol.X2 = structObj[0x80] + structObj[0xB0];
+    structObjVol.Y2 = structObj[0x84] + structObj[0xB4];
+    structObjVol.Z2 = structObj[0x88] + structObj[0xB8];
+    
+    colliding = isColliding(objVol, structObjVol);
+
+    if (!colliding) { return 0xFFFFFF01; }
+    else         
+    {
+
+      count = struct[0x10];
+
+      if (count >= 3)
+      {
+        if ((count/5)*5 != count) //i.e. if we are NOT at a mult of 5
+        {
+          return ++struct[0x10];  //increment and return the count
+        }
+      }
+      
+      goto default case
+    }
+
+    default:                             
+
+    struct[0x10]++;
+
+    sender = struct[0];
+    recipient = obj;
+    event = struct[4];
+    argCount = struct[8];
+    args = struct[0x14];
+    
+    issueEvent(sender, recipient, event, argCount, args);
+ 
+    return 0xFFFFFF01;
+  }
+}

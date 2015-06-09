@@ -1,0 +1,462 @@
+Process Type [0x0] (type 0 = null, type 1 = normal, type 2 = only 2 words in size (has only type and children fields)) 
+-------------------
+
+for type 2: Process Children [0x4]
+else      : Process Subtype  [0x4]
+---------------------------
+
+Process bounding box    [0x8]
+-----------------------------
+Process bounding box X1 [0x8]
+Process bounding box Y1 [0xC]
+Process bounding box Z1 [0x10]
+Process bounding box X2 [0x14]
+Process bounding box Y2 [0x18]
+Process bounding box Z2 [0x1C]
+
+Process misc                     [0x20]
+---------------------------------------
+Process instantiating code entry [0x20]
+Process external code entry      [0x24]
+Process current zone entry       [0x28]
+Process current subroutine ID    [0x2C]
+
+
+Process color/shading/lighting information [0x30]
+------------------------------------------------
+- x component?                             [0x30]
+- y component?                             [0x32]
+- z component?                             [0x34]
+- x component?                             [0x36]
+- y component?                             [0x38]
+- z component?                             [0x3A]
+- x component?                             [0x3C]
+- y component?                             [0x3E]
+- z component?                             [0x40]
+- background color RED                     [0x42]
+- background color GREEN                   [0x44] 
+- background color BLUE                    [0x46]
+- color matrix R1                          [0x48]
+- color matrix R2                          [0x4A]
+- color matrix R3                          [0x4C]
+- color matrix G1                          [0x4E]
+- color matrix G2                          [0x50]
+- color matrix G3                          [0x52]
+- color matrix B1                          [0x54]
+- color matrix B2                          [0x56]
+- color matrix B3                          [0x58]
+- background color RED intensity           [0x5A]                                       [0x5A]
+- background color GREEN intensity         [0x5C]
+- background color BLUE intensity          [0x5E]
+
+=============================================
+= Process PUBLIC attributes starting [0x60] =
+=============================================
+
+Process link fields (8) from [0x60]-[0x7F]
+----------------
+- Process self link     [0x60]
+- Process parent link   [0x64]
+- Process sibling link  [0x68]
+- Process children link [0x6C]
+
+- Process misc link A   [0x70] (used for pointing to parent when gool instruction 138 instantiates multiple child processes)
+- Process misc link B   [0x74] (seems to point to crash)
+- Process misc link C   [0x78] (colliding object)
+- Process misc link D   [0x7C]
+
+Process vector fields (6) from [0x80]-[0xC7]
+-----------------
+- Process translation vector [0x80]-[0x8B] 
+- Process facing angle vector[0x8C]-[0x97]   (Y, X, Z)??
+- Process scaling vector     [0x98]-[0xA3]
+- Process velocity vector?   [0xA4]-[0xAF]
+  
+  NOTE: for boxes, these fields CAN refer to ptrs for a doubly linked list of 
+  nearby boxes (when the highest bit is set):
+  [0xA4] = previous box
+  [0xA8] = next box  
+  [0xAC] = ?
+  
+  when the boxes are falling, however, they can only have a positive Y 
+  velocity, and since pointers, just like negative values, have the highest 
+  bit set, when this is NOT the case, these values -are- a velocity value
+  
+- Process angle of approach? [0xB0]-[0xBB]
+- Process vector F [0xBC]-[0xC7]  (set to initial angle << 8)
+
+Process status field [0xC8] (event status?)
+------------
+bit 1   - has been stopped by solid ground
+bit 2   
+bit 3   - set = progressing backward from path, clear = progressing forward with path
+bit 4   - set = was rotating clockwise, clear = was rotating counter clockwise
+bit 5   - transitioning from forward to backward/vice versa in path travel
+bit 6   - set as coming off/onto the ground, 
+          set after spinning
+          set at process init, sub_8001D698
+          (changing animation?)
+          (EDIT: seems to clear after handling code 
+          till it reaches next animation instruction)          
+bit 7   
+bit 8   - hit from bottom - set when collision check does not pass?
+bit 9   - set when upside-down in a jump (not stopped by a wall?)
+bit 10
+bit 11  - set when collide with an octree node and it triggers event
+bit 12  - cleared when spinning, reset by sub_243A0
+bit 13  - colliding with the object in field 0x78 when subtracting field 0x148 worth of bounds to the total bound volume 
+bit 14  - bouncing?? see sub 1f30c
+bit 15  - set at a bounce and break a box?
+bit 16  - bounding box needs recalculating
+bit 17  - set for event handlers 0x1800, 0x1900
+bit 18  - has changed state (atop the floor, not atop solid scenery/wall?)
+bit 19  - on the ground
+bit 20  - ? box sets this at end of its init routine
+bit 21  - set right after bounce from box/enemy?
+bit 22  - collide with a box/enemy? 
+          (atop a box/enemy but its not necessarily breaking/dying)
+bit 23  - overrides an initial test in determining the highest object below the source?
+          adds an additional 0x19000 in groundoffset calculation?
+          
+bit 32
+
+Process status field 2 [0xCC]
+------------
+bit 1 - rotates in XZ plane based on approaching angles: see physics engine (cleared during spin?) 
+...
+bit 4 - object is stopped by solid surfaces (see bit 7)
+bit 5 - records space occupied by object and pointer to object in a space pair for this frame 
+bit 6 - falling/gravity flag (affects y velocity by always subtracting gravity from it as long as this flag is set)
+bit 7 - object constantly displaced by some external force (velocity vector)
+        when bit 4 is set this acts by executing the [large] solid terrain collision
+        subroutine and performing the displacement from there rather than the default 'pure' 
+        displacement
+...
+bit 9 - skips the latter half of 1DA0C
+...
+bit 11 - something with texts/force no alternative lighting
+...
+bit 13 - object has air resistance? (miscB acts as velocity cap for both pos and neg velocitys)
+bit 14 - rotates in YZ plane based on approaching angles: see physics engine
+bit 16 - object travels along its path by default
+...
+bit 18 - sprite stuff?
+bit 19 - disable frustum culling?
+...
+bit 21 - shade based on zone flag
+...
+bit 25 - sub_8001D11C will not issue the 0x1A00 event or terminate an obj if this set 
+bit 26 - skips either of the process executable type checks in 1DA0C
+bit 27
+bit 28
+bit 29
+bit 30
+bit 31
+bit 32  - checked first thing at process init if subid not null, 
+          cleared in 1DA0C when the counter field [0x104] reaches 0,
+          allows the collision check in GOOL instruction 0x83 
+          to grab next instruction if not colliding
+          (determines whether object should collide?)
+          forces more elaborate screen culling check (based on
+          object projected 2d area rather than projected 2d mid-
+          point)
+
+Process status field [0xD0]
+-------------
+bit 1
+bit 2 - passes check in wall plotting
+
+-initially set to the header field of the instantiating T11 entry
+for any bits that match the 'header' from the process code item 5, subroutines
+can not be jump and linked (i.e. j subid) 
+
+Process initial routine [0xD4]
+---------------
+
+
+
+Process ID [0xD8]
+---------------
+left 3 bytes determine the index into the 'process bitlist' (from field 8 of the entity)
+right byte's purpose currently unknown
+
+bitlist bits:
+bit 1 - valid process flag (is this an existing or a terminated process?)
+bit 2 - ?
+bit ...
+bit 8 -
+
+Process Stack Pointer [0xDC]
+
+Process Program Counter [0xE0]
+
+Process Frame Pointer [0xE4]
+
+Process Code pointer 1 [0xE8]
+---------------
+Points to code that executes per frame
+
+Process Code pointer 2 [0xEC]
+---------------
+Points to code that determines the subID to execute for an
+issued event
+
+Process ??????[0xF0]
+---------------
+Points to code to run in the transition of being terminated and
+replaced by another process 
+
+Process unique data field [0xF4]
+---------------------
+last process spawned in a chain of children by gool instruction 138/145
+follow links to get the whole chain
+OR
+an EID/entry pointer handled by opcode 0x8B
+OR
+set by some vector sub in instruction 0x8E
+OR
+cleared by instruction 0x8F
+OR
+set by an event
+
+Process ???????[0xF8]
+  -perhaps something to do with collision?
+
+Process elapsed frames at last render[0xFC]
+
+Process timestamp? [0x100]
+
+Process counter? [0x104]
+----------------
+(related to animation in some way?: see 1DA0C)
+
+Process animation structure? [0x108] (ALSO latter half of 1DA0C will be skipped if this is null)
+--------------------------------
+(first byte determines type)
+
+type 1
+*******
+struct
+{
+  byte type = 1;
+  byte unused;
+  byte frameCount;
+  byte unused;
+  
+  word svtx;    //EID for the SVTX model entry with each item as the anim frames
+}
+
+this is the simplest of types, used for most objects?
+svtx is the EID for the svtx entry containing the models for each frame in the 
+sequence; has 'frameCount' frames
+
+for this type, color information is additionally to be copied from the 
+zone containing the object if bit 21 of it's 0xCC bitfield is set
+ 
+type 2
+*******
+struct
+{
+  byte type = 2;
+  byte unused;
+  byte frameCount;
+  byte unused;
+  
+  word tPage;    //texture chunk/page EID
+  struct         //just like the color/texture pairs from model entries
+  {
+    word colorinfo;     
+    word textureinfo;
+  } ctInfo[frameCount];
+}
+
+describes a separate square for each frame of the object, this square to
+be transformed and rendered as a textured blended 4-point polygon primitve
+ 
+NOTES: since the square dimensions aren't indicated in the struct, 
+a process created for the code entry will render its object by calculating
+ 
+  200 * 2^(scale.x/27279)
+
+where scale.x is the x component of the process/object's scale vector
+
+this value is used as both x & y dimensions of the generated texture blended
+square primitive corresponding to the texture/color information listed
+in the structure
+
+type 4
+*******
+undocumented
+
+-seems to be a 'font'/'text' item??
+calls to sub_8001E7D8 which handles similar to the other types but then
+calls an undocumented sub above it which has calls to atoi 
+
+type 5
+*******
+struct
+{
+  byte type = 5;
+  byte unused;
+  byte frameCount;
+  byte unused;
+  
+  word tPage;    //texture chunk/page EID
+  word rectCount;
+  
+  struct         //just like the color/texture pairs from model entries
+  {
+    word colorinfo;     
+    word textureinfo;
+    hword y2;
+    hword x2;
+    hword y1;
+    hword x1;
+  } ctInfo[rectCount][frameCount];
+}
+
+describes multiple rectangles that compose a mini 'model' for each frame 
+of the object; these are to be transformed and rendered as multiple textured 
+blended 4-point polygon primitves corresponding to the texture/color 
+information listed in the structure for each rectangle (for that frame)
+
+Process animation frame? [0x10C]
+--------
+Left 3 bytes determines the index into the corresponding processes t1 entry's items
+
+ADDITIONAL NOTES FOR PROCESS ANIMATION:
+
+Process animation frame/sequence fields can be changed by the respective gool instructions
+0x83 and 0x84. If the gool interpreter status field (arg1) bit 3 (or is it 1 & 2?) is set, it will pause 
+execution upon reaching one of these instructions (after executing it, 
+of course) This allows other routines handled by the game engine for the current frame to 
+execute, but above all the new model/frame set by the respective instruction will 
+be rendered by the appropriate routines. 
+
+-As far as exactly how execution resumes after this needs to be looked into a bit more.
+
+Process entity entry item [0x110]
+---------
+Pointer to the entity entry's item that described a T11 entry from the level EID/entry list to create the process
+
+Process path progress [0x114]
+
+Process path count [0x118]
+---------
+count of paths that the object is to travel in left 3 bytes
+
+Process maxmimum Y for field 0xCC bit 15 set [0x11C]
+----------
+
+
+
+Process routine dependent status flags [0x120]
+----------
+***set to header 2 field of instantiating T11 entry...
+
+...
+bit 3 = ground routine
+bit 4 = air routine
+bit 5 = ?  (allows enemy to be solid for display mode != 5)
+bit 6 = ?  (when clear with bit 17 allows enemy to be solid when appropriate statusC flags set)
+...
+bit 12 = force record and replace collider's collider with collidee object
+... 
+bit 17 = ? see bit 6
+bit 18 = force animate and/or display for routine when bit 16/15 of global display flags set
+bit 19 = non-terminable (state) i.e. 0x1D11C will not term. object
+bit 20 = can terminate if a new object must spawn and no other objects are free
+...
+
+Process overall velocity? [0x124]
+-------------------
+(? see sub.txt sub_8001f30c )
+
+Process visibility mode [0x128]
+----------------
+can be a number of cases (see sub.txt: sub_8001eb28)
+
+Process elapsed frames at ? [0x12C]
+----------------
+involved in calculations related to process visiblity mode cases
+
+Process timestamp of last collide ground/fall in hole death (CRASH) [0x130]
+-------------
+see sub.txt sub_8002D18C
+edit: also see sub_2c8ec
+edit: also at sub_1f30c
+
+Process y velocity at last collide ground/fall in hole death (CRASH) [0x134]
+-------------
+see sub.txt sub_8002D18C
+edit: also see sub_2c8ec
+edit: also at sub_1f30c
+
+Process/sprite Z-INDEX? [0x138]
+-------------
+see sprite rendering routine; where is this set?
+
+Process current event handler? [0x13C]
+---------
+set by sub_80024040
+
+
+Process Event handlers
+-----------
+(any unidentified handlers can be sent during (collision dectection?) from the colliding process 0x13C field)
+
+0x000
+0x100
+0x200
+0x300 
+0x400
+0x500
+0x600
+0x700   - issued for pit death B nodes subtype 2
+0x800   
+0x900   - issued for pit death B nodes subtype 12 
+          or for pit death A nodes when not cortex power/toxic waste
+0xA00  
+0xB00
+0xC00   - issued for pit death B nodes subtype 3
+0xD00   - issued for pit death B nodes subtype 7
+0xE00   - issued during a controller button press in demo mode
+0xF00
+0x1000
+0x1100
+0x1200  - issued for pit death B nodes subtype 8 - 11 (statusA bit 14 set before issue)
+0x1300  - issued to all procceses in mainlist by sub_80026650 (reinit level after crash death?)
+0x1400
+0x1500
+0x1600
+0x1700  - hit from bottom?
+0x1800
+0x1900  
+0x1A00  - terminate process (issued during sub_8001CDD0), sub_8001D11C "[12:26:47 AM] chek wob: event 1A seems to happen as new areas are loaded"
+0x1B00
+0x1C00
+0x1D00
+0x1E00  - issued for pit death B nodes subtype 6
+0x1F00  - issued for pit death B nodes subtype 5
+0x2000
+0x2100  - issued for pit death B nodes subtype 3
+          or for pit death A in cortex power/toxic waste
+0x2200
+0x2300  - issued for pit death B nodes subtype 12
+0x2400
+0x2500
+0x2600
+0x2700
+0x2800
+0x2900 - [1:40:49 AM] chek wob: event 0x29 might be sent to all the objects to inform them that the level has ended
+
+Process camera zoom [0x140]
+-----------------
+
+Process falling angle??? YZ angle of approach[0x144]
+-----------------
+
+Process hot spot clip [0x148]
+-----------------
+
+

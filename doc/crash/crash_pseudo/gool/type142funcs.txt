@@ -1,0 +1,1341 @@
+sub_800277EC(vectA, vectB)
+{
+  //s2 = vectA
+  //s5 = vectB
+  
+  curZone = *(0x57914);
+  curZoneHeader = curZone[0x10];
+  
+  if (vectB is the zero vector) { return 0; }
+  
+  do
+  {
+    var_50 = vectA;
+  
+    count = 0;
+    if (zoneHeader[0x210] > 0) //at least one neighbor zone
+    {
+      do
+      {
+        offset = count*4;
+
+        EID = curZoneHeader[0x214+offset];
+      
+        neighbor = EID_PROCESS(EID);
+      
+        neighbCamItem = neighbor[0x14];
+      
+        zoneX = neighbCamItem[0]*256;
+        zoneY = neighbCamItem[4]*256;
+        zoneZ = neighbCamItem[8]*256;
+        zoneW = neighbCamItem[0xC]*256;
+        zoneH = neighbCamItem[0x10]*256;
+        zoneD = neighbCamItem[0x14]*256;
+      
+        //item with camera values also holds the collision octree
+        treeItem = neighbCamItem;
+        
+        if (vectA[0] >= zoneX &&
+            vectA[4] >= zoneY &&
+            vectA[8] >= zoneZ &&
+            vectA[0] < zoneX + zoneW &&
+            vectA[4] < zoneY + zoneH &&
+            vectA[8] < zoneZ + zoneD)
+        {
+          var_40 thru var_2C = zoneX thru zoneD;
+        
+        
+          var_58=vectB
+          var_54=0
+          
+          //start at root node/level 0
+          rootNode = treeItem[0x1C];
+          level    =              0;
+          
+          retval = sub_80026FF0(treeItem, rootNode, &var_40, vectA, vectB, level);
+          
+          break;
+        }
+      } while (count < zoneHeader[0x210])
+      
+      if (count == zoneHeader[0x210]) { return 1; }
+      
+    }
+  } while (retval == 0)
+  
+  return retval;
+}  
+
+//adds modifies/vector A and B based on bound box/zone dimensions in terms 
+//of collision with solid parts of zone
+//(perhaps this is for calculating sound reflection due to solid surfaces)
+sub_80026FF0(treeItem, node, boundBox, vectA, vectB, level)
+{
+  //s7 = camItem
+  //v1 = camItemVal
+  //s1 = boundBox
+  //s3 = vectA
+  //s5 = vectB
+  //fp = flag
+  
+  //if the node is a leaf node
+  if (node & 1 == 0)
+  {
+    if (camItemVal & 0xFFFF == 0)
+      t1 = 0;
+    else
+      t1 = &camItem[camItemVal & 0xFFFF];
+  }
+  else
+    t1 = camItemVal & 0xFFFF;
+    
+  if (node & 1 == 0 && node & 0xFFFF != 0)
+  {
+    //27550:
+    depthW = var_58 = camItem[0x1E];
+    if (level < depthW)
+      wval = (boundBox[0xC] + sign(boundBox[0xC]))/2;
+    else
+      wval = boundBox[0xC];
+      
+    var_3C = wval;
+    
+    depthH = var_54 = camItem[0x20];
+    if (level < depthH)
+      hval = (boundBox[0x10] + sign(boundBox[0x10]))/2;
+    else
+      hval = boundBox[0x10];
+
+    var_38 = hval;
+
+    depthD = var_50 = camItem[0x22];
+    if (level < depthD)
+      dval = (boundBox[0x14] + sign(boundBox[0x14]))/2;
+    else
+      dval = boundBox[0x14];    
+      
+    var_34 = dval;
+    
+    s2 = 0; //s2
+    count = 0; //s4
+    s6    = 0; //s6
+      
+    v1 = 0;
+    if (var_58 != 0 || v1 <= 0)
+    {
+      do
+      {
+        27610: 
+        s2 = 0;
+        v1 = 0;
+        
+        2761C:
+        if (var_54 != 0 || v1 <= 0)
+        {
+          do
+          {
+            27634:
+            s0 = 0;
+            v1 = 0;
+            if (var_50 != 0 || v1 <= 0)
+            {
+              do
+              {
+                v1 = s2 + 1; 
+             
+                xval = boundBox[0];
+                if (s6 != 0)
+                  xval += wval;  //var_3C
+
+                var_48 = xval;
+                
+                yval = boundBox[4];
+                if (s2 != 0)
+                  yval += hval;  //var_38
+
+                var_44 = yval;
+                
+                zval = boundBox[8];
+                if (s0 != 0)
+                  zval += dval;  //var_34
+
+                var_40 = zval;
+                
+                s0++;
+                if ((xval < vectA[0] && yval < vectA[4] && zval < vectA[8])
+                &&  (xval+wval > vectA[0] && yval+hval > vectA[4] && zval+dval > vectA[8]))
+                {
+                  val = t1[count*2]; //lh
+                  
+                  
+                  //var_60 =  vectB;
+                  //var_5C = flag+1;          
+                  //var_30 =     t1;
+                 
+                  retval = sub_80026FF0(camItem, val, &var_48, vectA, vectB, flag+1);
+                 
+                  if (retval != 0) { return retval; }
+                }
+              
+                count++;
+              
+              
+                v1 = s0;
+              } while (var_50 == 0 && v1 <= 0 || v1 < 2);
+            }
+            
+            v1 = s2 + 1;
+            s2 =   v1;
+        
+        } while (var_54 == 0 && v1 <= 0 || v1 < 2);
+      }
+      
+      v1 = s6+1;
+      s6 =   v1;
+      s2 =    0;
+    } while (var_58 == 0 && v1 <= 0 || v1 < 2)
+         
+    return v0;
+  }
+  //else node is leaf with no value (0)
+  else if (t1 == 0)  //else 2727C
+  {
+    //either left or right side of the boundbox
+    if (vectB[0] <= 0)
+      xval = boundBox[0];
+    else
+      xval = boundBox[0] + boundBox[0xC];
+    
+    //either top or bottom of the boundbox
+    if (vectB[4] <= 0)
+      yval = boundBox[4];
+    else
+      yval = boundBox[4] + boundBox[0x10];
+   
+   
+    //either back or front of the boundbox
+    if (vectB[8] <= 0)
+      zval = boundBox[8];
+    else
+      zval = boundBox[8] + boundBox[0x14];
+
+    //var_58 thru 50 = xval thru zval
+    
+    max = 0x7FFFFFFF;
+    if (vectB[0] != 0)
+    {
+      calcx = ((xval - vectA[0]) * 256)/vectB[0];
+      
+      if (calcx < max)
+        max = calcx;
+    }
+
+    if (vectB[4] != 0)
+    {
+      calcy = ((yval - vectA[4]) * 256)/vectB[4];
+      
+      if (calcy < max)
+        max = calcy;
+    }
+    
+    if (vectB[8] != 0)
+    {
+      calcz = ((zval - vectA[8]) * 256)/vectB[8];
+      
+      if (calcz < max)
+        max = calcz;
+    }
+    
+    newMax = max + 0x100;    
+    xAdd = (((newMax) * vectB[0]) / 256);
+    yAdd = (((newMax) * vectB[4]) / 256);
+    zAdd = (((newMax) * vectB[8]) / 256);
+    
+    vectA[0] += xAdd;
+    vectA[4] += yAdd;
+    vectA[8] += zAdd;
+    
+    return t1;
+  }
+  else
+  {
+    //either right or left side of the boundbox
+    if (vectB[0] >= 0)
+      xval = boundBox[0];
+    else
+      xval = boundBox[0] + boundBox[0xC];
+    
+    //either bottom or top of the boundbox
+    if (vectB[4] >= 0)
+      yval = boundBox[4];
+    else
+      yval = boundBox[4] + boundBox[0x10];
+   
+   
+    //either front or back of the boundbox
+    if (vectB[8] >= 0)
+      zval = boundBox[8];
+    else
+      zval = boundBox[8] + boundBox[0x14];
+
+    //var_58 thru 50 = xval thru zval
+
+    min = 0x80000000;
+    if (vectB[0] != 0)
+    {
+      distx = vectA[0] - vectB[0];
+      calcx = ((xval - distx) * 256)/vectB[0];
+      
+      if (min < calcx)
+      {
+        min = calcx;
+        t0 = 0;
+      }
+    }
+
+    if (vectB[8] != 0)
+    {
+      distz = vectA[8] - vectB[8];
+      calcz = ((zval - distz) * 256)/vectB[8];
+      
+      if (min >= calcz)
+      {
+        v0 = abs(vectB[0]);
+        v1 = abs(vectB[8]);
+        
+        if (v0 < v1)
+        {
+          min = calcZ;
+          t0 = 2;
+        }
+      }
+      else
+      {
+        min = calcZ;
+        t0 = 2;
+      }
+    }
+    
+    if (vectB[4] != 0)
+    {
+      disty = vectA[4] - vectB[4];
+      calcy = ((yval - disty) * 256)/vectB[4];
+      
+      if (min < calcy)
+      {
+        t0 = 1;
+        v0 = 1;
+      }
+      else
+      {
+        v0 = 2;
+        
+        if (t0 != 0)  { goto 27488; }
+        else
+        {
+          v0 = abs(vectB[0]);
+          v1 = abs(vectB[4]);
+          
+          if (v0 < v1)
+          {
+            t0 = 1;
+            v0 = 1;
+          }
+          else
+          {
+            if (t0 != 2)
+              v0 = 1;
+            else
+            {
+              27488:
+              
+              v0 = abs(vectB[8]);
+              v1 = abs(vectB[4]);
+              
+              if (v0 < v1)
+              {
+                t0 = 1;
+              }
+              
+              v0 = 1;
+            }
+          }
+        }
+      }        
+    }        
+    
+    if (t0 == v0)
+    {
+      vectB[4] = -vectB[4];
+      vectA[4] = calcy;
+    }        
+    else if (t0 >= 2)
+    {
+      if (t0 != 2)
+        return t1;
+      else
+      {
+        vectB[8] = -vectB[8];
+        vectA[8] = calcz;
+      }
+    }
+    else if (t0 == 0)
+    {      
+      vectB[0] = -vectB[0];
+      vectA[0] = calcx;
+    }
+  }
+  
+  return t1;
+}
+  
+//--------
+
+//
+sub_80028E3C(process, trans, bitfield, flag)
+{
+  //s6 = process
+  //t0 = trans
+  //s7 = bitfield
+  //s5 = 0xC4653601
+  //s4 = 0
+  
+  //fp = 0
+  //a0 = 0x4000000
+  var_40 = 0;
+  //s2 = &var_90
+  
+  curZone       =    *(0x57914);
+  curZoneHeader = curZone[0x10];
+  
+  if (process[0xCC] & 0x4000000 == 0) { return 0; }
+  else if (bitfield & 4 != 0)         
+  {
+    parent = process[0x64];
+    if (parent[0xCC] & 0x4000000 == 0){ return 0; }
+  }
+  
+  var_90 = trans[0];
+  var_8C = trans[4];
+  var_88 = trans[8];
+  var_8C+=0x61A8;
+  newTrans = &var_90;
+  
+  
+  var_80 = var_90;
+  var_7C = var_8C;
+  var_78 = var_88;
+  
+  do
+  {
+    var_70 = var_90;
+    var_6C = var_8C;
+    var_68 = var_88;
+    
+    neighborCount = zoneHeader[0x210];
+    count         = 0;
+    while (neighorCount > 0)
+    {
+      neighborZone = EID_PROCESS(zoneHeader[0x214 + count*4]);
+      
+      neighborTreeItem = neighborZone[0x14];
+      
+      zoneW  = neighborTreeItem[0xC];
+      zoneH  = neighborTreeItem[0x10];
+      zoneD  = neighborTreeItem[0x14];
+      
+      zoneX = neighborTreeItem[0];
+      zoneY = neighborTreeItem[4];
+      zoneZ = neighborTreeItem[8];
+      
+      zoneX1 = zoneX << 8;
+      zoneY1 = zoneY << 8;
+      zoneZ1 = zoneZ << 8;
+      zoneX2 = (zoneX + zoneW) << 8;
+      zoneY2 = (zoneY + zoneH) << 8;
+      zoneZ2 = (zoneZ + zoneD) << 8;
+     
+      //reload this for a 4TH time...
+      transX = trans[0];
+      transY = trans[4];
+      transZ = trans[8];
+      
+      if (zoneX1 >= transX && zoneY1 >= transY && zoneZ1 >= transZ &&
+          zoneX2 <  transX && zoneY2 <  transY && zoneZ2 <  transZ)
+      {
+        var_60 = zoneX << 8;
+        var_5C = zoneY << 8;
+        var_58 = zoneZ << 8;
+        var_54 = zoneW << 8;
+        var_50 = zoneH << 8;
+        var_4C = zoneD << 8;
+        zoneBound = &var_60;
+        
+        rootNode = neighborTreeItem[0x1C];
+        node = sub_8002832C(neighborTreeItem, rootNode, zoneBound, newTrans, 0, bitfield & 3);
+        
+        if (count != neighborCount) 
+        { 
+          if (!node) { go back to top of loop @ do; }
+        }
+        else
+          children = 0;
+          
+        boundMapCount = *(0x61888);
+  
+        boundMap = 0x60E08;
+        
+        if (boundMapCount > 0)
+        {
+          do
+          {
+            count = 0;
+            curField = boundMap[count*0x1C];
+          
+            //t1 = 0x60E08  X1
+            //a2 = 0x60E10  Z1
+          
+            //t0 = var_80  0
+            //t3 = var_78  4
+            //t2 = var_7C  initial trans values with y incremented
+          
+            curProc = curField[0x18];
+        
+            if (curProc       == process ||
+                curProc[0x158] = 0xFFFF) 
+            { 
+              continue; 
+              
+            }
+            
+            if (bitfield & 1 == 0)
+            {
+              if (bitfield & 2 != 0)
+              {
+                curX1 = curField[0];
+                
+                curX2 = curField[0xC];
+                curY2 = curField[0x10];
+                
+                //if the point is approximately parallel
+                //with any object in the XY plane (determined
+                //by lying only with the x and y range of the 
+                //bounding volume for the object but not
+                //necessarily the Z)
+                if (   (var_80 >=  curX1)
+                    && (curX2  >= var_80)
+                    && (var_7C >=  curY1)
+                    && (curY2  >= var_7C)
+                   )
+                {
+                  
+                  //if it does not intersect the object/
+                  //doesnt lie in the z range of its bounding
+                  //volume
+                  if (curZ2  < var_88 || var_88 < curZ1) 
+                  { 
+                    //find the smallest z coordinate of objects
+                    //that make this true
+                    if ((s5 < curZ2) && (var_78 >= curZ2))
+                    {
+                      fp = curProc;
+                      s5 =   curZ2;
+                    }
+                  }
+                  //else it intersects the object
+                  else
+                  {
+                    s4     = curProc;
+                    t5     =       1;
+                    var_88 =   curZ1;
+                    var_40 =      t5;
+                    break to *;
+                  }
+                }
+              }
+              else
+              {
+                //continue looping 
+              }
+            }
+            else
+            {
+              curX1 = curField[0];
+              
+              curX2 = curField[0xC];
+              curY2 = curField[0x10];
+              if (   (var_80 >=  curX1)
+                  && (curX2  >= var_80)
+                  && (var_78 >=  curZ1)
+                  && (curZ2  >= var_78)
+                 )
+              {
+              
+                if (curY2  < var_8C || var_8C < curY1) 
+                { 
+                  if ((s5 < curY2) && (var_7C >= curY2))
+                  {
+                    fp = curProc;
+                    s5 =   curY2;
+                  }
+                }
+                else
+                {
+                  s4     = curProc;
+                  t5     =       1;
+                  var_8C =   curY1;
+                  var_40 =      t5;
+                  break to *;
+                }
+              }
+            }
+            
+            count++;
+          } while (count < boundMapCount)
+        }        
+          
+        
+        if (bitfield & 1)
+        {
+          if (fp != 0)
+          {
+          
+            if (s4 == 0 || s5 >= var_8C)
+            {
+              s4     = fp;
+              t5     =  1;
+              var_8C = s5;
+              var_40 = t5;
+            }
+          }
+          
+          *
+          if (bitfield & 4)
+          {
+            crash = *(0x566B4);
+            
+            //check crash or its 'parent' link
+            if (curProc == crash || curProc[0x64] == crash)
+            {
+              parent = curProc[0x64];
+              zone   = parent[0x28];
+              zoneHeader = zone[0x10];
+              zoneColors = zoneHeader + 0x348;
+              
+            }
+            else
+            {
+              parent = curProc[0x64];
+              zone   = parent[0x28];
+              zoneHeader = zone[0x10];
+              zoneColors = zoneHeader + 0x318;
+            }
+            
+            if (s4 != 0)
+            {
+              if (var_40 == 0) //this means s4 is a node
+              {
+                nodeValB = (s4 & 0x3F0) >> 4;
+                if (nodeValB >= 0x27)
+                  a2 = -1;
+              }
+              else                  //else s4 is curProc
+              {
+                if (s4[0x158] < 0) { var_48 = 0; }
+                a2 = abs(s4[0x158]);
+              }
+            } 
+            
+            //a2 is:
+            //if colliding with another object: the node value
+            // at its [0x158] field
+            // (var_48 is flag set for non-negative node values)
+            //if colliding with a level surface: the node value
+            // at that surface
+            
+            //this then recalculates the colors appropriately
+            //for the object
+            if (bitfield & 4)
+              sub_80027F50(zoneColors, curProc[0x64], a2, var_48);
+              
+            //and return colliding object or node
+            return s4;
+          }
+        }
+      }
+    }
+  }
+}
+  //2900C:
+   
+
+//some alternative variation to sub_80026FF0 dealing with only
+//one input vector and a bitfield
+sub_8002832C(treeItem, node, boundBox, vectA, level, bits)
+{
+  //t9 = treeItem
+  //v1 = node 
+  //a2 = boundBox
+  //a3 = vectA
+  //t6 = level
+  //t8 = bits
+       
+  //if the node is not a leaf node
+  if (node & 1 == 0)
+  {
+    if (node & 0xFFFF == 0)
+      children = 0;
+    else
+      children = &treeItem[node & 0xFFFF];
+  }
+  else
+    nodeValue = node & 0xFFFF;  
+    
+  if (node & 1 == 0 && node & 0xFFFF != 0)
+  {
+    t5 = 0;
+    t4 = 0;
+    t3 = 0;
+    
+    boundX = var_20 = boundBox[0];
+    boundY = var_1C = boundBox[4];
+    boundZ = var_18 = boundBox[8];
+    newBoundBox = &var_20;
+ 
+    depthW = var_58 = camItem[0x1E];
+    if (level < depthW)
+    {
+      wval = var_14 = (boundBox[0xC] + sign(boundBox[0xC]))/2;
+      if (vectA[0] < boundX + wval)
+      {
+        boundX = boundX + wval;
+        t5 = 1;
+      }
+    }
+    else
+      wval = var_14 = boundBox[0xC];
+      
+    depthH = var_54 = camItem[0x20];
+    if (level < depthH)
+    {
+      hval = var_10 = (boundBox[0x10] + sign(boundBox[0x10]))/2;
+      if (vectA[4] < boundY + hval)
+      {
+        boundY = boundY + hval;
+        t4 += 1;
+      }
+    }
+    else
+      hval = var_10 = boundBox[0x10];
+
+    depthD = var_50 = camItem[0x22];
+    if (level < depthD)
+    {
+      dval = var_C = (boundBox[0x14] + sign(boundBox[0x14]))/2;
+      if (vectA[8] < boundZ + dval)
+      {
+        boundZ = boundZ + dval;
+        t3 += 1;
+      }
+    }
+    else
+      dval = var_C = boundBox[0x14]; 
+
+      
+    a2    = 0; //s2
+    v0    = 0; //s4
+      
+    if (level < depthW || v0 <= 0)
+    {
+      do
+      {
+
+        a0 = 0;
+        v0 = 0;
+        
+        if (level < depthH || v0 <= 0)
+        {
+          do
+          {
+            v1 = 0;
+            v0 = 0;
+            if (level < depthD || v0 <= 0)
+            {
+              do
+              {
+                v0 = a0 + 1; 
+             
+                if (a2 == t5 && a0 == t4 && v1 == t3)
+                {
+                  childNode = children[a1*2];               
+                
+                  //then handle the child node
+                  return sub_8002832C(treeItem, child, newBoundBox, vectA, level+1, bits);
+                }              
+                v1++;
+                a1++;
+                v0 = v1;
+                
+              } while (level >= depthD && v0 <= 0 || v0 < 2);
+            }
+            
+            v0 = a0 + 1;
+            a0 =     v0;
+        
+        } while (level >= depthH && v0 <= 0 || v0 < 2);
+      }
+      
+      v0 = a2 + 1;
+      a2 =     v0;
+  
+    } while (level >= depthW && v0 <= 0 || v0 < 2)
+    
+    return v0;
+  }
+  else
+  {
+    if (t2 != 0)
+    {
+      node3Bit = (nodeBits & 0xE)   >> 1;
+      node6Bit = (nodeBits & 0x3F0) >> 4;
+      
+      if (bits & 8 && (node3Bit+1 == 4) ||
+          node6Bit   == 0xB ||
+          node3Bit+1 == 5)
+        goto 28400;
+      else if (bits & 1)
+      {
+        boundY = boundBox[4];
+        boundH = boundBox[0x10];
+        vectA[4] = boundY + boundH;
+        return nodeValue;
+      }
+      else if (bits & 2)
+      {
+        boundZ = boundBox[8];
+        boundD = boundBox[0x14];
+        vectA[8] = boundZ + boundD;
+        return nodeValue;
+      }
+      else
+        return nodeValue;
+    }
+    
+    28400:
+    
+    if (bits & 1)
+    {
+      boundY   = boundBox[4];
+      vectA[4] = boundY - 1;
+      return 0;
+    }
+    else if (bits & 2)
+    {
+      boundZ   = boundBox[8];
+      vectA[8] = boundZ - 1;
+      return 0;
+    }
+    else
+      return 0;
+  }
+}
+    
+sub_8002940C(process)
+{
+  crash = *(0x566B4);
+  
+  zone       = process[0x28];
+  zoneHeader = zone[0x10];
+  
+  if (process == crash || process[0x64] == crash)
+    zoneColors = zoneHeader[0x348];
+  else
+    zoneColors = zoneHeader[0x318];
+    
+  entity = process[0x110];
+  if (entity)
+  {
+    surfaceInfo = entity[0x4] >> 3;
+    
+    if (surfaceInfo != 0xFFFF)
+    {
+      surfaceType = (surfaceInfo & 0x3F0) >> 4;
+      if (surfaceType < 0x27)
+        surfaceType = -1;
+
+      sub_80027F50(zoneColors, process, surfaceType, 0);
+    }
+  }
+}  
+    
+sub_80027F50(colors, parent, value, unknown)
+{
+  //v1 = colors
+  //a0 = value
+  //s1 = unknown
+  //s0 = parent + 0x30 
+  
+  //v0 = crash
+  
+  crash = *(0x566B4);
+  if (parent == crash)
+  {
+    if (parent[0x120] & 0x20 != 0)
+      value = 0x37;
+  }
+  
+  sub_80027BC4(value, colors, var_a0);
+  
+  //CODE FROM THIS POINT TO THE END OF THE SUB UPDATES
+  //COLOR VECTOR, COLOR MATRIX, LIGHT VECTOR, AND LIGHT MATRIX
+  //FOR THE PROCESS DUE TO THE RESULTS OF SUB_80027BC4 
+  //ASSURING A MAXIMUM OF 0x15E IN CHANGE FROM THE ORIGINAL 
+  //VALUES (granted the 'unknown' argument is positive and 
+  //nonzero)
+  
+  parentColors = parent + 0x30;
+  
+  v0 = -(0 < unknown);
+  testColor = v0 & 0x15E;
+  
+  if (testColor != 0)
+  {
+    parentBgRed = parentColors[0x12];
+    outputBgRed = var_8E;
+       
+    diffBgRed = outputBgRed - parentBgRed;
+    if (testColor < diffBgRed)
+      var_8E = parentBgRed + testColor;
+    else if (diffBgRed < -testColor)    
+      var_8E = parentBgRed - testColor;
+  }
+   
+  parentColors[0x12] = var_8E;
+  
+  if (testColor != 0)
+  {
+    parentBgGreen = parentColors[0x14];
+    outputBgGreen = var_8C;
+       
+    diffBgGreen = outputBgGreen - parentBgGreen;
+    if (testColor < diffBgGreen)
+      var_8C = parentBgGreen + testColor;
+    else if (diffBgGreen < -testColor)    
+      var_8C = parentBgGreen - testColor;
+  }
+  
+  parentColor[0x14] = var_8C;
+  
+  if (testColor != 0)
+  {
+    parentBgBlue = parentColors[0x16];
+    outputBgBlue = var_8A;
+       
+    diffBgBlue = outputBgBlue - parentBgBlue;
+    if (testColor < diffBgBlue)
+      var_8A = parentBgBlue + testColor;
+    else if (diffBgBlue < -testColor)    
+      var_8A = parentBgBlue - testColor;
+  }
+        
+  parentColor[0x16] = var_8A;  
+  
+  if (testColor != 0)
+  {
+    parentIntensityRed = parentColors[0x2A];
+    outputIntensityRed = var_76;
+       
+    diffBgRed = outputIntensityRed - parentIntensityRed;
+    if (testColor < diffBgRed)
+      var_76 = parentIntensityRed + testColor;
+    else if (diffBgRed < -testColor)    
+      var_76 = parentIntensityRed - testColor;
+  }
+   
+  parentColors[0x2A] = var_76;
+  
+  if (testColor != 0)
+  {
+    parentIntensityGreen = parentColors[0x2C];
+    outputIntensityGreen = var_74;
+       
+    diffBgGreen = outputIntensityGreen - parentIntensityGreen;
+    if (testColor < diffBgGreen)
+      var_74 = parentIntensityGreen + testColor;
+    else if (diffBgGreen < -testColor)    
+      var_74 = parentIntensityGreen - testColor;
+  }
+  
+  parentColor[0x2C] = var_74;
+  
+  if (testColor != 0)
+  {
+    parentIntensityBlue = parentColors[0x2E];
+    outputIntensityBlue = var_72;
+       
+    diffBgBlue = outputIntensityBlue - parentIntensityBlue;
+    if (testColor < diffBgBlue)
+      var_72 = parentIntensityBlue + testColor;
+    else if (diffBgBlue < -testColor)    
+      var_72 = parentIntensityBlue - testColor;
+  }
+        
+  parentColor[0x2E] = var_72;
+  
+  testColorB = -testColor;
+  
+  //t2 = 0;
+  //t6 = parentColors;
+  
+  //t5 = &var_A0;
+  //t3 = t5
+  
+  curRowColMat = parentColors; //current row in process color matrix
+  curRowOclMat = &var_a0;      //current row in output from sub color matrix
+  
+  curRow = 0;
+  
+  do
+  {
+    if (testColor != 0)
+    {
+      redVal = curRowColMat[0];
+      redOut = curRowOclMat[0];
+       
+      diffRed = redOut - redVal;
+      if (testColor < diffRed)
+        curRowOclMat[0] = redVal + testColor;
+      else if (redVal < -testColor)    
+        curRowOclMat[0] = redVal - testColor;
+    }
+    
+    parentColors[0 + (curRow*6)] = curRowOclMat[0];
+    
+    if (testColor != 0)
+    {
+      greenVal = curRowColMat[2];
+      greenOut = curRowOclMat[2];
+       
+      diffGreen = greenOut - greenVal;
+      if (testColor < diffGreen)
+        curRowOclMat[2] = greenVal + testColor;
+      else if (greenVal < -testColor)    
+        curRowOclMat[2] = greenVal - testColor;
+    }
+    
+    parentColors[2 + (curRow*6)] = curRowOclMat[2];
+    
+    if (testColor != 0)
+    {
+      blueVal = curRowColMat[4];
+      blueOut = curRowOclMat[4];
+       
+      diffBlue = blueOut - blueVal;
+      if (testColor < diffBlue)
+        curRowOclMat[4] = blueVal + testColor;
+      else if (blueVal < -testColor)    
+        curRowOclMat[4] = blueVal - testColor;
+    }
+    
+    parentColors[4 + (curRow*6)] = curRowOclMat[4];
+    
+    if (testColor != 0)
+    {
+      redIntensityVal = curRowLgtMat[0];
+      redIntensityOut = curRowOltMat[0];
+       
+      diffRed = redIntensityOut - redIntensityVal;
+      if (testColor < diffRed)
+        curRowOltMat[0] = redIntensityVal + testColor;
+      else if (redIntensityVal < -testColor)    
+        curRowOltMat[0] = redIntensityVal - testColor;
+    }
+    
+    parentColors[0x18 + (curRow*6)] = curRowOltMat[0];
+    
+    if (testColor != 0)
+    {
+      greenIntensityVal = curRowLgtMat[2];
+      greenIntensityOut = curRowOltMat[2];
+       
+      diffGreen = greenIntensityOut - greenIntensityVal;
+      if (testColor < diffGreen)
+        curRowOltMat[2] = greenIntensityVal + testColor;
+      else if (greenIntensityVal < -testColor)    
+        curRowOltMat[2] = greenIntensityVal - testColor;
+    }
+    
+    parentColors[0x18 + (curRow*6)] = curRowOltMat[2];
+    
+    if (testColor != 0)
+    {
+      blueIntensityVal = curRowLgtMat[4];
+      blueIntensityOut = curRowOltMat[4];
+       
+      diffBlue = blueIntensityOut - blueIntensityVal;
+      if (testColor < diffBlue)
+        curRowOltMat[4] = blueIntensityVal + testColor;
+      else if (blueIntensityVal < -testColor)    
+        curRowOltMat[4] = blueIntensityVal - testColor;
+    }
+    
+    parentColors[0x18 + (curRow*6)] = curRowOltMat[4];
+  
+    curRow++  
+  } while (curRow < 3)
+}  
+    
+sub_80027BC4(value, colors, outcolors)
+{
+  //s2 = value
+  //s1 = colors
+  //s0 = outcolors
+  
+  if (value >= 0x27)
+  {
+    sub_80027A4C(colors, outcolors, 0, 0, 0);
+    
+    level = *(0x5C53C)[4];
+    
+    if (level == 0x13)
+    {
+      if (value != 0x28) { goto default case; }
+      
+      sub_80027A4C(colors, outcolors, 100, 100, 100);
+      
+      //v1 = 0xFF
+      
+      //light matrix 1,2 - 1,3
+      outcolors[0x1A] = 0x3B0;
+      outcolors[0x1C] = 0x3B0;
+      
+      //light matrix 2,2
+      outcolors[0x20] = 0xF9;
+      
+      //light vector
+      outcolors[0x2A] = 0;
+      outcolors[0x2C] = 0xFF;
+      outcolors[0x2E] = 0xFF;
+      
+      //light matrix 1,1
+      outcolors[0x18] = 0;
+      
+      //light matrix 2,1
+      outcolors[0x1E] = 0;
+      
+      //light matrix 2,3-3,3
+      outcolors[0x22] = 0xFF;
+      outcolors[0x24] = 0;
+      outcolors[0x26] = 0x64;
+      outcolors[0x28] = 0xFF;
+      
+      //light matrix = 
+      //[0, 0x3B0, 0x3B0]
+      //[0,  0xF9,  0xFF]
+      //[0,  0x64,  0xFF]
+      
+      //light vector =
+      //[   0  ]
+      //[ 0xFF ]
+      //[ 0xFF ]
+      
+      goto default case
+    }
+    else if (level == 7)
+    {
+      if (value != 0x28) { goto default case; }
+      
+      //negative values
+      outcolors[2] = 0xDE67;
+      outcolors[6] = 0xF11F;
+      outcolors[8] = 0xF971;
+        
+      outcolors[0xA] = 0xA3D;
+      outcolors[0xC] = 0xDEB;
+      outcolors[0xE] = 0x1EEE;
+          
+      //negative value
+      outcolors[0x10] = 0xFEE2;
+          
+      outcolors[0x14] = 0xFF;
+      outcolors[0x16] = 0xFF;
+          
+      outcolors[0x2A] = 0xFF;
+      outcolors[0x2C] = 0xFF;
+      outcolors[0x2E] = 0xFF;
+          
+      outcolors[0x1A] = 0xFF;
+          
+      outcolors[0x18] = 0xC0;
+      outcolors[0x1C] = 0xC0;
+          
+      outcolors[0x20] = 0x190;
+      outcolors[0x24] = 0xF0;
+          
+      outcolors[0x12] = 0;
+      outcolors[0] = 0;
+      outcolors[4] = 0;
+          
+      outcolors[0x1E] = 0xE0;
+      outcolors[0x22] = 0xE0;
+          
+      //light matrix = 
+      //[0xC0,  0xFF, 0xC0]
+      //[0xE0, 0x190, 0xE0]
+      //[0xF0,  ...., ....]
+          
+      //light vector =
+      //[0x0, 
+      //color matrix = 
+      //[     0, 0xD367,      0]
+      //[0xF11F, 0xF971,  0xA3D]
+      //[ 0xDEB, 0x1EEE, 0xFEE2]
+      
+      //color vector = 
+      //[   0  ]
+      //[ 0xFF ]
+      //[ 0xFF ]
+    }
+    else if (level == 3 && value == 0x28)
+    {
+      //negative values
+      outcolors[2] = 0xDE67;
+      outcolors[6] = 0xF11F;
+      outcolors[8] = 0xF971;
+      
+      outcolors[0xA] = 0xA3D;
+      
+      outcolors[0x1E] = 0x58;
+      outcolors[0x20] = 0x27D;
+      outcolors[0x22] = 0x5A;
+      
+      outcolors[0xC] = 0xDEB;
+      outcolors[0xE] = 0x1333;
+      
+      //negative value
+      outcolors[0x10] = 0xFEE2;
+      
+      outcolors[0x24] = 0x11C;
+      
+      outcolors[0x12] = 0;
+      
+      outcolors[0x14] = 0xFF;
+      outcolors[0x16] = 0xFF;
+      
+      outcolors[0x2A] = 0xFF;
+      outcolors[0x2C] = 0xFF;
+      outcolors[0x2E] = 0xFF;
+      
+      outcolors[0] = 0;
+      outcolors[4] = 0;
+      outcolors[0x18] = 0;
+      outcolors[0x1A] = 0xFF;
+      outcolors[0x1C] = 0;
+      
+      outcolors[0x26] = 0x80;
+      outcolors[0x28] = 0x80;
+      
+      //light matrix = 
+      //[    0,  0xFF,    0]
+      //[ 0x58, 0x27D, 0x5A]
+      //[0x11C,  0x80, 0x80]
+      
+      //light vector =
+      //[ 0xFF ]  
+      //[ 0xFF ]
+      //[ 0xFF ]
+     
+      //color matrix = 
+      //[     0, 0xD367,      0]
+      //[0xF11F, 0xF971,  0xA3D]
+      //[ 0xDEB, 0x1EEE, 0xFEE2]
+      
+      //color vector = 
+      //[   0  ]
+      //[ 0xFF ]
+      //[ 0xFF ]       
+    }
+    else if (level == 0x1C || level == 0x1D) //temple ruins or jaws of darkness
+    {
+      switch (value)
+      {
+        case 40:
+          sub_80027A4C(colors, outcolors, 50, 100, 100);
+          break;
+        case 41:
+          sub_80027A4C(colors, outcolors, 75, 100, 100);
+          break;
+        case 42:
+          sub_80027A4C(colors, outcolors, 100, 100, 100);
+          break;
+        case 43:
+          sub_80027A4C(colors, outcolors, 125, 100, 100);
+          break;
+        case 44:
+          sub_80027A4C(colors, outcolors, 150, 100, 100);
+          break;
+      }
+    }
+    
+    //all cases lead to
+    default case:
+    
+    if (value > 0x28)
+    {
+      if (value < 0x30)
+        return;
+      else if (value >= 0x30 && value < 40)
+      {
+        //0x52CB4 array of bytes
+        sub_80027A4C(colors, outcolors, 0x52CB4[value], 0x52CB4[value], 0x52CB4[value]);
+        return;
+      }
+    }
+
+  }
+  
+  sub_80027A4C(colors, outcolors, 100, 100, 100);
+} 
+      
+//scales the color vector & matrix, and light vector & matrix 
+//given by 'colors' by the RGB percentages R, G, and B
+//outputs to outcolors
+sub_80027A4C(colors, outcolors, R, G, B)
+{
+  resultR = ((R * 4096) / 100);
+  resultG = ((G * 4096) / 100);
+  resultB = ((B * 4096) / 100);
+  
+  newRed  = (resultR * colors[0x12]) / 4096;
+  newGreen= (resultG * colors[0x14]) / 4096;
+  newBlue = (resultB * colors[0x16]) / 4096;
+  
+  outcolors[0x12] = newRed;
+  outcolors[0x14] = newGreen;
+  outcolors[0x16] = newBlue;
+
+  outcolors[0x2A] = colors[0x2A];
+  outcolors[0x2C] = colors[0x2C];
+  outcolors[0x2E] = colors[0x2E];
+
+  curRowColMat = colors; //current row in input color matrix
+  curRow = 0;
+  
+  do
+  {
+    curRowLgtMat = colors[0x18+curRow*6];
+    curRowOltMat = outcolors[0x18+curRow*6];
+    curRowOclMat = outcolors[curRow*6];
+    curRowColMat = colors[curRow*6];
+    
+    curRowOclMat[0] = (curRowColMat[0] * resultR) / 4096;
+    curRowOclMat[2] = (curRowColMat[2] * resultG) / 4096;
+    curRowOclMat[4] = (curRowColMat[4] * resultB) / 4096;
+    
+    curRowOltMat[0] = curRowLgtMat[0];
+    curRowOltMat[2] = curRowLgtMat[2];
+    curRowOltMat[4] = curRowLgtMat[4];
+  
+    curRow++;
+  } while (curRow < 3)
+}

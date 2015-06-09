@@ -1,0 +1,273 @@
+sub_800126C0():
+
+v1 = a0[0];
+
+if (v1 & 3 == 0)
+{
+  return v1[8]; 
+}
+
+//encoding of a 5 char string in only 1 word=4bytes
+a2 = a0[4]>>1;  //of format 0EEEEEEDDDDDDCCCCCCBBBBBBAAAAAAF
+                       
+                //WHEN F == 1
+                //*(0X56718)[5] = 0;
+                //*(0x56718)[4] = *(0x51728)[A]
+                //*(0x56718)[3] = *(0x51728)[B]
+                //*(0x56718)[2] = *(0x51728)[C]
+                //*(0x56718)[1] = *(0x51728)[D]
+                //*(0x56718)[0] = *(0x51728)[E]
+
+                //when F == 0
+                
+v1 = 4;
+if (a0[4] & 1 != 0)  
+{
+  *(0x5671D) = 0;  //also set *(0x56718)[5] = 0;
+
+  do
+  {
+    v0 = (a2 & 0x3F);
+    *(0x56718)[v1] = *(0x51728)[v0];  //byte
+    v1--;
+    a2 = a2>>6;
+  } while (v1 >= 0);
+
+}
+else
+{
+  a0 = 0x56718;           
+  a1 = 0x56414;
+
+  sub_8003D740(a0,a1);
+
+}
+
+v0 = *(0x56718)[4];
+
+if v0 is an uppercase char, then use the following conversion table to return the proper value from the sub:
+
+========
+A = 0XC
+B = 0x13
+C = 0xB
+D = 0xF
+E = 0
+F = 0
+G = 2
+H = 0
+I = 0x10
+J = 0
+K = 0
+L = 6
+M = 0xD
+N = 0xE
+O = 0
+P = 0x11
+Q = 0
+R = 0
+S = 4
+T = 5
+U = 0x12
+V = 1
+W = 3
+X = 0x14
+Y = 0
+Z = 0
+
+VGWSTL____CAMNDIPUBX = lettertoindex
+EFHJKOQRYZ = zero lettters
+==========
+
+----------
+
+(args a0=dest, a1=src)  (arg_4=a1)        //INITIALIZES DEST BASED ON ESCAPE CHARACTERS IN SRC???, V0=NUMBER OF ESCAPE CHARACTERS OFFSET
+sub_8003D740:
+
+stack back 0x248 bytes
+
+dest=a0;
+firstchar=arg_a1[0];      //just loads one byte from a1
+gcount=0;                 //global counter, local to this sub
+
+if (firstchar != 0)       //if first char is nonzero (i.e. not null string)
+{
+  s6=0x2D;  '+'           
+  s5=0x2B;  '-'
+  s4=0x20;  ' '
+
+  v0=0x25;  '%'               
+  if (firstchar == v0) { v0=dest+gcount; //ptr from args plus offsetGOTO LOC_8003DEA4, SECOND HALF OF CHARACTER JUMP TABLE DEFAULT CASE }
+    
+    a1=0x538DC;
+    var_38=a1[0];
+    var_34=a1[4];
+    var_30=a1[8];                    //0x538DC = ptr1, ptr2, ptr3
+
+    
+    do
+    {
+      old = arg_4;                   //arg_4 holds loc of current src character 
+      arg_4 = arg_4 + 1;             //(first char in sequence related to whether or not take the jump, so we skip)
+
+      a1 = old[1];                   //grab current src character
+
+      if (a1 == '+')
+      {
+        var_38 = var_38 | 1;         //----chars of these vals will then set the flags in var_38----
+        loop
+      }
+      if (a1 == '-')
+      {
+        var_38 = var_38 | 2;
+        loop
+      }
+      if (a1 == ' ')
+      {
+        var_39 = ' ';              
+        loop
+      }
+      if (a1 == '#')
+      {
+        var_38 = var_38 | 4;
+      }
+      
+      if (a1 == v1)
+      {
+        var_38 = var_38 | 8; 
+        loop
+      }
+
+      if (a1 == '*')               //if the char is a *
+      {
+
+        old = var_28;              
+        var_28 = var_28 + 4;       //increment var_28 ptr by one word and var_34 = word there before increment
+        v0 = *(old);
+        var_34 = v0;
+
+        if (v0 < 0)                
+        {
+          var_38 = var_38 | 1;
+          var_34 = -v0;
+        }
+      
+        v0 = a0 + 2;    //location of src + 2  
+        arg_4 = v0;     //counter to this val
+        a1 = a0[2];     //get char at src + 2
+
+        v0 = 0x2E;
+        exit loop to 3d900
+      }
+      else 
+        exit loop to 3d8f4   (with v0 = -6)
+    }
+    
+  
+  //3D8F4: DONT GO HERE UNLESS STATED
+  do while (v0 < 0xA && v0 > 0)        //IS THE CHARACTER A NUMBER???? (31-3A)
+  {
+    v0 = (var_34 * 10) + (a1-0x30);   //var_34 is ptr2 at 0x538DC  
+    var_34 = v0;                       //
+
+    old = arg_4;
+    arg_4 = arg_4 + 1;                 
+    a1 = old[1];
+
+    v0 = a1 - 0x30;                    //basically keep grabbing chars till we have one thats not a number
+  }
+
+  //3D900: skipping number check..
+  v0 = 0x2E;                           //char for dot (.)
+  if (a1 == v0)                        //IS THE CHARACTER A DOT  
+  {
+    old = arg_4;                          
+    arg_4 = arg_4 + 1;
+    a1 = old[1];                       //grab the char after the dot
+
+    if (a1 == v0)                        //IS THE CHAR ANOTHER DOT
+    {
+      old = var_28;                    
+      var_28 = var_28 + 4;               
+      v0 = *(old);                       //increment var_28 ptr by one word and var_30 = word there before increment
+      var_30 = v0;
+
+      arg_4 = old + 2;                   //set current src char to after the 2 dots                    
+      a1 = a0[2];                        //also grab the char here
+    }
+    else
+    {
+      v0 = a1 - 0x30;                    
+      do while (v0 < 0xA & v0 > 0)       //IS THE CHAR A NUMBER
+      {
+        v0 = (var_30 * 10) + (a1-0x30);
+        var_30 = v0;
+
+        arg_4 = arg_4 + 1;                 //done the same way as without a dot, but var_30 instead of var_34
+        v0 = *(arg_4) - 0x30;
+      }     
+    }
+    
+    if (var_30 >= 0)                     //DID WE END UP FINDING DOT (.) FOLLOWED BY NUMBER AND WAS IT > 0
+    {
+      var_38 = var_38 | 0x10;              //set the appropriate flags
+    }
+  }
+
+  v0 = var_38 & 1;                       
+  s1 = var_38;
+  if (v0 != 0)                           //if flag/bit 1 of var_38 set then
+  {
+    var_38 = var_38 & 0xFFFFFFF7;          //set bit 4 to 0
+  }
+
+  //this is for check escape characters...?
+  v1 = a1-0x4C;
+
+  if (v1 >= 0x2D) { jumptable 3DA00 DEFAULT CASE }       //PROBABLY A LETTER
+  else            { jumptable 3DA00 CASE v1 }            //PROBABLY AN ESCAPE CHAR
+
+}
+else
+{
+  loc_8003DF64  (last loc in subroutine)
+}
+
+
+--CHARACTER JUMP TABLE CASES--
+DEFAULT:
+
+loc_8003DE98:
+  v0 = dest+gcount;     //recalculate dest
+
+  if (a1 != 0x25)  then 3DF64 else 3DEA4
+  
+
+loc_8003DEA4:          //HERE IF THE FIRST CHAR IS '%', VO=dest+gcount; ALSO HERE IF CHAR FURTHER ON IS '%'      
+  v0[0] = a1;           
+  gcount = gcount + 1;
+  goto loc_3dF44
+
+loc_8003DF44:
+  old = arg_4;  
+  arg_4 = arg_4 + 1;
+  a1 = old[1];
+  v0 = 0x25;
+
+  if (a1 != 0) loop back to 3d7a0
+
+loc_8003DF64:
+
+  v0 = dest + gcount;
+  v0[0] = 0;            //zero out the first non escape char?
+  v0 = gcount;          //return offset cause by escape chars
+
+===========================================
+
+
+
+
+}
+*(s3+s2) = 0;
+return s2;
+

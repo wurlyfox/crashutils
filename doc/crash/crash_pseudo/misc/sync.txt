@@ -1,0 +1,115 @@
+sub_8003E4F0(a0):  { negative a0 or a0 = 1 returns 0x549F0, id like to think this function is very similar to timingout until a vsync)
+
+  stack back 0x20
+
+  ptr1 = *(0x53924);     //ptr1 = v0
+  ptr2 = *(0x53928);     //ptr2 = v1
+
+  s0 = ptr1[0];          
+  v0 = ptr2[0];
+
+  v1 = *(0x5392C);
+  
+  
+  v0 = v0 - v1;       //value calced from sub double de-reffed pointer from single de-ref
+  s1 = v0 & 0xFFFF;
+
+  if (a0 < 0)
+    v0 = *(0x549F0);
+    return;
+
+
+  --------
+
+  if (a0 == 1) { return; }
+
+  if (a0 > 0)
+  {
+ 
+    v0 = a0 - 1 + *(0x53930);
+
+    a1 = a0 - 1;
+  }
+  else
+  {
+    v0 = *(0x53930);
+  }
+
+    //a1 = 0;
+    //if (a0 > 0)
+    //a1 = a0 - 1;  
+  
+  timeoutLength = v0;
+  sub_8003E638();
+ 
+  ptr1 = *(0x53924);
+  s0 = ptr1[0];
+
+  val = *(0x549F0);
+  val2 = 1;
+  sub_8003E638(val+1, val2)  //val=a0, val2=a1
+
+  lui v0, 8;
+  v0 = s0 & v0;
+
+  if (v0 != 0)
+  {
+    ptr1 = *(0x53924);
+
+    v0 = s0 ^ ptr1[0];  //xor
+
+    if (v0 > 0)
+    {
+      do
+        a0 = 0x8000;
+        v0 = v1[0];
+
+        v0 = (s0 ^ v0) & a0;  //xor
+      while v0 = 0
+    }
+  }
+
+  *(0x53930) = *(0x549F0);
+  ptr2 = *(0x53928);
+
+  *(0x5392C) = ptr2[0];     <-- also stored in v1
+  v0 = s1;
+
+
+
+
+================
+
+
+sub_8003E638(a1):    //timeout followed by disabling of interrupts(allows hardware to act) including disable pad/rcnt interrupts?
+                     //a1 = timeout length, a0 = additional compare to *(0x549F0) to continue timeout
+
+ var_10 = a1 << 15;
+
+ if (*(0x549F0) >= a0)  return;
+
+ do
+ {
+   v1 = 0xFFFFFFFF;
+   var_10 = var_10 - 1;
+
+   v0 = var_10;
+   if (v0 == 0xFFFFFFFF)
+   {
+     a0 = vSyncTimeout string
+     sub_8003E6D4()  interrupt to display string
+
+     a0 = 0;
+     ChangeClearPAD();
+  
+     a0 = 3;
+     a1 = 0;
+     ChangeClearRCnt();
+     exit loop;
+   }
+
+ } while ( *(0x549F0) < a0 );
+
+
+     
+    

@@ -1,0 +1,65 @@
+CrashUtils 0.7.1.0 refactoring procedure
+----------------------------------------
+
+The purpose of this document is to define the source code refactoring 
+procedures involved in the transition from CrashUtils v0.7.0.0 to v0.7.1.0. 
+
+Project source for CrashUtils v0.7.0.0 suffers from a lack of modular structure. This is primarily
+due to my own lack of engineering/design experience. With further education came increased awareness
+of better design practices. At some point it became apparent that the project were to be completely
+restructured before any further implementation. 
+
+The refactoring procedures wish to accomplish following:
+
+1) Defining an abstraction for the systems of the application
+2) Decoupling sources
+3) Separating interfaces from implementation
+4) Defining the actual -systems- of the application
+5) Integrating the application's systems
+
+---------
+
+1) Defining an abstraction for the systems of the application
+
+  - (currently /include/system.h)
+  - see sysinteg.txt
+  
+2) Decoupling sources
+
+  - replace all graphics procedure calls in windows with the equivalent system message broadcasts
+    - incl for when models created to export tgeo, wgeo, etc
+    - selecting from nsd list should trigger select message
+  
+  - replace all graphics procedure calls in crashPC with the equivalent system message broadcasts
+  - 
+  
+3) Separating interfaces from implementation
+
+  - /lib           = CrashUtils library
+  - /lib/crash/    = Crash Data library
+  - /lib/graphics/ = CrashPC Graphics library
+  - /lib/unix/     = Unix-specific class implementations
+  - /lib/win32/    = CrashUtils Win32 Framework/Library
+  
+  - /include           = CrashUtils API
+  - /include/formats/  = CrashUtils/Various File Format API
+  - /include/graphics/ = CrashPC Graphics API
+  - /include/unix/     = Unix-specific classes
+  - /include/win32/    = CrashUtils Win32 Framework/API
+
+  - /src                 = CrashUtils Main Source
+  - /src/context-plugins = Editor Module
+  - /src/crash           = CrashPC Module
+  - /src/win32           = Win32 Module
+  
+4) Defining the actual -systems- of the application
+
+  - CrashUtils (Root System): /src/crashutils.cpp:.h
+  - Graphics Subsystem:       /src/gfx_system.cpp:.h
+  - Windows Subsystem:        /src/win_system.cpp:.h
+  - CrashPC Subsystem:        /src/crash_system.cpp:.h
+  
+5) Integrating the application's systems
+
+  - CrashUtils Win32 (Complete system): /src/crashutils_win.cpp:.h
+  - see sysinteg.txt

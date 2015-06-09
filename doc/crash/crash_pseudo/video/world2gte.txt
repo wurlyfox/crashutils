@@ -1,0 +1,2066 @@
+worldToGTEroutine(displayList, zBuffer, projDistance, ...)
+
+(sub_80019508)
+sub_80035438() - default wgeo transform routine
+
+---------
+
+(sub_80019BCC) - wgeo transform routine w/fog (white 'smoke') effect vertex shader: used in the high road, road to nowhere
+sub_80035898()
+--------------
+....
+
+
+
+
+(sub_80019DE0)
+sub_80035E10() - wgeo transform routine w/'ripple effect' vertex (position) shader
+-------------
+Prior to the call for this, usually from 19DE0, the y values of 16 equally distributed contiguous points on a triangle wave 
+are calculated such that for each frame the wave becomes increasingly out of phase (i.e. the position of the valley moves left
+and eventually wraps around). Any vertices that have their interpolation flag set (not interpolation in this context) have their
+X and Y components summed, and the lower 4 bits of that sum determine which of these 16 points is chosen. Equivalently, the phase
+of the x and y component (if the entire xy plane was broken into a grid of squares, where 16x16 contiguous squares form groups, 
+vertices in squares on the diagonal of the group will all have the same phase, and similarly all vertices at the same approximate
+radial distance [rhomboidial] from  (1,1) in the group will choose the same point on the wave=same phase for changing points) 
+determine how far up/down the vertex will be shifted. This creates a ripple effect. It is used for the water in water levels, 
+the moving trees on the map, etc.
+
+(sub_80019F90)
+sub_80036340() - wgeo transform routine (w/lighting effect vertex shader..?): used for the lightning in slippery climb, stormy ascent, n.brio
+---------------
+Does the following differently:
+
+For each polygon in the wgeo model
+  Apply depth cuing to each vertex to mutate its color; apply the first interpolation value and the first far colors, start with the 
+  vertices (of the 3) that do NOT have the interpolation flag set (if any), apply the second interpolation value and the second far
+  colors, and end with the vertices that DO have the interpolation flag set (if any).
+  The parameters used for the depth cuing are determined by gp[0x44] - gp[0x60] (each shifted left 4) and have the following
+  purposes, respectively:
+  
+    gp[0x44] = GTE.RFC first far color red componenet
+    gp[0x48] = GTE.GFC first far color green component
+    gp[0x4C] = GTE.BFC first far color blue componenet
+    gp[0x50] = I1 = first interpolation value
+    
+    gp[0x54] = GTE.RFC second far color red componenet
+    gp[0x58] = GTE.GFC second far color green component
+    gp[0x5C] = GTE.BFC second far color blue componenet
+    gp[0x60] = I2 = second interpolation value
+    
+    I1 = IIIIIIII IIII0321
+    I2 = 
+    (1 = vertex 1 interp flag, 2 = vertex 2 interp flag, 3 = vertex 3 interp flag)
+    
+    GTE.RGB = RGB of vertex being cued
+    
+(sub_8001A0CC) 
+sub_80036BF4() - wgeo transform routine w/darken with depth effect shader: used for generator room
+--------------
+.........
+
+
+(sub_8001A2E0) 
+sub_800375EC() - wgeo transform routine w/darken effect vertex shader: used for lights out, fumbling in the dark,
+-------------
+........
+
+
+
+
+
+inline void setMatCopyMod() //-sets the rotation and light matrixes
+                            //-copys model data to scratch pad, and set up variables/args for a perspective transform
+{                           //note that this is more of a macro, since variable scope doesnt change
+
+  if (*(0x566B8) == 0) { return 0; }
+
+  SetRotMatrix(0x577E4);
+  SetLightMatrix(0x578F4);
+
+  gInfo = *(0x57914)[0x10];   //a global entry containing all the (model?) graphics info for the frame 
+
+  a0 =      gInfo + 4;   //copying from
+  a1 =     0x1F800100;   //to
+  a2 =          0x100;   //count (/2?)
+  sub_80033FBC();
+
+  rval = sub_80016E18();  //*(0x5840C) + 0x78;           display buffer pointer
+
+  a0 = *(0x566B8);        //list of current polygons/vertices? that need perspective transform?
+  a1 =     arg_a0;        //location in some z-list to store a pointer to the transformed polygons/vertices?
+  a2 = *(0x578D0);        //(camera Z or some Z distance to compare to?)
+  a3 = *(0x57960);        //
+
+  Var_18 =       rval;      //the buffer which to store all the transformed polygon/vertex? structures
+  var_14 =   0x51774;       //a z value? (cam z?)
+
+  a2 = *(0x578D0);           
+  a2 = ((a2 + (a2 << 31)) >> 1) - 0x800; //shifts lowest bit to highest, divides by 2, and subtracts 0x800;
+
+}
+
+sub_80019508()
+{
+  setMatCopyMod();
+
+  return sub_80035438();  //prob the most important
+}
+--------------------------------
+
+sub_80019F90()
+{
+
+  scratch[0x48] = gp[0x44] * 16;
+  scratch[0x4C] = gp[0x48] * 16;
+  scratch[0x50] = gp[0x4C] * 16;
+  scratch[0x54] = gp[0x50] * 16;
+  scratch[0x58] = gp[0x54] * 16;
+  scratch[0x5C] = gp[0x58] * 16;
+  scratch[0x60] = gp[0x5C] * 16;
+  scratch[0x64] = gp[0x60] * 16;
+
+  setMatCopyMod();
+
+
+
+  return sub_80036340();  //prob the most important
+}
+
+
+---------------------------
+gp[0x7C] = 10
+
+
+y = (((x+1)/8)*z) - x
+
+
+
+11111101
+
+1010
+if (
+sub_80019DE0()
+{
+
+  if (arg_a0 == 0) 
+  {
+    count = 0;
+
+    v1 = 0x567B8;
+
+    do
+    {
+      if ((gp[0x7C] + 1) >= 0)
+        v0 = (gp[0x7C] + 1)/8;
+      else
+        v0 = (gp[0x7C] + 8)/8; 
+    
+      *(v1) = (v0 * count) - gp[0x7C];
+
+      count++;
+      v1 += 4;
+    } while (count < 0x10)
+
+    return 0;
+  }
+
+  //if the first hword [0] of the display list (0x566B8)
+  //= onscreen wgeo polygon count = 0, then exit routine
+  if (*(0x566B8)[0] == 0) { return 0; }
+
+  if (*(0x56400) == 0)
+  {
+    
+    v1    = 0x567B8;
+    count =       0;
+
+    do
+    {
+      *(v1) = *(v1) + gp[0x78];
+
+      count++;
+
+      if (gp[0x7C] < *(v1))
+        *(v1) = 1 - gp[0x7C];
+      
+      v1 += 4;
+
+    } while (count < 0x10)         
+
+  }
+ 
+  //saw wave function
+  16 distributed points on the saw wave starting
+  from -127, finally reaching 23 at point 16; as
+  time progresses the points increase upwards and those that
+  cross the 127 point reset to -127
+  
+  -127 -117 -107 -97 -87 -77 -67 -57 -47 -37 -27 -17 -7   3^ 13  23
+  -117 -107  -97 -87 -77 -67 -57 -47 -37 -27 -17  -7  3^ 13  23  33
+  -107  -97  -87 -77 -67 -57 -47 -37 -27 -17  -7   3^13  23  33  43
+   -97 - 87  -77 -67 -57 -47 -37 -27 -17  -7   3^ 13 23  33  43  53
+   -87  -77  -67 -57 -47 -37 -27 -17  -7   3^ 13  23 33  43  53  63
+   ...
+   -27  -17   -7   3^ 13  23  33  43  53  63  73  83 93 103 113 123
+   -17   -7   3   13  23  33  43  53  63  73  83 93 103 113 123-127
+   ...        ^
+   ...repeats
+   
+  count = 0;
+
+  //by absing this it becomes a triangle wave with its center/
+  //valley point at the 3 
+  do
+  {
+    count++;
+    scratch[0x48 + (count*4)] = abs(*(0x567B8 + (count*4)));
+  }
+  
+
+  setMatCopyMod();
+
+  sub_80035E10();
+}
+
+
+
+--------only the portion of the sub that gets used is currently documented...----
+sub_80033fbc:
+
+if (arg_a2 < 5) { 341f4; }
+
+if (arg_a0 & 3 == 0) { 33ff8; }
+
+if (arg_a1 & 3 == 0) { 34134; }
+
+at = arg_a0[0];
+
+a0 = arg_a0 + 2;
+a1 = arg_a1 + 2;
+
+arg_a1[0] = arg_a0[0]; //lh, sh
+
+
+34000:
+-----------
+if (a2 < 4) { at = a0[0]; jr nullsub_6+(a2*32); }
+
+if (a2 >= 9) { 34030; }
+
+a2 = arg_a2 - 1;
+a2 = a2 - (a2 & 3);  //align to word
+
+t0 = loc_80034058 - (a2 * 4);
+
+jr t0;
+
+-------------
+
+34030:
+
+a1[0xC]  = a0[0xC];
+a1[8]    =   a0[8];
+a1[4]    =   a0[4];
+a1[0]    =   a0[0];
+
+a0 += 0x10;
+a1 += 0x10;
+a2 = a2 - 8;
+
+back to 34000;
+
+---------------------------------
+
+
+sub_80035438(arg_a0, arg_a1, arg_a2, arg_a3, arg_10, arg_14, struct{s7, t8, t9}):
+
+s0...ra -> stackmem[0]-stackmem[0x40] (range filled, i.e. last word is stackmem[0x3C]
+(we make use of miscellaneous purpose registers when communicating with the coprocessor, 
+ otherwise normally we'd waste time juggling between the small number of regs we normally have to work with)
+
+
+t7 = arg_10;
+s6 = arg_14;
+t3 = t7[0];       //result location
+
+
+sp = 0x1F8000E0;       //the data is located at sp[0x20] (0x1F800100), offset in the scratch pad
+
+sp[0] = arg_a3;
+---
+
+gp =   0xFFFFFF;         //no longer gp, just a regular reg
+t7 =       0x60;
+t0 = 0x1F800100;         //t0 points to the data
+t4 =     0xFFFF;
+a0 =  0x2000000;
+lastZDist =     0x1FFC;
+
+count = arg_a0[0];
+
+t2 = &arg_a0[2 + (arg_a0[0]*2)];
+at = *(t2);  //lhu
+
+
+a2 = arg_a2 * 4;
+
+a3 = arg_a3;
+
+
+//at = 0000AAAA AAAAAAAA AAAABBBB BBBBBBBB   , 0x6037, a = 6, b = 110111
+do
+{
+  t2 = t2 - 2;
+
+  fp = at >> 12;
+
+  if (fp != t4)           //this is the case if there is a translation vector for (the 3 points to perspective transform?)
+  {
+    t4 = fp;
+
+
+    v0 = &t0[(t4*0x40)];  //stackmem[0x100] has array of 64byte data structs
+
+
+    GTE.TRX =   v0[4];    //stores the vars in the gte translation vector regs (Translation vector X, Y, Z)
+    GTE.TRY =   v0[8];
+    GTE.TRZ = v0[0xC];
+
+    s7 = v0[0x14];
+    t8 = v0[0x18];
+    t9 = v0[0x1C];
+
+    a3 = v0 + 0x20;  //location next block (replaces a3)
+  }
+
+  //else s7, t8, t9 are from func args
+
+  at = (at & 0xFFF) * 8;
+
+  t1 = s7 + at; //refers to 2 word struct
+
+  //at = t1[0];
+  //t1 = t1[4];
+
+  //t1[0] = FFFFFFFF FFFFEEEE EEEEEEEE DDDDDDDD
+  //t1[4] = CCCCCCCC CCCCBBBB BBBBBBBB AAAAAAAA
+
+  //v0...
+  val = (t1[0] << 12) | (t1[4] & 0xFF);  //EEEEEEEE EEEEDDDD DDDD0000 AAAAAAAA
+
+  cbits8 = (t1[4] >> 17) & 0x7FF8; //cbits * 8 
+  bbits8 = (t1[4] >>  5) & 0x7FF8; //bbits * 8
+  fbits8 = (t1[0] >> 17) & 0x7FF8; //fbits * 8  
+
+  s0    = cbits8 + t8;   //t8 = either v0[0x18] or when no translation vector specified in sub args    
+  s1    = bbits8 + t8;
+  s2    = fbits8 + t8;     
+   
+  //s3 = s0[0];
+  //s0 = s0[4];
+
+  //s4 = s1[0];
+  //s1 = s1[4];
+  
+  //s5 = s2[0];
+  //s2 = s2[4];
+
+
+  //s0,1,2[0] = EEEEEEEE ???????? ???????? ????????
+  //s0,1,2[4] = AAAAAAAA AAAAACCC BBBBBBBB BBBBBDD0
+
+  GTE.VXY0 = s0[4] & 0xFFF8FFF8;  //Vector 0 X and Y [ignoring c and d bits]
+  GTE.VXY1 = s1[4] & 0xFFF8FFF8;  //Vector 1 X and Y [..
+  GTE.VXY2 = s2[4] & 0xFFF8FFF8;  //Vector 2 X and Y [..
+
+  t1 = (s0[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  sp = ((s0[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s0[4] & 0x70006) >>  3;   //00000000 00000000 000000000 00000000
+  sp |= t1;                       //000CCC00 00000000 CCCDD0EEE EEEEE000
+
+  t1 = (s1[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  fp = ((s1[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s1[4] & 0x70006) >>  3;   //00000000 CCC00000 000000000 00000000
+  fp |= t1;                       //000CCC00 CCC00000 CCCDD0EEE EEEEE000
+
+  t1 = (s2[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  ra = ((s2[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s2[4] & 0x70006) >>  3;   //00000000 CCC00000 000000000 00000000
+  ra |= t1;                       //000CCC00 CCC00000 CCCDD0EEE EEEEE000
+
+  GTE.VZ0 = sp;                   //Vector 0 Z             
+  GTE.VZ1 = fp;                   //Vector 1 Z
+  GTE.VZ2 = ra;                   //Vector 2 Z
+
+  //cop2    0x280030  
+  GTE::PerspectiveTransform();    //given there is the rotation matrix set for all vertices that compose this polygon/figure, do perspective transform on the current pts
+  
+  //val was: GGGGGGGG GGGGHHHI IIII0000 CCCBBBBA
+    
+  offset = (val >> 20) << 2; //gbits * 4
+  
+  curaddr = t9 + offset;   //t9 was v0[0x1C] or specified in subargs for no trans vector
+  t1 = *(curaddr);
+
+  S2 =    0x34000000;
+
+  //t1 is ABBCCCCC 00000000 00000000 00000000
+  oldcuraddrval = (t1>>24);
+  if (oldcuraddrval & 0x80 == 0) { goto 357a4; } //check bit A
+
+  
+  t3[8]    = GTE.SXY0;   //results of the perspective transform
+  t3[0x14] = GTE.SXY1;
+  t3[0x20] = GTE.SXY2;
+
+  //s3 = s0[0];
+  //s4 = s1[0];
+  //s5 = s2[0];
+    
+  s3 = (s3 & 0xFFFFFF) | 0x34000000;
+  if (t1 & 0x60 != 0x60)            //check B bits, if not both set
+  {
+    s3 = s3 | 0x2000000;
+  }
+
+  t3[4]    = s3;
+  t3[0x10] = s4;
+  t3[0x1C] = s5;
+
+  //val was: GGGGGGGG GGGGHHHI IIII0000 CCCBBBBA
+
+
+
+  bbits2 = val & 0x1E;  //val's bbits shifted left 1
+
+  if (bbits2 != 0)      //if refers to a nonzero value 
+  {
+    bitsshift = (val >> 5) & 7; //val's cbits (num of bits 0-7 to shift right)
+
+    fp = *(0x1F8000E0);  //stackmem[0xE0];
+
+    ibits = (val >> 12) & 0x1F;  //val's ibits  
+  
+    sp = ((ibits + (fp >> bitsshift)) & (bbits2 | 1)) * 4;
+
+    curaddr += sp;
+  }
+
+  hbits4 = (val >> 15) & 0x1C;  //hbits * 4;
+  at =      v0[0x20 + hbits4];
+
+  //-- s3 is AAAAAAAA AABBCCDD DDDEEEEE EE0FFFFF
+  //-- s4 is 00000000 0000GGGG GGGGGGGG H0000000
+  s3 = curaddr[4];
+  s4 =      at[0];
+
+  sp = (s3 >> 22) * 8;      //s3's abits * 8
+      
+  t6 = arg_14 + sp;
+
+  s0 = t6[0];
+  t6 = t6[4]; //lhu
+
+  bbits = (s3 >> 20) & 3;   //s3's bbits   
+  cbits = (s3 >> 18) & 3;   //s3's cbits
+
+  sp = ((bbits * 128) | s4 | cbits | (oldcuraddrval & 0x60)) << 16;
+
+  dbits8 = (s3  >> 10) & 0xF8;  //s3's dbits * 8
+  fbits4 = (s3 & 0x1F)    * 4;  //s3's fbits * 4  
+
+  initOffset = (dbits8 >> bbits) | ((fbits4 | (s4 & 0x80)) << 8);  //s4 & 0x80 = hbit
+
+  ra = sp | ((s0 >> 16) + initOffset);
+
+
+  ebits64 = (s3 & 0x1Fc0);
+
+  sp = ((oldcuraddrval & 0xF) | ebits64) << 16;
+  fp = sp | ((s0 & 0xFFFF) + initOffset);
+
+  t6 = t6 + s5;
+
+
+  t3[0xC]  = fp;
+  t3[0x18] = ra;
+  t3[0x24] = t6;
+
+  
+  z1 = GTE.SZ1;  //sp       //z results of the perspective transform
+  z2 = GTE.SZ2;  //fp
+  z3 = GTE.SZ3;  //ra
+
+  sp = (z1 + z2 + z3)/32;
+
+  zDist = ((arg_a2 * 4) - (sp * 4)) & 0x1FFC;
+
+  t6 = arg_a1 + lastZDist;    //lastZDist initially 0x1FFC but below will change it
+
+  if (zDist < lastZDist)
+  {
+    lastZDist = zDist;
+    
+    t6 = arg_a1 + zDist;
+
+    if (zDist < 0)
+    {
+      lastZDist = 0;
+    }
+  
+    t6 = arg_a1;
+  }
+
+  --
+
+  oldPtr = *(t6);
+  *(t6) = t3 & 0xFFFFFF;     //seems to be an array for each corresponding z value, set to point to the t3/polygon/vertex? struct (but not cached memory location)
+  
+  t3[0] = oldPtr | 0x9000000 //then this is why its anded out, t3[0] points to the previous t3/polygon/vertex struct in the z array at this position
+
+  t3 += 0x28;                //next polygon/vertex struct?    
+
+  count--;
+
+  at = *(t2);                //arg_a0[2...(arg_a0[0])] = stack of halfwords starting at index (arg_a0[0]) and working back; pointer t2 starts off at arg_a0 and
+                             //decremented a halfword at the beginning of the loop so this just grabs the next halfword
+} while (count != 0)
+
+sp = 0x1F800034;
+arg_10[0] = t3;              //last vertex struct left off on in loop  
+
+
+
+----------------------------
+
+sub_80036340(arg_a0, arg_a1, arg_a2, arg_a3, arg_10, arg_14, struct{s7, t8, t9}):
+
+s0...ra -> stackmem[0]-stackmem[0x40] (range filled, i.e. last word is stackmem[0x3C]
+(we make use of miscellaneous purpose registers when communicating with the coprocessor, 
+ otherwise normally we'd waste time juggling between the small number of regs we normally have to work with)
+
+
+t7 = arg_10;
+s6 = arg_14;
+t3 = t7[0];       //result location
+
+
+sp = 0x1F8000E0;       //the data is located at sp[0x20] (0x1F800100), offset in the scratch pad
+
+sp[0] = arg_a3;
+---
+
+gp =   0xFFFFFF;         //no longer gp, just a regular reg
+t7 =       0x60;
+t0 = 0x1F800100;         //t0 points to the data
+t4 =     0xFFFF;
+a0 =  0x2000000;
+lastZDist =     0x1FFC;
+
+count = arg_a0[0];
+
+t2 = &arg_a0[2 + (arg_a0[0]*2)];
+at = *(t2);  //lhu
+
+
+a2 = arg_a2 * 4;
+
+a3 = arg_a3;
+
+
+//at = 0000AAAA AAAAAAAA AAAABBBB BBBBBBBB   , 0x6037, a = 6, b = 110111
+do
+{
+  t2 = t2 - 2;
+
+  fp = at >> 12;
+
+  if (fp != t4)           //this is the case if there is a translation vector for (the 3 points to perspective transform?)
+  {
+    t4 = fp;
+
+
+    v0 = &t0[(t4*0x40)];  //stackmem[0x100] has array of 64byte data structs
+
+
+    GTE.TRX =   v0[4];    //stores the vars in the gte translation vector regs (Translation vector X, Y, Z)
+    GTE.TRY =   v0[8];
+    GTE.TRZ = v0[0xC];
+
+    s7 = v0[0x14];
+    t8 = v0[0x18];
+    t9 = v0[0x1C];
+
+    a3 = v0 + 0x20;  //location next block (replaces a3)
+  }
+
+  //else s7, t8, t9 are from func args
+
+  at = (at & 0xFFF) * 8;
+
+  t1 = s7 + at; //refers to 2 word struct
+
+  //at = t1[0];
+  //t1 = t1[4];
+
+  //t1[0] = FFFFFFFF FFFFEEEE EEEEEEEE DDDDDDDD
+  //t1[4] = CCCCCCCC CCCCBBBB BBBBBBBB AAAAAAAA
+
+  //v0...
+  val = (t1[0] << 12) | (t1[4] & 0xFF);  //EEEEEEEE EEEEDDDD DDDD0000 AAAAAAAA
+
+  cbits8 = (t1[4] >> 17) & 0x7FF8; //cbits * 8 
+  bbits8 = (t1[4] >>  5) & 0x7FF8; //bbits * 8
+  fbits8 = (t1[0] >> 17) & 0x7FF8; //fbits * 8  
+
+  s0    = cbits8 + t8;   //t8 = either v0[0x18] or when no translation vector specified in sub args    
+  s1    = bbits8 + t8;
+  s2    = fbits8 + t8;     
+   
+  //s3 = s0[0];
+  //s0 = s0[4];
+
+  //s4 = s1[0];
+  //s1 = s1[4];
+  
+  //s5 = s2[0];
+  //s2 = s2[4];
+
+
+  //s0,1,2[0] = EEEEEEEE ???????? ???????? ????????
+  //s0,1,2[4] = AAAAAAAA AAAAACCC BBBBBBBB BBBBBDDG
+  //------------------------------------------------------------
+  
+  structOnScratch = 0x1F800048;
+
+  ra = structOnScratch[0xC];
+
+  gbitA = s0 & 1;    //vertex 'G' bit
+  gbitB = s1 & 1;    //....
+  gbitC = s2 & 1;
+
+  at = (gbitA | gbitB << 1 | gbitC << 2);  //00000CBA (a=gbit vertex a, b = gbit vertex b, c = gbit vertex c
+  fp = at | ra;
+
+  GTE.IR0 = structOnScratch[0xC];   //interpolation value for depth cuing
+  
+  if (fp != 0)
+  {
+    GTE.RFC = structOnScratch[0];   //far color red component
+    GTE.GFC = structOnScratch[4];   //far color green component
+    GTE.BFC = structOnScratch[8];   //far color blue component
+
+    gp = 0x00FFFFFF;
+    fp = 0xFF000000;
+    
+
+    //at this point the at register (combined interpolation bits) will determine which of the subsequent 
+    //equal sized sections of code [that deal with depth cuing] to execute
+
+    //s0[0] then contains the RGB values for the vertex (which checkwob has pointed out)
+    //(and the Z value which is the upper byte, gte reads this as the 'code')
+    //CODE, R, G, B
+
+    ====sub (a)====     //APPLY FARCOLOR1 AND INTERP1 ON ALL VERTICES
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+    
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+    
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+    
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s5            = zvalue | sp;
+    ============
+
+    ====(sub b)====     //APPLY FARCOLOR2 AND INTERP2 ON VERTEX A
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s5            = zvalue | sp;        
+    
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s3            = zvalue | sp;
+    ==================
+
+    ====(sub c)====          //APPLY FARCOLOR2 AND INTERP2 ON VERTEX B
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s5            = zvalue | sp;        
+    
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s4            = zvalue | sp;
+    ========================
+
+    ====(sub d)====          //APPLY FARCOLOR2 AND INTERP2 ON VERTEX A AND B
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s5            = zvalue | sp;
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;        
+    
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s4            = zvalue | sp;
+    ========================    
+    
+    ====(sub e)====          //APPLY FARCOLOR2 AND INTERP2 ON VERTEX C
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;        
+    
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s5            = zvalue | sp;
+    ========================   
+
+    ====(sub f)====          //APPLY FARCOLOR2 AND INTERP2 ON VERTEX A AND C
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;        
+    
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s5            = zvalue | sp;
+    ======================== 
+
+    ====(sub g)====          //APPLY FARCOLOR2 AND INTERP2 ON VERTEX B AND C
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;        
+    
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s5            = zvalue | sp;
+    ======================== 
+
+    ====(sub h)====          //APPLY FARCOLOR2 AND INTERP2 ON ALL VERTICES
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+    
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;        
+    
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s5            = zvalue | sp;
+    ======================== 
+  } //----------------------------------------------
+
+  //s0,1,2[0] = EEEEEEEE REDREDRE GREENGRE BLUEBLUE
+  //s0,1,2[4] = AAAAAAAA AAAAACCC BBBBBBBB BBBBBDD0
+
+  GTE.VXY0 = s0[4] & 0xFFF8FFF8;  //Vector 0 X and Y [ignoring c and d bits]
+  GTE.VXY1 = s1[4] & 0xFFF8FFF8;  //Vector 1 X and Y [..
+  GTE.VXY2 = s2[4] & 0xFFF8FFF8;  //Vector 2 X and Y [..
+
+  t1 = (s0[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  sp = ((s0[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s0[4] & 0x70006) >>  3;   //00000000 00000000 000000000 00000000
+  sp |= t1;                       //000CCC00 00000000 CCCDD0EEE EEEEE000
+
+  t1 = (s1[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  fp = ((s1[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s1[4] & 0x70006) >>  3;   //00000000 CCC00000 000000000 00000000
+  fp |= t1;                       //000CCC00 CCC00000 CCCDD0EEE EEEEE000
+
+  t1 = (s2[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  ra = ((s2[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s2[4] & 0x70006) >>  3;   //00000000 CCC00000 000000000 00000000
+  ra |= t1;                       //000CCC00 CCC00000 CCCDD0EEE EEEEE000
+
+  GTE.VZ0 = sp;                   //Vector 0 Z             
+  GTE.VZ1 = fp;                   //Vector 1 Z
+  GTE.VZ2 = ra;                   //Vector 2 Z
+
+  //cop2    0x280030  
+  GTE::PerspectiveTransform();    //given there is the rotation matrix set for all vertices that compose this polygon/figure, do perspective transform on the current pts
+  
+  //val was: GGGGGGGG GGGGHHHI IIII0000 CCCBBBBA
+    
+  offset = (val >> 20) << 2; //gbits * 4
+  
+  curaddr = t9 + offset;   //t9 was v0[0x1C] or specified in subargs for no trans vector
+  t1 = *(curaddr);
+
+  S2 =    0x34000000;
+
+  //t1 is ABBCCCCC 00000000 00000000 00000000
+  oldcuraddrval = (t1>>24);
+  if (oldcuraddrval & 0x80 == 0) { goto 357a4; } //check bit A
+
+  
+  t3[8]    = GTE.SXY0;   //results of the perspective transform
+  t3[0x14] = GTE.SXY1;
+  t3[0x20] = GTE.SXY2;
+
+  //s3 = s0[0];
+  //s4 = s1[0];
+  //s5 = s2[0];
+    
+  s3 = (s3 & 0xFFFFFF) | 0x34000000;
+  if (t1 & 0x60 != 0x60)            //check B bits, if not both set
+  {
+    s3 = s3 | 0x2000000;
+  }
+
+  t3[4]    = s3;
+  t3[0x10] = s4;
+  t3[0x1C] = s5;
+
+  //val was: GGGGGGGG GGGGHHHI IIII0000 CCCBBBBA
+
+
+
+  bbits2 = val & 0x1E;  //val's bbits shifted left 1
+
+  if (bbits2 != 0)      //if refers to a nonzero value 
+  {
+    bitsshift = (val >> 5) & 7; //val's cbits (num of bits 0-7 to shift right)
+
+    fp = *(0x1F8000E0);  //stackmem[0xE0];
+
+    ibits = (val >> 12) & 0x1F;  //val's ibits  
+  
+    sp = ((ibits + (fp >> bitsshift)) & (bbits2 | 1)) * 4;
+
+    curaddr += sp;
+  }
+
+  hbits4 = (val >> 15) & 0x1C;  //hbits * 4;
+  at =      v0[0x20 + hbits4];
+
+  //-- s3 is AAAAAAAA AABBCCDD DDDEEEEE EE0FFFFF
+  //-- s4 is 00000000 0000GGGG GGGGGGGG H0000000
+  s3 = curaddr[4];
+  s4 =      at[0];
+
+  sp = (s3 >> 22) * 8;      //s3's abits * 8
+      
+  t6 = arg_14 + sp;
+
+  s0 = t6[0];
+  t6 = t6[4]; //lhu
+
+  bbits = (s3 >> 20) & 3;   //s3's bbits   
+  cbits = (s3 >> 18) & 3;   //s3's cbits
+
+  sp = ((bbits * 128) | s4 | cbits | (oldcuraddrval & 0x60)) << 16;
+
+  dbits8 = (s3  >> 10) & 0xF8;  //s3's dbits * 8
+  fbits4 = (s3 & 0x1F)    * 4;  //s3's fbits * 4  
+
+  initOffset = (dbits8 >> bbits) | ((fbits4 | (s4 & 0x80)) << 8);  //s4 & 0x80 = hbit
+
+  ra = sp | ((s0 >> 16) + initOffset);
+
+
+  ebits64 = (s3 & 0x1Fc0);
+
+  sp = ((oldcuraddrval & 0xF) | ebits64) << 16;
+  fp = sp | ((s0 & 0xFFFF) + initOffset);
+
+  t6 = t6 + s5;
+
+
+  t3[0xC]  = fp;
+  t3[0x18] = ra;
+  t3[0x24] = t6;
+
+  
+  z1 = GTE.SZ1;  //sp       //z results of the perspective transform
+  z2 = GTE.SZ2;  //fp
+  z3 = GTE.SZ3;  //ra
+
+  sp = (z1 + z2 + z3)/32;
+
+  zDist = ((arg_a2 * 4) - (sp * 4)) & 0x1FFC;
+
+  t6 = arg_a1 + lastZDist;    //lastZDist initially 0x1FFC but below will change it
+
+  if (zDist < lastZDist)
+  {
+    lastZDist = zDist;
+    
+    t6 = arg_a1 + zDist;
+
+    if (zDist < 0)
+    {
+      lastZDist = 0;
+    }
+  
+    t6 = arg_a1;
+  }
+
+  --
+
+  oldPtr = *(t6);
+  *(t6) = t3 & 0xFFFFFF;     //seems to be an array for each corresponding z value, set to point to the t3/polygon/vertex? struct (but not cached memory location)
+  
+  t3[0] = oldPtr | 0x9000000 //then this is why its anded out, t3[0] points to the previous t3/polygon/vertex struct in the z array at this position
+
+  t3 += 0x28;                //next polygon/vertex struct?    
+
+  count--;
+
+  at = *(t2);                //arg_a0[2...(arg_a0[0])] = stack of halfwords starting at index (arg_a0[0]) and working back; pointer t2 starts off at arg_a0 and
+                             //decremented a halfword at the beginning of the loop so this just grabs the next halfword
+} while (count != 0)
+
+sp = 0x1F800034;
+arg_10[0] = t3;              //last vertex struct left off on in loop  
+
+-------------------------------------------
+
+
+remember the prev routine: sub_80036340(arg_a0, arg_a1, arg_a2, arg_a3, arg_10, arg_14, struct{s7, t8, t9}):
+following routine is a variation of that
+
+sub_80036BF4(arg_a0, arg_a1, arg_a2, arg_a3, arg_10, arg_14, arg_18, arg_1C, ...?)
+
+t7 = arg_10;
+s6 = arg_14;
+at = arg_18;  //clearly more args than 36340
+ra = arg_1C;
+
+t3 = t7[0];       //result location
+
+
+sp = 0x1F8000E0;       //the data is located at sp[0x20] (0x1F800100), offset in the scratch pad
+sp[0] = arg_a3;
+
+//first difference from sub_80036340:
+sp[4] = GTE.RFC   //red far color
+sp[8] = GTE.GFC   //green far color
+sp[0xC] = GTE.BFC //blue far color
+
+---
+
+gp =   0xFFFFFF;         //no longer gp, just a regular reg
+t7 =       0x60;
+t0 = 0x1F800100;         //t0 points to the data
+t4 =     0xFFFF;
+
+
+//diff 2, we use arg_1C to determine the bits to set for those that are semi-trans in the primitive tag/type field for the gte
+a0 = ra; //arg_1C
+lastZDist =     0x1FFC;
+
+count = arg_a0[0];
+
+t2 = &arg_a0[2 + (arg_a0[0]*2)];
+at = *(t2);  //lhu
+
+
+a2 = arg_a2 * 4;
+
+//diff 3, changes to arg_18 rather than remaining arg passed in a3
+a3 = arg_18; 
+
+//at = AAAABBBB BBBBBBBB
+do
+{
+  t2 = t2 - 2;
+
+  fp = at >> 12;
+
+  if (fp != t4)           //this is the case if there is a translation vector for (the 3 points to perspective transform?)
+  {
+    t4 = fp;
+
+
+    v0 = &t0[(t4*0x40)];  //stackmem[0x100] has array of 64byte data structs
+
+
+    GTE.TRX =   v0[4];    //stores the vars in the gte translation vector regs (Translation vector X, Y, Z)
+    GTE.TRY =   v0[8];
+    GTE.TRZ = v0[0xC];
+
+    s7 = v0[0x14];
+    t8 = v0[0x18];
+    t9 = v0[0x1C];
+
+    a3 = v0 + 0x20;  //location next block (replaces a3)
+  }
+
+  //else s7, t8, t9 are from func args
+
+  at = (at & 0xFFF) * 8;
+
+  t1 = s7 + at; //refers to 2 word struct
+
+  //at = t1[0];
+  //t1 = t1[4];
+
+  //t1[0] = FFFFFFFF FFFFEEEE EEEEEEEE DDDDDDDD
+  //t1[4] = CCCCCCCC CCCCBBBB BBBBBBBB AAAAAAAA
+
+  //v0...
+  val = (t1[0] << 12) | (t1[4] & 0xFF);  //EEEEEEEE EEEEDDDD DDDD0000 AAAAAAAA
+
+  cbits8 = (t1[4] >> 17) & 0x7FF8; //cbits * 8 
+  bbits8 = (t1[4] >>  5) & 0x7FF8; //bbits * 8
+  fbits8 = (t1[0] >> 17) & 0x7FF8; //fbits * 8  
+
+  s0    = cbits8 + t8;   //t8 = either v0[0x18] or when no translation vector specified in sub args    
+  s1    = bbits8 + t8;
+  s2    = fbits8 + t8;     
+   
+  //s3 = s0[0];
+  //s0 = s0[4];
+
+  //s4 = s1[0];
+  //s1 = s1[4];
+  
+  //s5 = s2[0];
+  //s2 = s2[4];
+
+
+  //s0,1,2[0] = EEEEEEEE ???????? ???????? ????????
+  //s0,1,2[4] = AAAAAAAA AAAAACCC BBBBBBBB BBBBBDDG
+  //------------------------------------------------------------
+  
+  structOnScratch = 0x1F800048;
+
+  ra = structOnScratch[0xC];
+
+  gbitA = s0 & 1;    //vertex 'G' bit
+  gbitB = s1 & 1;    //....
+  gbitC = s2 & 1;
+
+  at = (gbitA | gbitB << 1 | gbitC << 2);  //00000CBA (a=gbit vertex a, b = gbit vertex b, c = gbit vertex c
+  fp = at | ra;
+
+  GTE.IR0 = fp;   //interpolation value for depth cuing
+  
+  if (fp != 0)
+  {
+    GTE.RFC = structOnScratch[0];   //far color red component
+    GTE.GFC = structOnScratch[4];   //far color green component
+    GTE.BFC = structOnScratch[8];   //far color blue component
+
+    gp = 0x00FFFFFF;
+    fp = 0xFF000000;
+    
+
+    //at this point the at register (combined interpolation bits) will determine which of the subsequent 
+    //equal sized sections of code [that deal with depth cuing] to execute
+
+    //s0[0] then contains the RGB values for the vertex (which checkwob has pointed out)
+    //(and the Z value which is the upper byte, gte reads this as the 'code')
+    //CODE, R, G, B
+
+    ====sub (a)====     //APPLY FARCOLOR1 AND INTERP1 ON ALL VERTICES
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+    
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+    
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+    
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s5            = zvalue | sp;
+    ============
+
+    ====(sub b)====     //APPLY FARCOLOR2 AND INTERP2 ON VERTEX A
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s5            = zvalue | sp;        
+    
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s3            = zvalue | sp;
+    ==================
+
+    ====(sub c)====          //APPLY FARCOLOR2 AND INTERP2 ON VERTEX B
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s5            = zvalue | sp;        
+    
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s4            = zvalue | sp;
+    ========================
+
+    ====(sub d)====          //APPLY FARCOLOR2 AND INTERP2 ON VERTEX A AND B
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s5            = zvalue | sp;
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;        
+    
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s4            = zvalue | sp;
+    ========================    
+    
+    ====(sub e)====          //APPLY FARCOLOR2 AND INTERP2 ON VERTEX C
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;        
+    
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s5            = zvalue | sp;
+    ========================   
+
+    ====(sub f)====          //APPLY FARCOLOR2 AND INTERP2 ON VERTEX A AND C
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;        
+    
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s5            = zvalue | sp;
+    ======================== 
+
+    ====(sub g)====          //APPLY FARCOLOR2 AND INTERP2 ON VERTEX B AND C
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;        
+    
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s5            = zvalue | sp;
+    ======================== 
+
+    ====(sub h)====          //APPLY FARCOLOR2 AND INTERP2 ON ALL VERTICES
+    GTE.IR0 = structOnScratch[0x1C];
+    
+    GTE.RFC = structOnScratch[0x10];
+    GTE.GFC = structOnScratch[0x14];
+    GTE.BFC = structOnScratch[0x18];
+    
+    GTE.RGB = s0[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s0[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s3            = zvalue | sp;
+
+    GTE.RGB = s1[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s1[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;    //in hex: PPBBGGRR  (where PP = bit code of current executed function;
+    s4            = zvalue | sp;        
+    
+    //    gp = 0x00FFFFFF;
+    //    fp = 0xFF000000;
+
+    GTE.RGB = s2[0];
+
+    GTE::DepthCueing();
+
+    zvalue = s2[0] & 0xFF000000;
+    sp  = GTE.RGB2 & 0x00FFFFFF;
+    s5            = zvalue | sp;
+    ======================== 
+  } //----------------------------------------------
+
+  //diff 4, copy the far color to the gte from scratch
+  GTE.RFC = scratch[0xE4];
+  GTE.GFC = scratch[0xE8];
+  GTE.BFC = scratch[0xEC];
+  
+  //s0,1,2[0] = EEEEEEEE REDREDRE GREENGRE BLUEBLUE
+  //s0,1,2[4] = AAAAAAAA AAAAACCC BBBBBBBB BBBBBDD0
+
+  GTE.VXY0 = s0[4] & 0xFFF8FFF8;  //Vector 0 X and Y [ignoring c and d bits]
+  GTE.VXY1 = s1[4] & 0xFFF8FFF8;  //Vector 1 X and Y [..
+  GTE.VXY2 = s2[4] & 0xFFF8FFF8;  //Vector 2 X and Y [..
+
+  t1 = (s0[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  sp = ((s0[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s0[4] & 0x70006) >>  3;   //00000000 00000000 000000000 00000000
+  sp |= t1;                       //000CCC00 00000000 CCCDD0EEE EEEEE000
+
+  t1 = (s1[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  fp = ((s1[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s1[4] & 0x70006) >>  3;   //00000000 CCC00000 000000000 00000000
+  fp |= t1;                       //000CCC00 CCC00000 CCCDD0EEE EEEEE000
+
+  t1 = (s2[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  ra = ((s2[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s2[4] & 0x70006) >>  3;   //00000000 CCC00000 000000000 00000000
+  ra |= t1;                       //000CCC00 CCC00000 CCCDD0EEE EEEEE000
+
+  GTE.VZ0 = sp;                   //Vector 0 Z             
+  GTE.VZ1 = fp;                   //Vector 1 Z
+  GTE.VZ2 = ra;                   //Vector 2 Z
+
+  //cop2    0x280030  
+  GTE::PerspectiveTransform();    //given there is the rotation matrix set for all vertices that compose this polygon/figure, do perspective transform on the current pts
+  
+  //val was: GGGGGGGG GGGGHHHI IIII0000 CCCBBBBA
+    
+  offset = (val >> 20) << 2; //gbits * 4
+  
+  curaddr = t9 + offset;   //t9 was v0[0x1C] or specified in subargs for no trans vector
+  t1 = *(curaddr);
+
+  S2 =    0x34000000;
+
+  //t1 is ABBCCCCC 00000000 00000000 00000000
+  oldcuraddrval = (t1>>24);
+  if (oldcuraddrval & 0x80 == 0) { goto 357a4; } //check bit A
+
+  
+  t3[8]    = GTE.SXY0;   //results of the perspective transform
+  t3[0x14] = GTE.SXY1;
+  t3[0x20] = GTE.SXY2;
+
+  //s3 = s0[0];   s3 is transformed/depth cued RGB of vertex 1
+  //s4 = s1[0];   s4 is transformed/depth cued RGB of vertex 2 
+  //s5 = s2[0];   s5 is transformed/depth cued RGB of vertex 3
+    
+  //diff 5 start here, extra depth cueing ('at' used for tex. rather than a3)
+  //-------------------------------------
+  sp = GTE.VZ1;  //grab z fifo 1
+    
+  GTE.RGB = s3;    
+  if (arg_18 < GTE.SZ1)
+  {
+    GTE.IR0 = (GTE.SZ1 - arg_18) << arg_1C;
+    
+    GTE::DepthCueing();
+    
+    s3 = GTE.RGB2;
+  }
+      
+  GTE.RGB = s4;    
+  if (arg_18 < GTE.SZ2)
+  {
+    GTE.IR0 = (GTE.SZ2 - arg_18) << arg_1C;
+    
+    GTE::DepthCueing();
+    
+    s4 = GTE.RGB2;
+  }
+  
+  GTE.RGB = s5;    
+  if (arg_18 < GTE.SZ3)
+  {
+    GTE.IR0 = (GTE.SZ3 - arg_18) << arg_1C;
+    
+    GTE::DepthCueing();
+    
+    s5 = GTE.RGB2;
+  }
+  
+  
+  //to this point, same calcs for both non-textured and textured prims; we don't show the code for the non-textured prim part here
+  //but its documented elsewhere
+  
+  s3 = (s3 & 0xFFFFFF) | 0x34000000;
+  if (t1 & 0x60 != 0x60)            //check B bits, if not both set
+  {
+    s3 = s3 | arg_1C;  //is this the extra bits needed for the tag of the semi-trans variation of prims?
+  }
+
+  t3[4]    = s3;
+  t3[0x10] = s4;
+  t3[0x1C] = s5;
+
+  //val was: GGGGGGGG GGGGHHHI IIII0000 CCCBBBBA
+
+  
+
+
+  bbits2 = val & 0x1E;  //val's bbits shifted left 1
+
+  if (bbits2 != 0)      //if refers to a nonzero value 
+  {
+    bitsshift = (val >> 5) & 7; //val's cbits (num of bits 0-7 to shift right)
+
+    fp = *(0x1F8000E0);  //stackmem[0xE0];
+
+    ibits = (val >> 12) & 0x1F;  //val's ibits  
+  
+    sp = ((ibits + (fp >> bitsshift)) & (bbits2 | 1)) * 4;
+
+    curaddr += sp;
+  }
+
+  hbits4 = (val >> 15) & 0x1C;  //hbits * 4;
+  at =      v0[0x20 + hbits4];
+
+  //-- s3 is AAAAAAAA AABBCCDD DDDEEEEE EE0FFFFF
+  //-- s4 is 00000000 0000GGGG GGGGGGGG H0000000
+  s3 = curaddr[4];
+  s4 =      at[0];
+
+  sp = (s3 >> 22) * 8;      //s3's abits * 8
+      
+  t6 = arg_14 + sp;
+
+  s0 = t6[0];
+  t6 = t6[4]; //lhu
+
+  bbits = (s3 >> 20) & 3;   //s3's bbits   
+  cbits = (s3 >> 18) & 3;   //s3's cbits
+
+  sp = ((bbits * 128) | s4 | cbits | (oldcuraddrval & 0x60)) << 16;
+
+  dbits8 = (s3  >> 10) & 0xF8;  //s3's dbits * 8
+  fbits4 = (s3 & 0x1F)    * 4;  //s3's fbits * 4  
+
+  initOffset = (dbits8 >> bbits) | ((fbits4 | (s4 & 0x80)) << 8);  //s4 & 0x80 = hbit
+
+  ra = sp | ((s0 >> 16) + initOffset);
+
+
+  ebits64 = (s3 & 0x1Fc0);
+
+  sp = ((oldcuraddrval & 0xF) | ebits64) << 16;
+  fp = sp | ((s0 & 0xFFFF) + initOffset);
+
+  t6 = t6 + s5;
+
+
+  t3[0xC]  = fp;
+  t3[0x18] = ra;
+  t3[0x24] = t6;
+
+  
+  z1 = GTE.SZ1;  //sp       //z results of the perspective transform
+  z2 = GTE.SZ2;  //fp
+  z3 = GTE.SZ3;  //ra
+
+  sp = (z1 + z2 + z3)/32;
+
+  zDist = ((arg_a2 * 4) - (sp * 4)) & 0x1FFC;
+
+  t6 = arg_a1 + lastZDist;    //lastZDist initially 0x1FFC but below will change it
+
+  if (zDist < lastZDist)
+  {
+    lastZDist = zDist;
+    
+    t6 = arg_a1 + zDist;
+
+    if (zDist < 0)
+    {
+      lastZDist = 0;
+    }
+  
+    t6 = arg_a1;
+  }
+
+  oldPtr = *(t6);
+  *(t6) = t3 & 0xFFFFFF;     //seems to be an array for each corresponding z value, set to point to the t3/polygon/vertex? struct (but not cached memory location)
+  
+  t3[0] = oldPtr | 0x9000000 //then this is why its anded out, t3[0] points to the previous t3/polygon/vertex struct in the z array at this position
+
+  t3 += 0x28;                //next polygon/vertex struct?    
+
+  count--;
+
+  at = *(t2);                //arg_a0[2...(arg_a0[0])] = stack of halfwords starting at index (arg_a0[0]) and working back; pointer t2 starts off at arg_a0 and
+                             //decremented a halfword at the beginning of the loop so this just grabs the next halfword
+} while (count != 0)
+
+sp = 0x1F800034;
+arg_10[0] = t3;              //last vertex struct left off on in loop  
+
+-------------------------------------------
+
+
+
+
+
+
+
+sub_80035E10(arg_a0, arg_a1, arg_a2, arg_a3, arg_10, arg_14, struct{s7, t8, t9}):
+
+s0...ra -> stackmem[0]-stackmem[0x40] (range filled, i.e. last word is stackmem[0x3C]
+(we make use of miscellaneous purpose registers when communicating with the coprocessor, 
+ otherwise normally we'd waste time juggling between the small number of regs we normally have to work with)
+
+
+t7 = arg_10;
+s6 = arg_14;
+t3 = t7[0];       //result location
+
+
+sp = 0x1F8000E0;       //the data is located at sp[0x20] (0x1F800100), offset in the scratch pad
+
+sp[0] = arg_a3;
+---
+
+gp =   0xFFFFFF;         //no longer gp, just a regular reg
+t7 =       0x60;
+t0 = 0x1F800100;         //t0 points to the data
+t4 =     0xFFFF;
+a0 =  0x2000000;
+lastZDist =     0x1FFC;
+
+count = arg_a0[0];
+
+t2 = &arg_a0[2 + (arg_a0[0]*2)];
+at = *(t2);  //lhu
+
+
+a2 = arg_a2 * 4;
+
+a3 = arg_a3;
+
+
+//at = 0000AAAA AAAAAAAA AAAABBBB BBBBBBBB   , 0x6037, a = 6, b = 110111
+do
+{
+  t2 = t2 - 2;
+
+  fp = at >> 12;
+
+  if (fp != t4)           //this is the case if there is a translation vector for (the 3 points to perspective transform?)
+  {
+    t4 = fp;
+
+
+    v0 = &t0[(t4*0x40)];  //stackmem[0x100] has array of 64byte data structs
+
+
+    GTE.TRX =   v0[4];    //stores the vars in the gte translation vector regs (Translation vector X, Y, Z)
+    GTE.TRY =   v0[8];
+    GTE.TRZ = v0[0xC];
+
+    s7 = v0[0x14];
+    t8 = v0[0x18];
+    t9 = v0[0x1C];
+
+    a3 = v0 + 0x20;  //location next block (replaces a3)
+  }
+
+  //else s7, t8, t9 are from func args
+
+  at = (at & 0xFFF) * 8;
+
+  t1 = s7 + at; //refers to 2 word struct
+
+  //at = t1[0];
+  //t1 = t1[4];
+
+  //t1[0] = FFFFFFFF FFFFEEEE EEEEEEEE DDDDDDDD
+  //t1[4] = CCCCCCCC CCCCBBBB BBBBBBBB AAAAAAAA
+
+  //v0...
+  val = (t1[0] << 12) | (t1[4] & 0xFF);  //EEEEEEEE EEEEDDDD DDDD0000 AAAAAAAA
+
+  cbits8 = (t1[4] >> 17) & 0x7FF8; //cbits * 8 
+  bbits8 = (t1[4] >>  5) & 0x7FF8; //bbits * 8
+  fbits8 = (t1[0] >> 17) & 0x7FF8; //fbits * 8  
+
+  s0    = cbits8 + t8;   //t8 = either v0[0x18] or when no translation vector specified in sub args    
+  s1    = bbits8 + t8;
+  s2    = fbits8 + t8;     
+   
+  //s3 = s0[0];
+  //s0 = s0[4];
+
+  //s4 = s1[0];
+  //s1 = s1[4];
+  
+  //s5 = s2[0];
+  //s2 = s2[4];
+
+
+  //s0,1,2[0] = EEEEEEEE ???????? ???????? ????????
+  //s0,1,2[4] = AAAAAAAA AAAAACCC BBBBBBBB BBBBBDDG
+  //------------------------------------------------------------
+  
+  structOnScratch = 0x1F800048;
+
+  XYA = s0[4] & 0xFFF8FFF8;  //sp
+
+  if (s0[4] & 1)        //vertex A 'G'/interpolation bit
+  {
+    XA =      (XYA   >>  19);
+    YA = (XYA & 0xFFF8) >> 3;
+
+    SUM = (XA + YA);
+
+    lownybble = SUM & 0xF;
+
+    newXA = (XYA >> 16) + structOnScratch[lownybble * 4];             
+    newYA = (XYA & 0xFFF8);
+
+    XYA = (newXA << 16) + newYA;
+  }
+
+  XYB = s1[4] & 0xFFF8FFF8;  //sp
+
+  if (s1[4] & 1)        //vertex B 'G'/interpolation bit
+  {
+    XB =      (XYB   >>  19);
+    YB = (XYB & 0xFFF8) >> 3;
+
+    SUM = (XB + YB);
+
+    lownybble = SUM & 0xF;
+
+    newXB = (XYB >> 16) + structOnScratch[lownybble * 4];             
+    newYB = (XYB & 0xFFF8);
+
+    XYB = (newXB << 16) + newYB;
+  }
+
+  XYC = s2[4] & 0xFFF8FFF8;  //sp
+
+  if (s2[4] & 1)        //vertex C 'G'/interpolation bit
+  {
+    XA =      (XYC   >>  19);
+    YA = (XYC & 0xFFF8) >> 3;
+
+    SUM = (XC + YC);
+
+    lownybble = SUM & 0xF;
+
+    newXC = (XYC >> 16) + structOnScratch[lownybble * 4];             
+    newYC = (XYC & 0xFFF8);
+
+    XYC = (newXC << 16) + newYC;
+  }
+
+  //s0,1,2[0] = EEEEEEEE REDREDRE GREENGRE BLUEBLUE
+  //s0,1,2[4] = AAAAAAAA AAAAACCC BBBBBBBB BBBBBDD0
+
+  GTE.VXY0 = XYA;  //Vector 0 X and Y [ignoring c and d bits]
+  GTE.VXY1 = XYB;  //Vector 1 X and Y [..
+  GTE.VXY2 = XYC;  //Vector 2 X and Y [..
+
+
+
+  t1 = (s0[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  sp = ((s0[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s0[4] & 0x70006) >>  3;   //00000000 00000000 000000000 00000000
+  sp |= t1;                       //000CCC00 00000000 CCCDD0EEE EEEEE000
+
+  t1 = (s1[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  fp = ((s1[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s1[4] & 0x70006) >>  3;   //00000000 CCC00000 000000000 00000000
+  fp |= t1;                       //000CCC00 CCC00000 CCCDD0EEE EEEEE000
+
+  t1 = (s2[4] & 0x70006) << 10;   //000CCC00 00000000 000DD0000 00000000
+  ra = ((s2[0]>>24)<<3) | t1;     //000CCC00 00000000 000DD0EEE EEEEE000
+  t1 = (s2[4] & 0x70006) >>  3;   //00000000 CCC00000 000000000 00000000
+  ra |= t1;                       //000CCC00 CCC00000 CCCDD0EEE EEEEE000
+
+  GTE.VZ0 = sp;                   //Vector 0 Z             
+  GTE.VZ1 = fp;                   //Vector 1 Z
+  GTE.VZ2 = ra;                   //Vector 2 Z
+
+  //cop2    0x280030  
+  GTE::PerspectiveTransform();    //given there is the rotation matrix set for all vertices that compose this polygon/figure, do perspective transform on the current pts
+  
+  //val was: GGGGGGGG GGGGHHHI IIII0000 CCCBBBBA
+    
+  offset = (val >> 20) << 2; //gbits * 4
+  
+  curaddr = t9 + offset;   //t9 was v0[0x1C] or specified in subargs for no trans vector
+  t1 = *(curaddr);
+
+  S2 =    0x34000000;
+
+  //t1 is ABBCCCCC 00000000 00000000 00000000
+  oldcuraddrval = (t1>>24);
+  if (oldcuraddrval & 0x80 == 0) { goto 357a4; } //check bit A
+
+  
+  t3[8]    = GTE.SXY0;   //results of the perspective transform
+  t3[0x14] = GTE.SXY1;
+  t3[0x20] = GTE.SXY2;
+
+  //s3 = s0[0];
+  //s4 = s1[0];
+  //s5 = s2[0];
+    
+  s3 = (s3 & 0xFFFFFF) | 0x34000000;
+  if (t1 & 0x60 != 0x60)            //check B bits, if not both set
+  {
+    s3 = s3 | 0x2000000;
+  }
+
+  t3[4]    = s3;
+  t3[0x10] = s4;
+  t3[0x1C] = s5;
+
+  //val was: GGGGGGGG GGGGHHHI IIII0000 CCCBBBBA
+
+
+
+  bbits2 = val & 0x1E;  //val's bbits shifted left 1
+
+  if (bbits2 != 0)      //if refers to a nonzero value 
+  {
+    bitsshift = (val >> 5) & 7; //val's cbits (num of bits 0-7 to shift right)
+
+    fp = *(0x1F8000E0);  //stackmem[0xE0];
+
+    ibits = (val >> 12) & 0x1F;  //val's ibits  
+  
+    sp = ((ibits + (fp >> bitsshift)) & (bbits2 | 1)) * 4;
+
+    curaddr += sp;
+  }
+
+  hbits4 = (val >> 15) & 0x1C;  //hbits * 4;
+  at =      v0[0x20 + hbits4];
+
+  //-- s3 is AAAAAAAA AABBCCDD DDDEEEEE EE0FFFFF
+  //-- s4 is 00000000 0000GGGG GGGGGGGG H0000000
+  s3 = curaddr[4];
+  s4 =      at[0];
+
+  sp = (s3 >> 22) * 8;      //s3's abits * 8
+      
+  t6 = arg_14 + sp;
+
+  s0 = t6[0];
+  t6 = t6[4]; //lhu
+
+  bbits = (s3 >> 20) & 3;   //s3's bbits   
+  cbits = (s3 >> 18) & 3;   //s3's cbits
+
+  sp = ((bbits * 128) | s4 | cbits | (oldcuraddrval & 0x60)) << 16;
+
+  dbits8 = (s3  >> 10) & 0xF8;  //s3's dbits * 8
+  fbits4 = (s3 & 0x1F)    * 4;  //s3's fbits * 4  
+
+  initOffset = (dbits8 >> bbits) | ((fbits4 | (s4 & 0x80)) << 8);  //s4 & 0x80 = hbit
+
+  ra = sp | ((s0 >> 16) + initOffset);
+
+
+  ebits64 = (s3 & 0x1Fc0);
+
+  sp = ((oldcuraddrval & 0xF) | ebits64) << 16;
+  fp = sp | ((s0 & 0xFFFF) + initOffset);
+
+  t6 = t6 + s5;
+
+
+  t3[0xC]  = fp;
+  t3[0x18] = ra;
+  t3[0x24] = t6;
+
+  
+  z1 = GTE.SZ1;  //sp       //z results of the perspective transform
+  z2 = GTE.SZ2;  //fp
+  z3 = GTE.SZ3;  //ra
+
+  sp = (z1 + z2 + z3)/32;
+
+  zDist = ((arg_a2 * 4) - (sp * 4)) & 0x1FFC;
+
+  t6 = arg_a1 + lastZDist;    //lastZDist initially 0x1FFC but below will change it
+
+  if (zDist < lastZDist)
+  {
+    lastZDist = zDist;
+    
+    t6 = arg_a1 + zDist;
+
+    if (zDist < 0)
+    {
+      lastZDist = 0;
+    }
+  
+    t6 = arg_a1;
+  }
+
+  --
+
+  oldPtr = *(t6);
+  *(t6) = t3 & 0xFFFFFF;     //seems to be an array for each corresponding z value, set to point to the t3/polygon/vertex? struct (but not cached memory location)
+  
+  t3[0] = oldPtr | 0x9000000 //then this is why its anded out, t3[0] points to the previous t3/polygon/vertex struct in the z array at this position
+
+  t3 += 0x28;                //next polygon/vertex struct?    
+
+  count--;
+
+  at = *(t2);                //arg_a0[2...(arg_a0[0])] = stack of halfwords starting at index (arg_a0[0]) and working back; pointer t2 starts off at arg_a0 and
+                             //decremented a halfword at the beginning of the loop so this just grabs the next halfword
+} while (count != 0)
+
+sp = 0x1F800034;
+arg_10[0] = t3;              //last vertex struct left off on in loop  
+
+-------------------------------------------
+
+
+
+  
+  
+  
+  
+
+
+  
+  
+
+  
+  
+  
+
+
+  
+  

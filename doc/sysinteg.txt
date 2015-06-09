@@ -1,0 +1,430 @@
+CrashUtils Project configuration and Systems design & integration
+-----------------------------------------------------------------
+
+The purpose of this document is to provide a brief overview of
+some common project configuration practices and procedures (ex.
+source modularization), to present a potential solution for 
+the design and integration of subsystems, and to show how these 
+procedures, practices, and etc. are implemented in the context 
+of the CrashUtils project.
+
+
+A software project consists of all source code, resources, 
+documentation, and possibly tools used to build its resulting 
+application, libraries, and APIs [typically also included in
+the project]. The following directory structure is used for many
+software projects:
+
+  /bin     - resulting binaries = applications and/or libraries
+  /doc     - documentation
+  /include - APIs
+  /lib     - libraries
+  /src     - source code [implementation]
+
+An application's source code is usually divided among several 
+distinct 'modules', with each module corresponding to a distinct 
+functionality. Occasionally, each module may be dedicated only
+to performing operations provided by a single library-that is, 
+each API will be used by one and only one module. The application 
+is ultimately built by combining each of its constituent modules 
+into a single unit. 
+
+  /src/moduleA/
+  /src/moduleB/
+  /src/moduleC/
+  ...
+  
+Modules are typically developed so that the resulting application
+can still be built when one or more are excluded in the final combine/
+integrate stage; this allows for a highly flexible and configurable 
+application. The associated features can be added or removed from the
+application by simply including or excluding their corresponding 
+modules in the linking stage. Thus, the cohesiveness of distinct 
+libraries is reflected in the modules that utilize them. 
+
+Such disjoint modules by themselves can not simply be combined into
+a single productive unit; alone, these highly decoupled modules lack
+the ability to establish any sort of connection with one another and 
+thus can not perform the proper communications to function as a 
+collaborative system. This typically suggests developing an 
+abstraction that provides the methods for dialogue exchange 
+following a common communications protocol and then implementing 
+as a 'subsystem' (facade) for each module:
+
+               system
+                  ^
+                  |
+  --------------------------------------
+  |           |           |            |
+ subsystemA<>subsystemB<>subsystemC<>subsystemD
+  |    ^------|-----------|-----------^|
+  |      ^----|-----------|-----^      |
+  V           V    ^------V------------V--^
+ ------------------------------------------------
+ | moduleA/*|| moduleB/*|| moduleC/*|| moduleD/*|
+ |          ||          ||          ||          |
+ |          ||          ||          ||          |
+ |----------||----------||----------||----------|
+ 
+The above design is acceptable but perhaps a bit inconvenient: a
+subsystem must establish a connection with all other subsystems if
+it wishes to 'broadcast' a message. A better solution is to define
+a single middleware system for handling all message propagation:
+
+ 
+               system
+                  ^
+                  |
+         systemA-/|
+          ^   ^^  |
+         /     \\-------------------------
+        /       \ |          \            \
+  ------|--------\-----------|----------  |
+  |     V     |  V        |  V         |  V
+ subsystemA  subsystemB  subsystemC  subsystemD
+  |           |           |            |
+  |           |           |            |
+  V           V           V            V
+ |----------||----------||----------||----------|
+ | moduleA/*|| moduleB/*|| moduleC/*|| moduleD/*|
+ |          ||          ||          ||          |
+ |          ||          ||          ||          |
+ |----------||----------||----------||----------|   
+  
+A subsystem that wishes to broadcast a message requests its eldest
+ancestor to post that message to each of its children. In effect, a 
+subsystem need know only the communications format used (message 
+definitions) to determine how it will operate in response-that is,
+subsystemA needs neither knowledge about the operations of underlying
+modules (moduleB, moduleC, and moduleD) for the other subsystems nor 
+knowledge of API (headers) to ultimately cause indirect invocation 
+of their methods. 
+
+A subsystem interfaces its corresponding module by either creating
+objects of class types specific to the module, performing operations
+on them, or directly calling its static methods/functions. Such objects
+sometimes include 'event handlers'-methods such that, upon the occurrence
+of a particular event, either the object itself, or the eldest ancestor 
+if part of a hierarchy specific to that module, would broadcast a 
+notification through the 'parent subsystem' that contains it. This is not 
+directly possible with just the module object alone, however, for it has 
+no knowledge of such a parent subsystem; the module object can not directly
+perform a broadcast. Typically the class implementation can be further 
+extended outside of the module itself, overriding (if possible) the 
+appropriate method to account for forwarding the notification to a parent
+subsystem it is aware of:
+
+               system
+                  ^
+                  |
+         systemA-/|
+          ^   ^^  |                  
+         /     \\------------
+        /       \ |          \       
+  ------|--------\---------  |
+  |     V     |  V        |  V       
+ subsystemA  subsystemB  subsystemC  
+  |   ^ | ...    ^ |...    |  ^  to post to parent
+  |   | |        | |       |  | 
+  |   | V        | V       V  | 
+ sysmodobjA  sysmodobjB  sysmodobjC
+      ^ over     ^ over       ^  over
+  X   | ride  X  | ride   X   |  ride 
+  |   | not.  |  | not.   |   |  notification...
+  V   V       V  V        V   V       
+ |----------||----------||----------|
+ | moduleA/*|| moduleB/*|| moduleC/*|
+ |          ||          ||          |
+ |          ||          ||          |
+ |----------||----------||----------|  
+ 
+There are 2 separate cases to consider in the implementation for both the 
+subsystem and its corresponding extended module-specific class:
+
+case 1)
+If implemented incorrectly, such a subsystem may experience endless feedback
+of notifications from its child module object. Suppose sysmodobjB receives a
+notification as the result of some event that occurs, whereupon it sends that 
+notification to subsystemB for broadcasting among the entire system (and will
+always do so whenever that particular notification is received, regardless of 
+cause):
+
+               system
+                  ^
+                  |               
+         systemA-/|               ^
+          ^  ^^^  |               |   
+         /    ^\..|               |
+        /      ^\ |               |
+      ....      ^----\-------...  |
+                 ^|  V            |
+                 subsystemB       |
+                   ^ ^ |          |     
+                    ^| |          |
+                    ^| V          |
+                 sysmodobjB       |
+                    ^^            |
+                    ^|            |
+                    ^|            |
+                    ^V            |
+                 |----------|
+                 | moduleB/*|
+                 |          |
+                 |          |
+                 |----------|
+                 
+SystemA will now broadcast this notification to subsystemA, subsystemB,
+and subsystemC:
+
+               system
+                  ^
+                  |               
+         systemA-/|               
+          ^V V^^  |               |   
+         /V   V\VV|...            |
+        /V     V\ |               |
+      ....      V----\-------...  |
+                 V|  V            |
+                 subsystemB       |
+                   V ^ |          |     
+                    V| |          |
+                    V| V          |
+                 sysmodobjB       |
+                    V^            |
+                    V|            |
+                    V|            |
+                    VV            V
+                 |----------|
+                 | moduleB/*|
+                 |          |
+                 |          |
+                 |----------|
+                 
+The process will repeat indefinitely as the source subsystem (subsystemB)
+continues to receive the same notification sent back as the result of a 
+broadcast (required from systemA in response). A solution to this problem 
+involves implicitly specifying the source system with each broadcast 
+request and withholding delivery of the notification to that system during
+the actual broadcast. 
+
+case 2)
+Occasionally, in the extended module-specific class, the method overridden 
+to account for forwarding internal notifications to its parent subsystem is
+also the method responsible for directing/handling external notifications 
+received from other subsystems via that parent [subsystem]. This would 
+imply that all notifications, either external or internal, are forwarded
+to the parent upon their occurrence. An external notification is received 
+via the parent subsystem, and is at some point prior propagated by the
+mediator system as the result of reception from a source subsystem; if such
+a notification is forwarded to the parent subsystem for broadcast, then the
+[first of the] other subsystems and perhaps the parent subsystem itself (if
+the problem described in the above paragraph remains) will redundantly 
+receive the same notification (which has already been propagated) only to 
+forward to its parent subsystem for yet another broadcast and repeat the
+process indefinitely. A solution to this problem, similar to that in the 
+above paragraph, involves explicitly specifying the source system with each
+-external notification- [from the parent subsystem] and withholding forwarding 
+to the parent system when it is also the source system.
+
+implementation of solution for case 1)
+The first solution is implemented easily when the system abstraction includes
+support for selective broadcast among the descendants of its eldest ancestor.
+This is simply done by specifying that the subsystem itself be excluded
+in its call to broadcast [any]/the notification within the overridden method
+of the extended class. The overridden method must be sure to call the superclass 
+method to include its original functionality. 
+
+implementation of solution for case 2)
+Implementation of the latter solution depends on the superclass from the module
+source, particularly in how well it facilitates implementation for receiving 
+external notifications. Note that the superclass is unaware of a system or
+subsystem abstraction; the un-extended module object's internal notifications
+protocol likely does not specify, if notifications are even delivered with 
+their issuing source entities, that such entities include 'subsystems' or 
+systems. If the extended class defines a method that allows specification of a
+source subsystem, then this could be explicitly performed prior to sending 
+external notifications from that source. The overridden method could then be
+modified to perform broadcasting only when the source system is not the parent 
+system. 
+
+------------------------------------------------------------------
+
+Systems Integration for the CrashUtils Project
+ 
+The CrashUtils source is divided among the following modules...:
+
+  /src/crash     - CrashPC module
+  /src/graphics  - Graphical Editor module
+  /src/win32     - Windows module
+
+...and among the 'main' sources that dynamically integrate those modules:
+
+  /src/winmain.h:.cpp           - Windows-specific entry point/WinMain function
+  ...
+  /src/system.h:.cpp            - System; as defined in the above section
+    /src/crashutils.h:.cpp      - Middleware/mediator system
+      /src/crash_system.h:.cpp  - CrashPC system
+      /src/gfx_system.h:.cpp    - Graphics system
+      /src/win_system.h:.cpp    - Windows system
+  ...
+  /src/context_wgl.h:.cpp       - Windows/OpenGL context control
+
+For example, the Windows module includes all implementation for the windows 
+and dialogs that make up the GUI in a Windows build of CrashUtils. These windows
+and dialogs subclass the various 'window' and 'dialog' abstractions provided
+by CrashUtils' own Windows API wrapper framework/API. The interfaces defined in
+/include/win32:
+
+  +include/win32/window.h
+  ---+/include/win32/basic_window.h
+  ------/include/win32/mdi_window.h
+  ------/include/win32/mdi_child_window.h
+  ---+/include/win32/basic_dialog.h
+  ---+/include/win32/basic_control.h
+  
+A 'window' in CrashUtils' Windows API wrapper framework is an abstraction of 
+any entity specified as a window in the Windows API. Windows in the CWW
+framework encapsulate their hierarchical structure in left-child right-sibling 
+representation, separate from but consistent in form with the system abstraction.
+
+Windows communicate with message passing. The following simple protocol is 
+followed when sending and receiving messages:
+
+  <destination window>, <message>, <word parameter>, <long parameter>
+  
+Sending a message to a window is achieved by calling the 'SendMessage' function
+of the Windows API, with arguments corresponding to the 4 parameters listed above.
+The CWW framework provides an alternative SendMessage instance method for window 
+subclasses that omits the destination window parameter since a destination 
+window is implicitly specified as the instance itself.
+
+When a window receives a message, control is brought to its 'WndProc' function.
+By default, a window's WndProc function either calls an abstract method that 
+corresponds to the received message (referred to as an 'event handler') or 
+performs default operations associated with that message. Upon the occurrence 
+of an event specific to some window, the associated notification message is sent
+to the window's WndProc function; in turn, WndProc calls the window's associated 
+event handler. 
+
+Windows from the Windows module typically subclass one of the window variants 
+from the CWW framework and implement the appropriate event handlers. CrashUtils' 
+GUI is nothing more than a system of windows-specifically those windows defined 
+in the Windows module:
+
+  /src/win32/windows/main_window.h:.cpp
+  ---+/src/win32/windows/nsf_window.h:.cpp
+  ---+/src/win32/windows/model_window.h:.cpp
+  -----+/src/win32/windows/zone_window/*.h:.cpp
+  ---+/src/win32/windows/gool_window.h:.cpp
+  ---+/src/win32/windows/object_window.h:.cpp
+  
+As seen above, the actual system of windows or 'Windows subsystem' is defined 
+outside of the Windows module, directly in the project source directory. The 
+Windows subsystem interfaces the Windows module by creating an extended 
+'Main Window' (of superclass main_window from main_window.h), forwarding 
+external notifications from other subsystems to the window, and relaying 
+internal notifications from the window to other subsystems. In this way, the
+Windows subsystem can completely detach itself from/attach itself to other
+subsystems that may or may not react to the events it handles [or, more 
+specifically, the notifications sent as a result of its handling those events]. 
+
+Defining Subsystems
+-------------------
+
+Every subsystem must subclass the csystem class (/src/system.h). 
+
+As an example, the Windows subsystem (/src/win_system.h) is defined like so:
+
+1   class win_system : public csystem 
+2   {
+3     private:
+4   
+5     main_window *mainWindow;
+6     
+7     void messageRouter(csystem *src, int msg, param lparam, param rparam);
+8     
+9     void onCreate();
+10    void onStart();
+11	  void onInitNSD(NSF *nsf, NSD *nsd); 
+12     
+13    win_system(csystem *par) 
+14    { 
+15      par->addChild(this);
+16    
+17      mainWindow = 0;
+18      postMessage(WSM_CREATE); 
+19    }
+20  };
+  
+The subsystem must include all of the corresponding module objects it creates as 
+private members. For example, the Windows subsystem ultimately creates a single 
+'Main Window' object; a reference to this object is stored in member 'mainWindow'.
+
+The subsystem must override the 'messageRouter' function if it wishes to call 
+'event handler' functions upon receipt of various notifications. The implementation
+for this function shall provide a switch statement block that tests the received
+notification, including cases that associate each notification with an event handler.
+Prototypes for each event handler shall follow that of the messageRouter function 
+in the class definition.
+
+Subsystems of CrashUtils issue the *_CREATE notification upon instantiation; notifications
+are broadcast to all systems in a subsystem's hierarchy by calling its 'postMessage' 
+function with the notification message, and possibly additional optional parameters, as
+arguments. A subsystem can not broadcast notifications until it is part of a hierarchy
+of other systems that could relay and/or receive those notifications. System hierarchies
+are built by specifying, for each parent-child relationship in the hierarchy, the child
+system as the argument in a call to the parent system's 'addChild' function. The constructor
+for 'win_system' accepts an single parent system as an argument; its implementation ensures
+that, prior to broadcasting the WSM_CREATE notification, the object itself is included in 
+its hierarchy as the specified parent's child.
+
+Implementation for the messageRouter function is simple:
+
+1   void win_system::messageRouter(csystem *src, int msg, param lparam, param rparam)
+2   {
+3     if (src == this) { return; }
+4     csystem::messageRouter(src, msg, lparam, rparam);
+5     
+6     switch (msg)
+7     {
+8       // crashutils global messages
+9   		case MSG_START: onStart(); break;
+10      case MSG_INIT_NSD: onInitNSD((NSF*)lparam, (NSD*)rparam); break;
+11      
+12      // window system local messages
+13      case WSM_CREATE: onCreate(); break;
+14    }
+15    
+16    if (mainWindow)
+17    {    
+18      param params[2];
+19      params[0] = lparam;
+20      params[1] = rparam;
+21      
+22      main_window_com *mwc = (main_window_com*)mainWindow;
+23      mwc->BroadcastMessage((UINT)msg, (WPARAM)1, (LPARAM)params);
+24    }
+25  }
+
+As previously discussed, the messageRouter function is called whenever the subsystem
+receives a notification message; the 'src' parameter refers to the system that issued
+the notification, and the following parameters the message and additional optional 
+arguments provided with the issuing call.
+
+Line 3 provides the solution to the problems of case 1, as discussed above. Handling of
+the notification, performed in the following lines, is simply ignored if the source 
+system is the system itself. 
+
+Lines 6-14 associate each relevant notification/message with an event handler. This 
+includes typecasting/unmarshalling any parameters sent [passed as arguments to the
+associated event handler].
+
+Lines 16-24 are responsible for broadcasting each notification/message received along
+with its parameters to the Main Window object. Parameters are marshalled to a format
+that is compatible with the CWW framework's BroadcastMessage function, called as a member
+function of mainWindow. Additionally, the value '1' is specified for the wParam argument
+in this call, indicating that the source of the broadcast request is -this-: the win_system 
+object that is the window's 'parent' system.
+
+Currently omitted is an example of the module-specific class (main_window_com) and its 
+implementation; please refer to src/win_system.h:.cpp for the full source.

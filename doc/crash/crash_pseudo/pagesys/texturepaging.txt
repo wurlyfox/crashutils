@@ -1,0 +1,80 @@
+sub_8001439C()
+{
+  init16infos = 0x580A0;
+  
+  count = 15;
+  do
+  {
+    if (init16infos[0x4 + (count*0x2C)] == 1) { return count; } 
+	count--;
+  } while (count != 0)
+  
+  //at this point chunkinfo was not found on mode/case 1
+  count = 15;
+  do
+  {
+    if (init16infos[0x4 + (count*0x2C)] == 0x15) { return count; } 
+	count--;
+  } while (count != 0)
+	
+  //at this point a chunkinfo was not found on mode/case 1 or 0x15
+  zoneEntry = *(0x57914);
+  
+  if (!zoneEntry)
+  {
+    sub_80014514(0xF);  //TODO
+	return 0xF;
+  }
+  else
+  {
+    //not sure exactly what this is doing since no memory locations are
+	//written or no variable value is returned
+	//there is a check still involved but it accomplishes nothing
+	//unless it forces the game into an infinite loop if it finds any invalid
+	//texture chunks
+    zoneHeader = zoneEntry[0x10]; //ginfo, bufferentry, etc
+	
+	count = 15;
+	do
+	{
+	  case = init16infos[0x4 + (count*0x2C)];
+
+      if (case == 0x14 || case == 0x15)	  
+	  {
+		
+		found = false;
+		tpageCount = zoneHeader[0x234];
+
+		if (tpageCount > 0)
+		{
+		  EID = init16infos[0x18 + (count*0x2C)];
+			  
+		  do
+		  {
+		    tPage = zoneHeader[0x23C + (tpageCtr*4)];
+			
+			if (tPage & 1)      //tpage still an eid
+			{
+			  if (tPage == EID)
+                found = true; 
+			  else
+			    searched++;
+			}
+			else
+			{
+			  if (tPage[4] == EID) 
+			    found = true; 
+			  else
+			    searched++;
+			}
+		  } while (!found && searched < tpageCount)
+		}
+		
+		count--;
+	  }
+	} while (count > 0)
+	
+    return 0xFFFFFFF4;
+  }
+}
+	

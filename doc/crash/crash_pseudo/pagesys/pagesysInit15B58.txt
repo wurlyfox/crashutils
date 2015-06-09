@@ -1,0 +1,451 @@
+//game = Main game structure
+//mode = Mode to set game and game structure to-consequently the index of the NSD and NSF files to load
+
+sub_80015B58(game, mode)
+{
+  *(0x56714) = -1;
+  *(0x56710) = mode;
+  
+  game[0] = 1;     //this flag means the structure will have been initialized
+  game[4] = mode;  //we place the game mode/corresponding NSD/NSF file number here
+  
+  game[0xA80] = 0; //reset //0x5CFA8 = number of active pages (in terms of CID->page list)
+  game[0xA84] = 0; //reset //0x5CFAC = most recent page set at processing case 0 (before translation/decompression), and cleared at case 1 if reading doesnt fail
+  game[0xA8C] = 0; //reset //0x5CFB4 = most recent page set at processing case 8, cleared at 9 when (?) function passes
+  game[0xA90] = 0; //reset //0x5CFB8 = CID recorded for most recent page set at processing case 0 before CD_sync
+  game[0xA98] = 1; //reset //0x5CFC0 = unknown flag?
+  
+  NSDFileStr = sub_800128A4();
+  
+  strcpy(_NSDFileStr, NSDFileStr);
+  
+  if (gp[0x14]) //paging system uses this 
+  {
+    //directory structure kept at 0x5E03C, entries indexed by game mode/level:
+    //------------------------------------------------------------------------
+    //struct
+    //{
+    //  unsigned long NSDsize;    //[0x0] = size of NSD corresponding to this game mode
+    //  unsigned long NSDaddress; //[0x4] = disk address/location of NSD corresponding to this game mode
+    //  unsigned long NSFaddress; //[0x8] = disk address/location of NSF corresponding to this game mode
+    //} directoryEntry[n];
+   
+    dirStruct = 0x5E03C;  //directory structure is kept here: indexed by game/mode level
+    
+    dirEntry = dirStruct[(mode*12)];
+    NSDsize  = dirEntry[0x4];
+    
+    //NSD files max size of 128KB and we want to round to the nearest block/sector size
+    NSDsizeFixed = (((NSDsize & 0x1FFFF) + 0x7FF) >> 11) << 11;
+    
+    //allocate memory to hold the eventual NSD file
+    NSD = malloc(NSDsizeFixed);
+    
+    //if allocation failed, we want to record such failure in the game structure 
+    //indicated with the error code in place of where the pointer to the NSD data should have been
+    if (!NSD)
+      game[0x18] = 0xFFFFFFF1;
+    else
+    {
+      //otherwise we want to read the NSD file from the appropriate location
+      //-get the equivalent CD location of the NSD file's address
+      //-seek the disc to that location
+      //-read approximately the number of sectors worth of data from disc
+      //so we have read the entire NSD file to the destination allocated 
+      //memory
+      sectorCount = NSDsizeFixed >> 11;
+      NSDlocation = dirEntry[0x0] & 0x7FFFFF;
+      
+      CdIntToPos(NSDlocation, &CDlLOC);         //get CD location equivalent for setting location
+      CdControl(2, &CDlLOC, &resultC);          //command for SetLoc = 2
+      result = CdReadB(sectorCount, NSD, 0x80); //CD_readn: pause, sync(wait), seek, and try to read the sector at location
+      
+      //if reading was successful and an additional successive read also 
+      //passes, reallocate the memory to fit exactly the size of the NSD
+      //and record a pointer to the new NSD data in the game structure
+      if (result != 0 && CdReadA(0, 0))
+      {
+        game[0x18] = realloc(NSD, NSDsize & 0x1FFFF);
+      }
+      else
+      {
+        //else record this error
+        game[0x18] = 0xFFFFFFF0;
+      }
+    }
+  }
+  else
+  {
+    game[0x18] = (undefined); //register s0 moved to this location but not defined at this point
+  }
+  
+  //the NSD file, now read from disc into memory, can be located here
+  NSD = game[0x18];  //proto stores it @ game[0x10], proto addr of game=0x4f550
+  
+  //record a pointer to ?
+  game[0x10] = &[0x408];
+  
+  //record a pointer to the entry hash table index offsets
+  game[0x8] = &NSD[0x18];
+  
+  //record a pointer to the entry hash table
+  game[0xC] = &NSD[0x520];   
+  
+  //record a pointer to misc level info incl. code entry list
+  hashPairs  = NSD[0x404];                  //first we need the number of pairs in the entry hash table
+  game[0x14] = &NSD[0x520 + (hashPairs*8)]; //skip this many pairs to have skipped the entire entry hash table, where the appropriate data resides
+                                            //proto does these @ 0x50F14
+  
+  //also grab a temp pointer to the loading screen info
+  //and run the loading screen routine
+  //trim the loading screen info from the allocated NSD size it will no longer be needed
+  lsInfoLoc = 0x520 + (hashPairs*8) + 0x210; //located 0x210 bytes after misc level info and code entry list
+  loadScreenInfo = &NSD[lsInfoLoc]; 
+  sub_800322CC(mode, loadScreenInfo);
+  
+  NSDsize = lsInfoLoc;
+  game[0x18] = realloc(NSD, NSDsize);
+  NSD = game[0x18];
+  
+  //here is how we set up the entry hash table index pointers: 
+  //---------------------------------------------------------
+  //game[8]   or 0x5C530 initially points to NSD[0]     (beginning of the nsd file data)
+  //game[0xC] or 0x5C534 initially points to NSD[0x520] (0X520 bytes into the nsd file data)
+
+  //at NSD[0]     is a list of 256 words, each referring to a relative offset into the NSD's entry hash table
+  //at NSD[0x520] is the entry hash table
+
+  //then  "((game[8])[hashEntryIndex] * 8) + game[0xC]" will yield the address of the 'hashEntryIndex'th hash entry
+
+  //these calculations are done for all 256 of the relative offsets referred to by game[8] (points to NSD[0]), each relative
+  //offset being replaced with their respective calculated address
+
+  //game[8] now refers to 256 pointers to "lists" of hash entries, or different locations in the entry hash table
+  
+  entryHashOffsets = game[0x8];
+  entryHashTable   = game[0xC];        
+  entryHashIndex   = entryHashOffsets; //we will replace the offsets one by one
+  for (count = 0; count < 256; count++)
+  {
+    entryHashIndex[count] = &entryHashTable[(entryHashOffsets[count] * 8)];
+  }
+  
+  //****************************  NSF ********************************
+  
+  //now we grab the NSF filename string similarly to how we did the NSD
+  NSFFileStr = sub_800128A4(1, mode, 0, 0);
+  strcpy(_NSFFileStr, NSFFileStr);
+  
+  if (gp[0x14])
+  {
+    dirEntry    = &dirStruct[mode*12];
+    NSFLocation = dirEntry[0x8]; 
+   
+    //here is where we record the disc address of the NSF
+    *(0x5C548) = NSFLocation;
+  }
+  
+  //------------------------------------------------------------------//
+  
+  //now we allocate memory for a list of pointers to eventual 'pages' 
+  //indexed by ID of the chunk (or CID) to be contained within the page
+  //we'll call this the CIDlist
+  chunkCount  = NSD[0x400];           //grab number of chunks for this NSD's paired NSF
+  game[0xA94] = malloc(chunkCount*4); //allocate a pointer for each page
+
+  CIDlist = game[0xA94];
+  
+  //fill the CIDlist with 'null page' pointers
+  for (count = 0; count < chunkCount; count++)
+    CIDlist[count*4] = 0xFFFFFFEE;
+
+  //-----------------------------------------------------------------//
+  
+  //here we run the pre-page initialization routines for each subsystem
+  for (int subsystem = 0; subsystem < 21; subsystem++)
+  {
+    (*subsystemTables[subsystem].initA());
+  }
+  
+  //-----------------------------------------------------------------//
+  
+  //here we will allocate the memory for the chunk space 
+  //(or 'physical pages' but we refer to pages as structures that include a pointer to their actual contained chunk data)
+  
+  defChunks  =        22;
+  game[0x28] = defChunks;                  //set 0x5C550 as count of physical pages
+  
+  do
+  {
+    chunkMemSize = (defChunks * 0x10000);  //try allocating space for 22 * 64KB chunks
+    chunkMem     = malloc(chunkMemSize);
+    
+    if (chunkMem)       
+    {
+      game[0x2C] = chunkMem;               //record a pointer to space and break on success
+      break;                               //(we record the pointer as the pointer to chunk memory for the first active page since we will
+    }                                      // use this in the calculation for the location of chunk memory of subsequent pages)
+    else
+      defChunks--;                         //else try allocating space for 21 * 64KB chunks and so on until success
+  } while (defChunks > 0);
+  
+  game[0x28] = defChunks;                  //fix the number of physical pages if necessary
+  
+  //--------------------------------------------------
+  //we have space for 60 normal pages/page structures
+  
+  //now we init the first group of pages in the 60 as 'physical' pages for each sequential 
+  //'chunk' of chunk memory
+  //so at most we will have 22 physical pages
+  physicalPageCount = game[0x28];  
+  physicalPages     = &game[0x2C];
+  
+  chunkMem    =  game[0x2C];  //here is the start of chunk memory
+  
+  physicalPage = physicalPages;
+  for (count = 0; count < physicalPageCount; count++)  
+  {
+    physicalPage[0x4] = 1;     //set page mode/case to 1 = new, free, not in use but available
+    physicalPage[0x6] = 1;     //set page r/w mode to 1 = no copy and change entry reference on write (OR is this flag for physical/virtual?)
+    physicalPage[0x8] = count; //set page's index
+    physicalPage[0xA] = 0;     //set page number of associated chunk's entries in use to 0
+
+    physicalPage[0] = &chunkMem[count * 0x10000];  //finally set physical page to point to its physical allocated chunk memory
+  
+    physicalPage += 0x2C;
+  } 
+     
+  //for the remaining 38 pages they will not sequentially refer to chunk memory so
+  //we call these 'virtual' pages (these come right after the physical pages)
+  game[0x3F4] = 38;           //0x5C91C = this is where the count value for number of virtual pages resides
+  
+  virtualPageCount =  game[0x3F4];
+  virtualPages     = &game[0x3F8];
+  
+  virtualPage = virtualPages;
+  for (count = 0; count < virtualPageCount; count++)
+  {
+    virtualPage[0x4] = 1;  //set page mode/case to 1 = new, free, not in use but available
+    virtualPage[0x6] = 0;  //set page r/w mode to 1 = copy on write (OR is this flag for physical/virtual?)
+    //virtualPages don't keep index?
+    virtualPage[0xA] = 0;  //set page number of associate chunk's entries in use to 0
+    
+    virtualPage[0] = 0;    //is a virtual page so does not have an associated area of physical allocated chunk memory like physical pages do
+                           //at this point
+  }
+  
+  printf("Inited and Allocated %d pages\n", memChunkCount);
+  
+  //--------------------------------
+  
+  //we also have space for 16 texture pages: these are like virtual pages but they refer to locations in VRAM
+  
+  texturePages = &0x580A0;
+    
+  texturePage = texturePages;
+  for (count = 0; count < 16; count++)
+  {
+    texturePage[0x6] = 2;  //set page r/w mode to 2 = no copy on write
+    
+    //note: something tells me at this point they used a frequently used macro for aligning/rounding to a specific number of bits
+    //because the negative case adds [where bits = bits to round to] (bits - 1) before shifting to round properly, but here
+    //we are aligning 'count' which should never reach < 0, but the macro will check the negative case anyway
+    //we ignore the negative case here
+    
+    //mult4 = (count >> 2) << 2; //round to nearest multiple of 4
+    //mod4  = count - mult4;     //then this is just the modulus of 4
+    mod4 = count % 4;
+    
+    //we use that modulus value to calculate the bits that represent ALMOST the vram x and y location of the texture page
+    //with index count. these bits are in the format of a word of tpage information like indicated in GPU primitives (however the
+    //lower 2 bits are unused)
+    
+    //the texture pages with index 0-7 correspond  to the onscreen display and offscreen draw buffers (the upper section of vram)
+    //the texture pages with index 8-15 correspond to the offscreen texture window                    (the lower section of vram)
+    
+    //-note: almost because we have not yet calculated the bit that will differentiate the first 4 from the last 4 pages in each
+    //of the two groups of 8 (where the first group represents the upper 2048x256 half of vram, and the second the lower 2048x256 half)
+    //the first 4 and last 4 pages in each of the 2 groups will both only refer to the upper 2048x128 half OF their respective half of vram
+    //after these calculations; 
+    //so after these computations we must calculate the additional Y bit to indicate that we are referring to the
+    //        upper 2048x128 half of that half of vram for the first 4 pages                                       = 0
+    //or  the lower 2048x128 half of that half of vram for the last  4 pages in each of the 2 corresponding groups = 1
+    
+    pageXY = (mod4 << 2);         //yields sequence 0x0, 0x4, 0x8, 0xC, 0x0, 0x4, 0x8, 0xC, 0x10, 0x14, 0x18, 0x1C, 0x10, 0x14, 0x18, 0x1C
+    if (count >= 8)               //if we are at the second group of 8 (lower half of vram)
+      pageXY |= 0x10;             //indicate this in the tpage 
+    
+    //we also find the CLUT for that texture page at the beginning of the page in vram's data
+    
+    //so we use the same vram x location calculated above but shifted to the appropriate position to represent
+    //the bits for CLUT X location
+    clutX = (mod4 << 8);
+    
+    //and we calculate the vram y location shifted to the appropriate position to represent 
+    //the bits for CLUT Y location
+    quarter = count/4;           //grab which quarter (y-wise) of vram the current page refers to
+    clutY   = (quarter << 17); 
+    
+    //we set these bits for all tpageInfo: 
+    // -MSB   is set because it indicates this value is the result of searching and replacing in the entry hash
+    // -bit 2 is set because it indicates this value is NOT an entry pointer (unlike most results of search and replace in the entry hash)
+    identBits = 0x80000002;
+    
+    //almost have all of the texture page information
+    tpageInfo = identBits | clutY | clutX | pageXY;
+    
+    //now we calculate the additional Y bit to indicate that we are referring to the upper or lower half of the 
+    //respective upper or lower half of vram 
+    if (quarter & 1)
+      tpageInfo |= 0x80;
+
+    //we store the texture page information at field [0x1C] of the texture page; this is so that when we look up the EID corresponding to
+    //the texture page, rather than searching and replacing with an entry pointer in the hash (since no physical texture entrys actually 
+    //exist)-we just replace with this single word of texture page information 
+    page[0x1C] = tpageInfo;
+    
+    //we set mode to 0x1E for the first 8 texture pages; they correspond to the upper section of vram which consists of the onscreen 
+    //display and offscreen draw buffers and aren't directly loaded with texture data
+    if (count < 8)
+      page[0x4] = 0x1E;
+    else
+    {
+      if (page[0x4] == 0x14 || page[0x4] == 0x15)
+      { 
+      
+        //here is inline code for searching the entry hash for a pair with EID corresponding to the texture page EID
+        tpageEID = page[0x18];
+        
+        entryHashIndices = *(0x5C530);
+        entryHashTable   = *(0x5C534);
+        
+        //hash = ((tpageEID >> 13) & 0x3FC)
+        //entryHashBucket = entryHashIndices[hash];
+        
+        hash = ((tpageEID >> 15) & 0xFF);
+        entryHashBucket = entryHashIndices[hash*4];
+        
+        hashPair    = entryHashBucket; 
+        hashPairEID = hashPair[4];
+        if (hashPairEID != tpageEID)
+        {
+          hashPairs = NSD[0x404];
+                    
+          do
+          {
+            hashPair += 8;
+            index = (hashPair - entryHashTable) / 8;
+            
+            if (index >= hashPairs)
+            {
+              hashPair = 0xFFFFFFF6;
+              break;
+            }
+            
+            hashPairEID = hashPair[4];
+          } while (hashPairEID != tpageEID);  //continue trying EIDs till we find a match
+        }
+
+        //if we found a pair with EID corresponding to texture page's EID
+        if (hashPair < 0xFFFFFF02)   
+        {
+          page[0x4]  = 0x14;        //set mode to 0x14 (resolved texture page?)
+          
+          page[0x20] = hashPair;    //set index[0x20] of the page to remember pointer to the hash pair
+          
+          tpageCID   = hashPair[0];
+          page[0x14] = tpageCID;    //set CID of the page to refer to the chunk with ID as resolved by the hash pair  
+          
+          index = (tpageCID >> 1) * 4;
+          CIDlist[index] = page;
+          
+          tpageInfo   = page[0x1C];
+          hashPair[0] = tpageInfo; //replace the CID in the pair with the texture information for this chunk
+        }
+        else
+        {
+          page[0x4]  = 0x15;       //set mode to 0x15 (unresolved texture page?)
+        }
+      }
+      else
+      {
+        page[0x4] = 2;             //else set mode to new, free, and in use
+      }
+    }      
+  }
+                        
+  //-----------------------------------------------------------//
+
+  //now we check how many wavebank entries exist
+  wavebank = 0;
+  
+  hashPairs = NSD[0x404];
+  
+  hashPair = entryHashTable;
+  for (int count = 0; count < hashPairs; count++)
+  {
+    EID = hashPair[0];
+    
+    entryType = sub_80012C60(EID);
+    
+    if (type == 14)
+      wavebank++;
+  }
+  
+  *(0x5CFB0) = 8 - wavebank;
+  
+  if (*(0x5CFB0) >= 2)
+    *(0x5CFB0) = 2;
+    
+  //----------------------------------------------------------//
+  
+  switch (*(0x56710))
+  {
+    default:
+    
+    if (*(0x5CFB0) > 4)
+      *(0x5CFB0) = 4;
+      
+    case 3, (other *check jumptable IDA is being stupid):
+    {
+      wbCount = *(0x5CFB0);
+      
+      wavebankPages = 0x57F40;
+      wavebankPage = waveBankPages;
+
+      
+      count = 0;
+      do
+      {
+        wavebankPage[0x8] = count;
+        if (count < wbCount)
+        {
+          wavebankPage[0x4] = 1;  //set mode to 1       
+          wavebankPage[0x6] = 3;  //set R/W mode to 3 = copy on write
+          
+          wavebankPage[0x1C] = 0x2000;  //this is what will be resolved upon lookup of the wavebank entry corresponding to the page
+        }
+        else
+        {
+          wavebankPage[0x4] = 1;  //set mode to 1
+          wavebankPage[0x6] = 4;  //set R/W mode to 4 = copy on write
+          
+          //calculations will be understood once wavebank is studied more
+          diff = (count - wbCount) 
+          val = (diff * 65424) + 0x2000 + (wbCount << 16);
+          
+          wavebankPage[0x1C] = val;
+        }
+      } while (count < 8);
+    
+      //TODO: other code here involving the 8 pages for wavebanks
+
+      .............
+    }
+  }
+}  
+    
+      
+    
+    
+    

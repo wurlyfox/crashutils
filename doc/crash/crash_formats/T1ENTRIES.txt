@@ -1,0 +1,39 @@
+
+-----------------
+-   T1 ENTRIES  - 
+-----------------
+
+  N item entries each containing vertices for a section of some object model
+
+-------------
+
+ITEM N:
+---
+0x0:  size of item (in words)
+0x4:  EID FOR CORRESPONDING T2 MODEL ENTRY
+0x8:  X OFFSET
+0xC:  Y OFFSET
+0x10: Z OFFSET
+
+0x14: bounding box x1
+0x18: bounding box y1
+0x1C: bounding box z1
+
+0x20: bounding box x2
+0x24: bounding box y2
+0x28: bounding box z2
+
+0x2C: x offset for collision
+0x30: y offset for collision
+0x34: z offset for collision
+
+0x38: 6 byte structures of the following form:
+
+  CCCCCCCC BBBBBBBB AAAAAAAA ZZZZZZZZ YYYYYYYY XXXXXXXX
+  =====================================================
+  XXXXXXXX = vertex X position
+  YYYYYYYY = vertex Y position
+  ZZZZZZZZ = vertex Z position
+  AAAAAAAA = color normal vector X
+  BBBBBBBB = color normal vector Y
+  CCCCCCCC = color normal vector Z

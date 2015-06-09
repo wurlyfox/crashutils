@@ -1,0 +1,41 @@
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE TYPE 134):
+//jumps and links to the 'routine' at specified address 
+
+GOOL OPCODE TYPE S:
+
+________ BBBB____ __AAAAAA AAAAAAAA
+
+loc_80022F60:
+
+oldfp = process[0xE4] - (process + 0x60);  //a1
+oldsp = process[0xDC] - (process + 0x60);
+
+process[0xE4] = process[0xDC]; 
+
+additional = bbits * 4; 
+oldsp -= additional;
+tag = (oldfp << 16 | oldsp);
+
+process.push(var_70);
+process.push(process.pc);
+process.push(tag);
+
+codeLocation = abits;
+if (codeLocation != 0x3FFF)   //i.e. not all abits set
+{
+  codeEntry = process[0x20];
+  codeItem  = codeEntry[0x14];
+  process.pc = codeItem + (codeLocation*4);
+}
+else
+{
+  process.pc = 0;
+}
+
+//this jump will not be terminated by RTEs...
+var_70 = var_70 & 0xFFFFFFF6;  //clear bits 1 & 4
+
+  
+
+
+

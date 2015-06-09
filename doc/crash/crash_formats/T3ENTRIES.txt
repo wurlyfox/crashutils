@@ -1,0 +1,408 @@
+
+-----------------
+-  T3 ENTRIES   - 
+-----------------
+
+  3 item entries containing the model data for a level section (WGEO)
+  
+  Contains mostly polygons, vertices, and texture information
+
+====================================================================
+
+Brief overview
+--------------
+(Minimal knowledge of the PSX GPU and GTE hardware is required to understand terms like primitive and etc.)
+
+There are several variations of a 'primitive creation' subroutine in the Crash 1 code. 
+Each is unique in what it wishes to accomplish, such as create a primitive/primitives for
+some corresponding object model, level model, sprite, shadow, etc. These are also divided
+further into their own variations, for example: primitive creation for a level model can be
+accomplished with the generic level model primitive creation subroutine OR it can be 
+accomplished with some variation that includes depth cuing.
+
+We will be talking specifically in terms of the primitive creation routines for level models
+whose general function is to loop through a 'display list', where each item refers to some polygon 
+and one of 8 T3 entries that contains it, and for each polygon creating either textured/semi-textured 
+gouraud-shaded triangle primitives or non-textured gouraud-shaded triangle primitives for the GPU 
+to display on-screen.
+
+A T3 entry contains almost all of the necessary information required to generate the primitives
+for some level section: the 3-dimensional polygons (triangles) that compose that section, and 
+texture/palette information for each polygon. The additional information resides in the GTE's 
+current state, which determines how a perspective transform will generate the corresponding 
+2-dimensional screen coordinates for the 3-dimensional vertices of some polygon in the entry.
+
+At any given point, the entirety of some T3 entry/level section may not lie on-screen; consequently,
+not all polygons for that section will need to be rendered by the GPU. Additionally, for polygons
+to be properly rendered they must be drawn in a back-to-front order-that is, the 'painter's 
+algorithm' can be applied directly to some 'depth sorted' list of to-be-rendered polygons. Polygons
+cannot just be rendered in their order from the T3 entry-they are not depth-sorted and therefore
+would fail at the painter's algorithm; furthermore the polygons that lie off-screen would still 
+undergo transformation from the GTE and get rendered by the GPU only to not be visible at all-which
+is a waste of graphical computation time. 
+
+Consider that the game keeps track of the current 'zone', which consists of at most 8 adjacent 
+level sections/wgeo models/T3 entries AND a pre-organized set of 'display lists'/T1 entry for 
+that zone; each display list consists of multiple items, where each item describes the index 
+of some polygon and the index of the model in the zone that contains it. Items in these lists 
+then refer to polygons in the order which they are to be drawn/rendered by the GPU, and this 
+ordering has been pre-computed to follow the painters algorithm. As progress is made in zones 
+the viewpoint is modified, thus this ordering will change as some polygons could be in front 
+of polygons they were previously behind. This is accomplished as T1 entries have multiple 
+'display lists' per reference point, which are loaded/sorted accordingly as zone progress is made.
+
+
+The general layout of the primitive creation loop for level models is like so:
+
+  1) Grab next polygon referred to in the display list from one of 8 T3 entries contains it 
+  2) Set GTE translation vector to that of the T3 entry's (if the entry is different from the last iteration in the loop)
+  3) Perspective transform the 3D polygon vertex coords with the GTE, 
+     using the first 2 dimensions X, Y as 2D on-screen coordinates for the primitives vertices
+  4) Grab colors (from each vertex of the polygon) for gourad shading
+  5) Determine the type and specifics of primitive to create (textured, semi-textured, non-textured) 
+     based on the texture information associated with polygon
+  6) Create the gourad-shaded primitive with the transformed coordinates, vertex colors, and texture information 
+  7) Grab the resultant Z coordinates from perspective transformation, calculating their average
+  8) Place a pointer to the resultant primitive at its respective location in the Z-buffer, and link this primitive
+     to a previous primitive at that location in the Z-buffer
+     
+This happens for each frame; the previous primitives are copied over.
+     
+===========================================================================
+
+ITEM 1: HEADER [variable size]
+
+0x0: model X position/translate
+0x4: model Y position/translate
+0x8: model Z position/translate
+0xC:  ? (model R?)
+0x10: ? (model G?)
+0x14: ? (model B?)
+0x18: number of texture chunk EID values
+0x1C: translate flag (no translation if = 0)
+0x20: texture chunk EID 1
+0x24: texture chunk EID 2
+0x28: texture chunk EID 3
+0x2C: texture chunk EID 4
+0x30: texture chunk EID 5
+0x34: texture chunk EID 6
+0x38: texture chunk EID 7
+0x3C: texture chunk EID 8
+0x40 - end: tpage array 
+
+1) The 'tpage array' is an array of 1 or 2 word structures:
+
+0------- -------- -------- --------
+
+  or
+  
+1SS0HHHH 00000000 00000000 00000000 DDDDDDDD DDMMLLGG GGGZZZZZ ZZ0AAA00
+
+- When the first bit is 0, these describe a polygon that will be converted to a 
+non-textured primitive 
+
+- When the first bit is 1, these describe texture information for a polygon that
+will be converted to a textured/semi-textured primitive (explained in detail below)
+
+A polygon (see below: structures in ITEM 2) will refer to an offset into this 'tpage array'
+to describe a specific region of pixel data in some texture chunk that will map to it
+(or to describe no texture data at all)
+
+2) The texture chunk EIDs refer to some texture chunk that can be used as the source for
+texture data
+
+A polygon (see below: structures in ITEM 2) will refer to one of these 8 EIDs as the source
+texture chunk from which to grab the pixel data
+
+=========================================================================================
+
+ITEM 2: POLYGONS
+
+Contains a variable count of 2 word structures, who describe a 'polygon' (a 3 point triangle)
+by the 3 separate vertices that it consists of:
+
+Each structure has the form:
+-----------------------------
+CCCCCCCC CCCCMMMM MMMMMMMM EEEPPPPP AAAAAAAA AAAABBBB BBBBBBBB VVVWWWWI
+
+AAAAAAAAAAAA     = index of vertex A in item 3
+BBBBBBBBBBBB     = index of vertex B in item 3
+CCCCCCCCCCCC     = index of vertex C in item 3
+EEE              = index of one of 8 texture chunk EIDs at item1+0x20
+MMMMMMMMMMMM     = tpage array offset (number of words)
+PPPPP, VVV, WWWW = determines an additional offset in the tpage array (for animated textures)
+I                = ignored?
+
+
+[ NOTE: in the 'primitive creation loop', MMMMMMMMMMMM, EEEPPPPP, and VVVWWWWI 
+  are combined into a single word like so:
+
+  MMMMMMMM MMMMEEEP PPPP____ VVVWWWWI 
+
+  this is to separate the texture information from the vertex information
+]
+
+
+For the other bitfields there is an additional calculation that occurs for when WWWW != 0
+that determines a different offset into the 'tpages' structures
+-------------------
+if (WWWW != 0)  //for animated textures?
+{ 
+  tpage = tpages[MMMMMMMMMMMM*4 + (((scratch[0xE0] >> VVV) + PPPPP) & ((WWWW<<1)|1))*4]
+}
+else
+{
+  tpage = tpages[MMMMMMMMMMMM*4]
+}
+
+-------------------
+
+=============================
+TPAGES ARRAY STRUCTURE FORMAT
+=============================
+
+The words in the 'tpages' array can be of 2 different formats:
+
+Non-textured format
+===================
+0------- -------- -------- --------
+
+(the 0 here indicates that the structure describes a non-textured gourad shaded primitive)
+
+The dashes indicate that the bits are irrelevant: in the loop for converting wgeo polygons
+to gpu primitives, when handling a polygon structure that refers to a structure in the 
+tpage array of the non-textured format, it skips the code for creating a textured primitive
+and instead creates a non-textured primitive. None of the other bits are even used.
+
+
+Textured format
+===============
+1SS0HHHH 00000000 00000000 00000000 DDDDDDDD DDMMLLXX XXXZZZZZ ZZ0YYYYY
+
+(the 1 here indicates that the structure describes a textured gourad shaded primitive)
+
+SS         = semi-transparency mode
+MM         = color mode 
+LL         = texture chunk 128 pixel section X offset
+XXXXX      = texture chunk X offset
+YYYYY      = texture chunk Y offset
+DDDDDDDDDD = index into table of 'regions' describing the X and Y coordinates of the points of
+             a region which to copy the pixel data from the texture chunk
+ZZZZZZZ    = clut Y (as groups of 4 palettes, or 64 colors (1 palette = 16 colors)) 
+HHHH       = clut palette color offset
+
+***************
+
+A structure in the table of 'regions' located at 0x80051774 in Crash 1 (though other primitive creation 
+routines refer to a location in scratch memory) has the form:
+========================================================================
+AAAAAAAA AAAAAAAA BBBBBBBB BBBBBBBB CCCCCCCC CCCCCCCC DDDDDDDD DDDDDDDD
+(interpreted left half as Y, right half as X for each)
+
+How exactly these are used is described further down
+
+****************
+
+One of 8 EIDs at wgeo+0x20 (determined by EEE bits of -polygon- structure (and not tpage))
+is an EID for some corresponding texture chunk. Some additional information is needed to
+understand exactly how these EIDs work to yield meaningful data.
+------------------------------------------------------------------
+
+-When the game initializes the 'chunk/entry' system, it creates 16 structures for the purpose of
+relating texture chunks to their corresponding location in VRAM. 
+
+Normally these type of structures relate an entry to its containing chunk and record information 
+such as the entry's EID and containing chunk's CID grabbed from the corresponding structures of 
+CID/EID pairs in the NSD file-this is so that the system can remember these values after the CID
+portion of the pair is replaced with a pointer to the entry data after searching the containing 
+chunk for the entry with the EID from the pair. When lookup is performed for some arbitrary EID,
+it traverses through the list of pairs (quite quickly since the list is organized by the lower 
+portion of EID values, therefore search can start at the corresponding position), and returns
+the pointer to the entry from the pair with the matching EID value.
+
+These specific 16 structures, however, work a bit differently. Consider that there is no entry 
+to resolve upon lookup of a texture chunk's EID because these EIDs don't actually refer to any
+entry.
+
+These 16 'slots' are initialized (when loading an NSF file) with a bit field that would describe
+the location in VRAM of a texture chunk (once it were associated by one of the slots) organized
+like so:
+
+bitfield = 00000000 0000PPPP PPPPPPPP yBBxxxAA  (located at 0x1C of the structure)
+
+slot  1: x = 0, y = 0, P =     0, A = 2
+slot  2: x = 1, y = 0, P =     1, A = 2
+slot  3: x = 2, y = 0, P =     2, A = 2
+slot  4: x = 3, y = 0, P =     3, A = 2
+slot  5: x = 0, y = 1, P = 0x200, A = 2
+slot  6: x = 1, y = 1, P = 0x201, A = 2
+slot  7: x = 2, y = 1, P = 0x202, A = 2
+slot  8: x = 3, y = 1, P = 0x203, A = 2
+
+slot  9: x = 0, y = 0, P = 0x400, A = 2
+slot 10: x = 1, y = 0, P = 0x401, A = 2
+slot 11: x = 2, y = 0, P = 0x402, A = 2
+slot 12: x = 3, y = 0, P = 0x403, A = 2
+slot 13: x = 0, y = 1, P = 0x600, A = 2
+slot 14: x = 1, y = 1, P = 0x601, A = 2
+slot 15: x = 2, y = 1, P = 0x602, A = 2
+slot 16: x = 3, y = 1, P = 0x603, A = 2
+
+x = X position of chunk in VRAM x 512
+y = Y position of chunk in VRAM x 128
+P = clut value/palette for chunk
+A = ? unknown
+B = ? unused?
+
+When a texture chunk is associated with one of the slots, its EID is used to find the CID/EID pair
+in the list from the NSD (where the official CID of the chunk is finally found, since that field
+is not given in the chunk data itself). Instead of replacing the CID portion from the pair with a 
+pointer to some discovered entry, the data from the bitfield of the associated slot is placed here.
+
+Then, when performing lookup of the texture chunk's EID, it will resolve to the associated bitfield.
+
+*************************************************************
+
+So, in summary, we have 3 meaningful bitfields for description of texture data:
+---
+
+1) Texture chunk index/palette 
+
+Determined by processing/lookup of one of texture chunk EIDs (at wgeo+0x20, index determined by polygon)
+
+00000000 0000PPPP PPPPPPPP y??xxx??
+
+2) Texture information
+
+One of tpage structures at wgeo+0x40, index determine by polygon
+
+KSS0HHHH 00000000 00000000 00000000 DDDDDDDD DDMMLLXX XXXZZZZZ ZZ0YYYYY
+
+3) Texture region
+
+One of elements in 0x80051774 'regions' array, index determined by d bits texture information
+
+AAAAAAAA AAAAAAAA BBBBBBBB BBBBBBBB CCCCCCCC CCCCCCCC DDDDDDDD DDDDDDDD
+YYYYYYYY XXXXXXXX YYYYYYYY XXXXXXXX YYYYYYYY XXXXXXXX YYYYYYYY XXXXXXXX
+
+See exactly how the data is picked apart and copied to the primitive structure:
+====================================================================     
+          
+In calculating 'texpage', or how the gpu reads information about texture mapping,
+the L bits (128 pixel section), S bits (semi-transparency mode), and M bits (color mode) 
+are separated from texture information:
+
+KSS0HHHH 00000000 00000000 00000000 DDDDDDDD DDMMLLXX XXXZZZZZ ZZ0YYYYY
+
+and the X bits from the value obtained for texture chunk index:
+---------------------------------------------------------
+00000000 0000PPPP PPPPPPPP Y??XXX??
+
+             |
+             V
+texpage: 0000000M MSSCCCLL  (our bits) 
+  (gpu): 0000000C CTTYXXXX  (how the gpu interprets it)
+
+C=color mode, T=semi-transparency, Y=ybase, X=xbase
+
+[
+ notes: LL determines which of the 128x256 pixel groups to use
+        since LL is max 4 then:
+        CCC would refer to a specifc grouping of 4x(128x256) pixel groups = 512x256 pixel group
+        a 512x256 pixel group is the area occupied by 2 crash texture chunks (one atop the other)
+        but the upper bit of CCC is interpreted as 'Y base' which i believe would be 0 for draw/display buffer, 1 for texture area
+        then the lower 2 bits of CCC are this specific group, and LL is a 128 pix offset into the group 
+]
+
+***********************  
+
+In calculating the texture coordinates, the X bits and Y bits are separated from Texture Information:
+
+KSS0HHHH 00000000 00000000 00000000 DDDDDDDD DDMMLLXX XXXZZZZZ ZZ0YYYYY
+
+And Y bit from the data received by processing the texture chunk EID: 
+
+00000000 0000PPPP PPPPPPPP y00xxx00
+
+And the vertices from the Texture Region:
+
+YYYYYYYY XXXXXXXX YYYYYYYY XXXXXXXX YYYYYYYY XXXXXXXX YYYYYYYY XXXXXXXX
+    vertex B          vertex A          vertex D          vertex C
+    
+(Vertex D is used by quad polygon primitives, which is unused by the wgeo models since they consist of all triangles)
+    
+the total texture coordinates are then calculated separately for each vertex:
+
+  YYYYYYYY XXXXXXXX
+| yYYYYY00 XXXXX000 >> MM  (note that G is shifted right for the 'color mode' value)
+-------------------
+  yyyyyyyy xxxxxxxx  (how the gpu interprets it)
+  
+these are the coordinates used [for U & V] for each vertex
+                      
+[note: since texture pages are 128x256 groups, and crash texture chunks are 512x128, then
+1/4th of some 2 texture chunks will be included in the area occupied by one page, one atop the other:
+- the 'B' bit here determines which of the 2 areas to use since the only way to access that occupied 
+by the bottom texture chunk would be to use actual texture coordinates (multiple of 128)
+- the 'A' bits here determine the actual y offset into the chunk (multiple of 4)
+- the 'G' bits here determine the actual x offset into the chunk (multiple of 4)] 
+==============================
+
+"CLUTs are arranged in narrow and long form horizontally in the frame buffer, 256 x 1 (8-bit mode) or 16 x 1
+(4-bit mode)."
+
+In calculating the 'clut' value, the Z bits and H bits are separated:
+
+KSS0HHHH 00000000 00000000 00000000 DDDDDDDD DDMMLLGG GGGZZZZZ ZZ0XXXXX   
+
+and the F bits separated from data received by processing the texture chunk EID:
+
+00000000 0000PPPP PPPPPPPP B00AAA00
+
+ clut:   000ZZZZZ ZZ00HHHH  Z = clut ID (one table), H = color offset in palette      
+       | PPPPPPPP PPPP0000  P = table/palette offset (only case in which palette can change)
+--------------------------
+(gpu):   0YYYYYYY YYXXXXXX
+**   :   0GGGGGGG GGPPCCCC -
+
+EDIT: since im assumning that the CLUTS are that additional data at the beginning of texture chunks
+      and the CLUT to use is specified as a location in the framebuffer itself (just like texture data)
+      then since PPPPPPPPPPPP derives from the texture chunk, then it must also refer to the location of the
+      texture chunk data in the frame buffer 
+      [the chunk data viewed as standard 32/24 bit colors would then indeed show that there are color palettes at the beginning
+      and it seems this is totally the case, since there are 256 pixel sections, one after another (so 1 8 bit clut per line)
+      and also some 16 pixel sections]
+      - so PPPPPPPPPPPP is the index of the cluts for the texture chunk, 
+         1) the lower 2 bits being the chunk X (since 4 chunks X-wise)
+         2) and the upper 10 determining the Y/line offset
+           (so theoretically only the 8th bit of the 10 should be used since chunks are at 128 pix Y multiples)
+      - then HHHH must be an X offset of some 16 pixel section (but only a max offset of 4 16 pixel sections total, ) 
+        (for 4 bit cluts so they can be placed horizontally adjacent and be chosen from)
+      - and ZZZZZZZ must be the Y offset the cluts to use ()
+         
+note that the gpu interprets this as X and Y indices but it makes more sense for us
+to interpret this as palette indices, in a 'table', or a group of 4 palettes so that:
+
+GGGGGGGGGG = table (group of 4 palettes)
+PP         = which of 4 palettes in the table
+CCCC       = which of 16 colors in the palette
+          
+==========================================================
+  
+ITEM 3: VERTICES
+
+contains a variable count of 2 word structures, each describing the vertex of a polygon:
+
+each structure has the form:
+================================
+ZZZZZZZZ RRRRRRRR GGGGGGGG BBBBBBBB XXXXXXXX XXXXXSSS YYYYYYYY YYYYYNNI
+
+XXXXXXXXXXXXX = x position of vertex
+YYYYYYYYYYYYY = y position of vertex
+ZZZZZZZZ      = z position of vertex
+SSS           = vertex section (also determines z position)
+NN            = vertex    zone (also determines z position)
+RRRRRRRR      = red value   (for gourad shading)
+GGGGGGGG      = green value (for gourad shading)
+BBBBBBBB      = blue value  (for gourad shading)
+I             = interpolation flag for depth cuing

@@ -1,0 +1,1817 @@
+CrashPSX/CrashPC Port Progress Tracking Document
+---------------------------------------
+
+The purpose of this document is to track the progress of CrashPC/PSX-a port of 
+the PSX game Crash Bandicoot to C++, for execution on PC or PSX platforms. 
+
+The main routine is first broken into sections to identify root functionalities:
+
+void crash_main()
+{
+  1) init paging/subsystems
+  #ifdef CRASH_SYSTEM_INTEGRATE
+  initSubsystems();  
+  #else
+  //TODO: implement initPaging
+  #endif
+  
+  2) page universal entries
+  //TODO: universal entry load here
+  
+  do
+  {
+    //3) TODO: pause screen stuff here
+    //4) TODO: crash respawn stuff here
+    //5) TODO: level transition stuff here
+    //6) TODO: manage pages here
+    //7) TODO: auto-object spawn here
+    //8) camera update
+    cameraUpdate();
+    
+    //9) recalculate view matrices
+    
+    #ifdef CRASH_SYSTEM_INTEGRATE
+    crashSystemViewMatrix();
+    #else
+    //TODO: implement sub_80017A14()
+    #endif 
+    
+    //10) transform all wgeo models (' vertices)
+    #ifdef CRASH_SYSTEM_INTEGRATE
+    //crashSystemZoneWorldModels();
+    //we dont create models for the worlds yet, we just use their
+    //geometry
+    //in future we will need to if we want to implement the
+    //shading routines used here
+    #else
+    //TODO: implement all variations of zone wgeo model gte routines
+    #endif
+      
+    //11) handle objects     
+    handleObjects(true);
+    
+    #ifdef CRASH_SYSTEM_INTEGRATE
+    crashSystemHandleObjects();
+    #endif
+      
+    //12) TODO: title screen stuff here
+      
+    //13) draw
+    #ifdef CRASH_SYSTEM_INTEGRATE
+    crashSystemDraw();
+    #else
+    //TODO: implement gpu routine
+    #endif
+  } while (true);
+}
+
+1) paging init    |  not really implemented   | we only perform a subset of this complete operation-initializing the subsystems
+2) page univers.  |  not implemented          | an external source (user) will be responsible for spawning objects and thus loading equivalent universal gool entries            
+3) pause screen   |  not implemented          | we are not concerned with a pause screen yet
+4) crash respawn  |  not implemented          | may be necessary soon, but involves determining if crash is dead, which gool system does not seem to detect
+5) level trans.   |  not implemented          | an external editor shall be responsible for handling level transitions, at their point of occurence
+6) manage pages   |  not implemented          | an external system shall handle paging
+7) auto-spawn objs|  not implemented          | implementable; external editor must be informed that objects will be auto-spawned
+8) camera update  |  functional, incomplete   | verify correctness, need to implement other camera modes, 
+9) view matrices  |  external dependencies    | depends on graphics library implementation
+10) world models  |  not implemented          | graphics lib. displays basic models; does not do shading
+11) handle objs   |  functional, incomplete   | verify correctness, need to implement other parts
+12) title screen  |  not implemented          | we are not concerned with a title screen yet
+13) draw          |  external dependencies    | graphics lib. handles drawing
+
+-Implementation for 3-5,7 is not currently necessary, and will not be difficult when required;
+they are part of the requirements list and are thus root requirements with low priority.
+
+-1 involves initializing the paging system/routines: for CrashPC builds, the corresponding 
+functionality for this routine is provided/replaced either partially or completely by 
+external libraries-the corresponding library functions alone, however, do not trigger the 
+initialization of subsystems as in the original (i.e. CrashPSX implementation of the) 
+routine; CrashPC replaces this call with a call to a function that strictly performs 
+subsystem initialization. The various subsystem initialization routines are thus 
+sub-requirements of the 'subsystem initialization' root requirement. For CrashPSX builds 
+this routine must be implemented directly from the disassembly. 
+
+-2 involves specific configuration for the game; not currently necessary, but will not
+be difficult when required. 
+
+-6 involves the paging system/routines: for CrashPC builds, the corresponding functionality 
+for these routines are provided/replaced either partially or completely by external libraries;
+for CrashPSX builds these routines are to be ported directly from the disassembly. These routines
+involve initialization for each entry type that is paged.
+
+-9 involves geometry transformation routines; 10 involves model building routines; 
+13 involves GPU routines; 9, 10, and 13 meet the same criteria as 4. 
+
+-Implementation for 12 is not currently necessary, but will be difficult when
+required. 
+
+-Implementation for 8 involves camera routines; implementation for 11 involves 
+object routines.
+
+CrashPC Initial requirements tree, with minimal expansion:
+
+section of code               |  requirement
+------------------------------|-----------
+1) subsystem initialization   |  verify correctness, fix, complete
+2) entry initialization       |  verify correctness, fix, complete
+3) object routines            |  verify correctness, fix, complete                              |
+4) camera routines            |  verify correctness, fix, complete
+5) external libraries         |  verify that complete, exact emulations, are provided 
+   A) crash library           |  verify that an complete, exact emulation, is provided 
+   B) graphics library        |  verify that an complete, exact emulation, is provided
+                              |
+6) inline operations in main  |  implement
+   A) pause screen            |  implement
+   B) crash respawn           |  implement
+   C) level trans             |  implement
+                              |
+7) game config routines       |  implement
+8) title screen routines      |  implement
+   
+To further add on to and expand the tree, the following procedure is followed:
+
+  i)  If a routine is referenced from within more than one of the sections of code listed 
+      in the tree and the routine belongs to a 'root section' (corresponding to a source 
+      file) that is not yet listed, add the section as a root section. 
+  ii) If a routine is referenced from within only one of the sections of code listed
+      in the tree, add the section as a child of the section that references it.
+  iii)If a routine is eventually found to be referenced from within more than one of the 
+      sections of code listed in the tree (other than itself) after adding, and the routine
+      belongs to a section that is not a root section, then remove that section from its 
+      parent and re-add the section as a root section. 
+  iv) For each section that is added, determine a requirement that summarizes what needs 
+      to be done for routines in that section.
+  v)  Repeat the above steps until all possible non-leaf sections have been created.
+  vi) Expand the tree by adding the routines within each section as children. 
+      Elaborate on the requirements specified for the parent section by determining
+      requirements specific to that routine for what needs to be done.      
+  vii)If a routine itself can be broken into sections, add these sections as children
+      of the parent routine and provide further elaboration.
+      
+The tree is built in this way to ensure that ALL parts of the source are included.
+Exceptions to iii are made where necessary. 
+
+To continue adding onto the tree, it is noted that:
+
+- Level initialization requires (zone routines)
+- Object handling (object routines) requires GOOL code interpretation (GOOL routines)
+- Object handling (object routines) requires (controller routines)
+- Object routines and GOOL routines require matrix routines
+- GOOL routines require additional GOOL object/process specific vector routines
+
+section of code               |  requirement
+------------------------------|--------------------------------------
+1) subsystem initialization   |  verify correctness, fix, complete
+2) entry initialization       |  verify correctness, fix, complete
+3) zone routines              |  verify correctness, fix, complete
+4) GOOL routines              |  verify correctness, fix, complete
+   A) vector routines         |  complete implementation
+   B) all other GOOL routines |  verify correctness, fix, complete
+5) object routines            |  verify correctness, fix, complete 
+   A) controller routines     |  verify correctness, fix, complete
+   B) all other obj routines  |  verify correctness, fix, complete
+6) camera routines            |  verify correctness, fix, complete
+7) matrix routines            |  verify correctness, fix, complete
+8) external libraries         |  verify that complete, exact emulations, are provided 
+   A) crash library           |  verify that an complete, exact emulation, is provided 
+   B) graphics library        |  verify that an complete, exact emulation, is provided
+                              |
+9) inline operations in main  |  implement
+   A) pause screen            |  implement
+   B) crash respawn           |  implement
+   C) level trans             |  implement
+                              |
+10) game config routines      |  implement
+11) title screen routines     |  implement
+   
+
+Finally, the expanded tree:
+
+section of code                   |  requirement
+----------------------------------|--------------------------------------
+1) subsystem initialization       |  verify correctness, fix, complete
+   A) inventory/mem card init.    |  implement when/if mem card desired
+   B) scenery list initialization |  implement when SLST routines implemented
+   C) level initialization        |  see initLevel()
+   D) zone initialization         |  implement when necessary
+   E) object/process alloc.       |  see initObjects()
+      1) object/process init?     |  determine if necessary; if so, implement
+   F) audio, midi, music data init|  implement when sound implemented 
+   G) demo playback init          |  implement when demo mode desired
+2) entry initialization           |  verify correctness, fix, complete
+   A) tgeo entry init             |  determine if necessary; if so, implement
+   B) zone/zdat entry init        |  verify correctness
+   C) mdat (music data) entry init|  implement when sound implemented
+3) zone routines                  |  verify correctness, fix, complete
+     1) initLevel()               |  
+        a) various lines          |  uncomment when necessary
+        b) demo mode stuff        |  uncomment when demo mode implemented
+        c) load first zone,sect.  |  allow external option to enable this; uncomment when necessary
+        d) sound routines         |  uncomment when sound implemented
+        e) remaining              |  verify correctness
+     2) updateLevel()             |  
+        a) SLST handling          |  uncomment when SLST routines implemented
+        b) texpage loading        |  uncomment when routines to allow this are implemented
+        c) remaining              |  verify correctness
+     3) updateLevelMisc(..)       |  verify correctness; determine purpose
+     4) spawnObjects(..)          |  implement
+     5) saveState(..)             |  uncomment when level reiniting implemented
+     6) reinitLevel()             |  implement
+     7) findZone(..)              |  verify correctness
+     8) initSLST()                |  implement
+     9) killSLST()                |  implement
+     10) sortSLST()               |  implement
+     11) decodeSLSTForward()      |  implement
+     12) decodeSLSTBackward()     |  implement
+     13)
+     
+4) GOOL routines                  |  verify correctness, fix, complete
+   A) vector routines             |  complete implementation
+     1) sub_80026FF0              |  verify correctness, fix
+     2) sub_800277EC              |  complete implementation
+     3) sub_80027A4C              |  implement
+     4) sub_80027BC4              |  implement
+     5) sub_80027F50              |  implement
+     6) sub_8002832C              |  implement
+     7) sub_80028644              |  implement
+     8) sub_800289B4              |  implement
+     9) sub_80028E3C              |  implement
+     10)sub_8002940C              |  implement
+                                  |
+   B) all other GOOL routines     |  verify correctness, fix, complete
+     1) initObjects()             |  verify correctness
+     2) freeObjects()             |  implement
+     3) sub_8001AC60()            |  implement
+     4) loadStates(..)            |  verify correctness     
+     5) familyRoutinePBC(..)      |  verify correctness
+     6) familyRoutineCBP(..)      |  verify correctness
+     7) findObject(..)            |  verify correctness
+     8) familyRoutinePBCH(..)     |  verify correctness
+     9) familyRoutineCBPH(..)     |  verify correctness
+     10) sub_8001BA18             |  implement
+     11) hasPID(..)               |  verify correctness
+     12) sub_8001BAB0             |  implement
+     13) find_RoutineFlags(..)    |  verify correctness
+     14) spawnObject(..)          |  verify correctness; refactor, uncomment
+         a) savestate stuff       |  uncomment line when savestate implemented
+         b) remaining             |  verify correctness; refactor
+     15) addObject(..)            |  
+         a) inherit zone colors   |  uncomment/implement lines that do this
+         b) remaining             |  verify correctness; (refactor?)
+     16) initProcess(..)          |  
+     17) terminateObject(..)      |  verify correctness
+     18) terminateZoneObject(..)? |  trace.. verify correctness
+     19) terminateObject(obj)     |  verify correctness
+     20) terminateObjects(..)     |  implement
+     21) changeState(..)          |  verify correctness
+     22) newFrame(..)             |  verify correctness
+     23) translateA(..)           |  verify correctness
+     24) translateB(..)           |  verify correctness
+     25) testControls(..)         |  verify correctness
+   **26) interpret(..)            |
+         0x00: ADD                |  n/a (completed)
+         0x01: SUB                |  n/a (completed)
+         0x02: MUL                |  verify correctness
+         0x03: DIV                |  verify correctness
+         0X04: CEQ                |  n/a (completed)
+         0x05: ANDL               |  n/a (completed)
+         0x06: ORL                |  verify correctness
+         0x07: ANDB               |  n/a (completed)
+         0x08: ORB                |  n/a (completed)
+         0x09: SLT                |  n/a (completed)
+         0x0A: SLE                |  n/a (completed)
+         0x0B: SGT                |  n/a (completed)
+         0x0C: SGE                |  n/a (completed)
+         0x0D: MOD                |  n/a (completed)
+         0x0E: XOR                |  n/a (completed)
+         0x0F: TST                |  verify correctness
+         0x10: RND                |  verify correctness
+         0x11: MOVE               |  verify correctness
+         0x12: NOTL               |  verify correctness (should be)
+         0x13: PRW                |  verify correctness, fix
+         0x14: LEA                |  verify correctness
+         0x15: SHA                |  verify correctness
+         0x16: PSH                |  verify correctness
+         0x17: NOTB               |  verify correctness (should be)
+         0x18: MOVC               |  verify correctness 
+         0x19: ABS                |  verify correctness (should be)
+         0x1A: PAD                |  verify correctness
+         0x1B: SPD                |  verify correctness
+         0x1C: MSC                |
+            0) deref.             |  verify correctness
+            1) vect dist a        |  verify correctness
+            2) vect ang           |  verify correctness
+            3) read link field    |  verify correctness (should be)
+            4) write link field   |  verify correctness (should be)
+            5) ang dist xz        |  verify correctness
+            6) vect dist b        |  verify correctness
+            7) find obj w/PID     |  verify correctness
+            8) set/clr no respawn |  verify correctness
+            9) set linkobj zone   |  verify correctness
+            10) spawn state bit w |  
+                0) clr 3          |  verify correctness (should be)
+                1) set 3          |  verify correctness (should be)
+                2) clr 4          |  verify correctness (should be)
+                3) set 4          |  verify correctness (should be)
+                4) clr glob       |  implement
+                5) set glob       |  implement
+                6) nop            |  n/a (completed)
+                7) nop            |  n/a (completed)
+                8) clr 1          |  verify correctness (should be)
+                9) set 1          |  verify correctness (should be)
+            11) spawn state bit r |  
+                0) nop            |  n/a (completed)
+                1) no respawn     |  verify correctness
+                2) ?              |  verify correctness, determine purpose
+                3) level trans    |  verify correctness
+            12) level operations  |  
+                0) save state     |  uncomment when save state implemented
+                1) load state     |  uncomment when reload level implemented
+                2) adopt obj      |  verify correctness
+                3) unused         |  verify correctness
+                4) ?              |  implement, determine purpose
+                5) ?              |  uncomment when purpose determined
+                6) play new music |  implement when sound is implemented
+                7) term desc.     |  verify correctness
+                8) look up angle  |  verify correctness
+                9) change level   |  implement when necessary
+                10) disk seek     |  implement if necessary
+                11) reset inv     |  implement
+            13) ?                 |  implement, determine purpose
+            14) test linkobj coll.|  verify correctness
+            15) mem card stuff    |  implement if necessary
+         0x1D: DRS                |  verify correctness
+         0x1E: PRD                |  verify correctness
+         0x1F: RGL                |  verify correctness (should be)
+         0x20: WGL                |  verify correctness (should be)
+         0x21: ANG                |  verify correctness
+         0x22: APH                |  verify correctness
+         0x23: PLCV               |  verify correctness
+         0x24: WLCV               |  verify correctness
+         0x25: RAPH               |  verify correctness
+         0x26: PSHB               |  verify correctness
+         0X27: ANI                |  verify correctness
+         0x80: NOP                |  n/a (completed)
+         0x81: NOP                |  n/a (completed)
+         0x82: ***                |
+            branch                |  verify correctness
+            state change          |  verify correctness
+            return                |  verify correctness
+              read prev frame     |  verify correctness
+              status flags        |  verify correctness 
+         0x83: ANIS               |  uncomment dummy vectors, verify correctness
+         0x84: ANIF               |  verify correctness
+         0x85: VEC1               |
+            0) object path        |  verify correctness
+            1) project2D          |  uncomment when screen coordinates graphics lib call implemented
+            2) spin on axis?      |  verify correctness 
+            3) unused?            |  is this unused? think so 
+            4) linear transform a |  verify correctness
+            5) linear transform b |  verify correctness
+            6) transform object   |  verify correctness
+               model vertex pos.  |  ---
+            7) audio matrix stuff |  implement when sound implemented
+         0x86: JAL                |  verify correctness
+         0x87: EVNT (single evnt) |  verify correctness
+         0x88: event service state|  verify correctness
+               return true        |  ---
+         0x89: event service state|  verify correctness
+               return false       |  ---
+         0x8A: CHLD               |  verify correctness
+         0x8B: NTRY               |  implement when necessary
+         0x8C: SNDA               |  implement when sound implemented
+         0x8D: SNDB               |  implement when sound implemented
+         0x8E: VEC2               |  implement when GOOL vector routines implemented
+         0x8F: EVNG (global evnt) |  verify correctness
+         0x90: sound event?       |  uncomment when sub_800251B8 implemented
+         0x91: CHDN               |  verify correctness
+     27) issueEvent(..)           |  verify correctness, fix
+     28) sub_800251B8?            |  interpret, implement
+     29) sub_800252C0?            |  interpret, implement   
+                                  |
+5) object routines                |  verify correctness, fix, complete
+   A) controller routines         |  verify correctness, fix, complete
+     1) initControls()            |  verify correctness, fix, complete
+     2) readControls()            |  verify correctness, fix, complete
+                                  |
+   B) all other obj routines      |  verify correctness, fix, complete
+     1)  objectPath(..)           |  
+         a) initial calcs         |  verify correctness
+         b) statusB bit 16        |  uncomment portions when purpose determined
+         c) remaining calcs       |  verify correctness/determine purpose
+     2)  objectBound(..)          |
+         a) prim type 4?          |  uncomment when purpose determined
+         b) other prim types      |  verify correctness
+     3)  handleObjects(flag)      
+         a) test for crash exists |  uncomment when necessary (make optional?)
+         b) get render count      |  determine if this is what is actually being done, uncomment 
+         c) remaining             |  verify correctness
+     4)  handleObject(..)         |
+         a) set field 0x24C to 18?|  not in binary; fix timing issues so this can be removed
+         b) determine if handle   |  verify correctness
+         c) handle                |
+            1) line for compare w/|  uncomment when necessary
+            crash aniStamp        |  ----
+            2) remaining          |  verify correctness, fix
+         d) determine if & animate|  verify correctness
+     5)  renderObject(..)         |
+         a) model type 1          | 
+            i)  SVTX model        |  verify/compare against graphics lib
+                1) see 0x80018964 |
+            ii) T20 model         |  implement when graphics lib can handle T20 models
+            iii)inherit zone color|  verify correctness
+         b) model type 2          |
+            i)  scale size calcs  |  verify correctness
+            ii) pre-rot, trans,   |  verify/compare against graphics lib
+                clip              |
+                1) rot matrix det.|  implement
+                2) proj dist      |  implement when graphics lib has this
+                3) visibility dpth|  implement when graphics lib has this
+                4) other flag?    |  determine purpose, implement when 
+            iii) tex calculations |  verify correctness
+            iv) z-buffer calcs    |  implement when graphics lib has this
+            v) result             |  verify correctness of rendered primitive
+         c) model type 3          |  n/a (there is no type 3)
+         d) model type 4          |  implement when graphics lib can handle font primitives
+         e) model type 5          |
+            i)  scale size calcs  |  verify correctness
+            ii) pre-rot, trans,   |  verify/compare against graphics lib
+                clip              |
+                1) rot matrix det.|  implement
+                2) proj dist      |  implement when graphics lib has this
+                3) visibility dpth|  implement when graphics lib has this
+                4) other flag?    |  determine purpose, implement when 
+            iii) tex/misc calcs   |  verify correctness
+            iv) create rect       |  verify/compare against graphics lib
+                1) z-buffer stuff |  implement
+                2) remaining      |  verify/compare against graphics lib
+            v) result             |  verify correctness of rendered primitive
+     6)  sub_8001E3D4 (text       |  implement
+     7)  sub_8001E7D8 render)     |  implement
+     8)  handleColors(obj)        |  verify correctness
+     9)  objectSpace(obj)         |
+         a) preemptive coll. test |  uncomment when necessary
+         b) remaining             |  verify correctness
+     10) objectPhysics(obj)       |  
+         a) controlled objs       |  
+            1) determine states   |  verify correctness
+            2) move requested     |  
+               i)  in air         |  verify correctness
+               ii) not in air     |  verify correctness
+            3) no move requested  |  verify correctness
+            4) adjust velocity    |  verify correctness
+         b) rotating objs         |  verify correctness
+         c) free-moving objs      |  
+            1) objs stopped by    |  verify correctness
+               solid              |  -----
+            2) objs whose pos only|  verify correctness
+               affected by veloc. |  -----
+         d) objs ground determined|  verify correctness
+            by initial y          |  -----
+            1) objs stopped at the|  verify correctness
+               ground             |  -----
+         e) objs with min/max vel.|  verify correctness
+         f) falling objs          |  verify correctness
+         g) crash colliding objs  |  
+            1) timestamp compare  |  uncomment when necessary
+            2) range check        |  uncomment when necessary
+            3) remaining          |  n/a
+     11) objectRotate(..)         |  
+         a) vel/ang dist calcs    |  verify correctness
+         b) velocity adjustments  |  verify correctness
+         c) ang calcs/flags       |  verify correctness
+     12) objectRotateB(..)        |  verify correctness
+     13) leastAngDist(..)         |  verify correctness (should be)
+     14) approach(..)             |  verify correctness
+     15) sub_800248A0??           |  implement (?)
+     16) objectCollide(..)        |  verify correctness
+     17) issueIfColliding(..)     |  verify correctness
+     18) issueToAll(..)           |  verify correctness
+     19) isColliding(point,..)    |  verify correctness (should be)
+     20) isColliding(spc,spc)     |  verify correctness (should be)
+     21) traverseNodes(..)        |  verify correctness
+     22) transSmoothStopAtSolid() |  verify correctness, fix?
+     23) transPullStopAtSolid()   |  verify correctness, FIX?, (what does it do?)
+     24) processNode()            |  verify correctness
+     25) findHighestBelowObjectY()|  verify correctness
+     26) stopAtFloor()            |  verify correctness
+     27) findCeil()               |  verify correctness
+     28) stopAtZone()             |  verify correctness
+     29) transStopAtSolid()       |  verify correctness
+     30) plotWallB()              |  verify correctness, fix?
+     31) plotObjWalls()           |  verify correctness
+     32) plotWalls()              |  verify correctness, fix?
+     33) replotWalls()            |  verify correctness, fix?
+     34) stopAtWalls()            |  verify correctness, fix?
+     35) queryNodes()             |  verify correctness
+     36) plotZoneWalls()          |  verify correctness, fix??
+     37) plotWall()               |  verify correctness, fix?
+     38) handleNodes()            |  verify correctness
+     39) findAvgY()               |  verify correctness
+                                  |
+6) camera routines                |  verify correctness, fix, complete
+     1) cameraCalculate()         |  
+        a) camRotX calculation    |  does not call leastAngDist like in PSX binary; fix
+        b) remaining              |  verify correctness, fix?
+     2) adjustCamProgress()       |  verify correctness
+     3) cameraGetProgress()       |  verify correctness, fix?
+     4) cameraGetProgressAlt()    |  FIX
+     5) cameraFollow()            |  
+        a) det. progress flags    |  verify correctness
+        b) det. look flags        |
+          1) det. lookBack        |  verify correctness
+          2) det. lookX           |  verify correctness
+        c) det. look/pan amts     |
+          1) det. lookBackZ       |  verify correctness
+          2) det. panX            |  verify correctness
+        d) det. zoom amts         |
+          1) det. progDet/Scale YZ|  verify correctness
+          2) det. zoomZ           |  verify correctness
+          3) det. panY            |  verify correctness
+        e) record info            |
+          1) create camera        |  verify correctness
+          2) calc progress        |
+             a) getProgress       |  verify correctness
+             b) getProgressAlt    |  uncomment lines when cameraGetProgressAlt() is fixed
+          3) record amts & progres|  verify correctness
+          4) rec. additional flags|  verify correctness
+        f) remaining cameras
+          1) create camera        |  verify correctness
+          2) calc progress        | 
+             a) getProgress       |  verify correctness
+             b) getProgressAlt    |  uncomment lines when cameraGetProgressAlt() is fixed
+          3) record amts & progres|  verify correctness
+          4) rec. additional flags|  verify correctness
+        g) find cam closest to    |  verify correctness
+           player                 |
+        h) det. if updateLevel()  |  verify correctness
+           or adjust progress     |
+     6) cameraUpdate()            |  
+        a) cameraDeath() call     |  uncomment when implemented
+        b) camera mode 1, 3       |  
+           1) save state lines    |  uncomment when save state implemented
+           2) remaining           |  verify correctness
+        c) camera modes...        |  implement
+           1) camera mode 7       |  implement
+           2) camera mode 8       |  implement
+        d) remaining              |  verify correctness
+     7) cameraDeath()             |  implement
+                                  |
+7) matrix routines                |  verify correctness, fix, complete
+     1) transform()               |  verify correctness
+     2) apxDist(vectA, vectB)     |  verify correctness
+     3) sub_80029C90(..)          |  
+     4) eucDist(vectA, vectB)     |  verify correctness
+     5) sub_80029BD0(..)          |
+     6) angleXZ(vectA, vectB)     |  verify correctness
+     7) angleXY(vectA, vectB)     |  verify correctness
+     8) absdistance(c1, c2)       |  verify correctness
+     9) ScaleMatrix(mat, vector)  |  verify correctness
+     
+     
+8) external libraries             |  verify that complete, exact emulations, are provided 
+   A) crash library               |  verify that an complete, exact emulation, is provided 
+   B) graphics library            |  verify that an complete, exact emulation, is provided
+                                  |
+     1) clear screen              |  determine if necessary: if so, implement 
+     2) fill screen with tiles    |  determine if necessary: if so, implement
+     3) gpu parameters            |  implement so as to provide perfect emulation of psx gpu
+     4) draw sync                 |  verify that synchronization allows for the exact frame-rate as psx gpu
+     5) draw/display buffer and   |  determine if necessary: if so, implement
+       'swap & render' stage      |
+     6) primitive rendering       |  determine if any specifics are missing; verify correctness
+                                  |  FIX ALPHA/TRANSPARENCY ISSUES
+     7) primitive list            |  implement
+     8) game speed/velocity sync  |  implement; verify that such speeds allow mimicking of game
+     9) texture loading           |  implement direct loading requests; improve performance
+     10) projection/screen offset |  implement so as to mimic projections of psx GTE
+     11) global view matrix,rot,..|  implement directly from game routines
+     12) map matrix routine       |  implement when map is implemented
+     13) vertex color shading     |  fix; get to mimic shading in the game
+     14) svtx model rendering     |  verify correctness (incl alt rotation, etc)
+     15) T20 entry model rendering|  implement
+     16) sprite rendering         |  verify correctness, fix (scale, etc..)
+     17) fragment rendering       |  verify correctness, fix (scale, etc..)
+     18) font rendering           |  implement
+     19) wgeo copying             |  determine if necessary: if so, implement
+     20) wgeo shading/rendering   |  implement animated textures, wgeo MODELS to reference geometry
+        A) mode A                 |  implement
+        B) mode B                 |  implement
+        C) mode C                 |  implement
+        D) mode D                 |  implement
+        E) mode E                 |  implement
+        F) mode F                 |  implement
+     21) screenCoordinates()      |  verify correctness; implement interface w/crash system
+                                  |  
+9) inline operations in main      |  implement
+   A) pause screen                |  implement
+   B) crash respawn               |  implement
+   C) level trans                 |  implement
+                                  |
+10) game config routines          |
+    1) sub_8002EBB4               |  implement when wgeo shading implemented
+       level specific wgeo vertex |
+       shader parameter init      |
+       routine                    |
+    2) sub_8002EC68               |  implement when audio implemented
+       level specific audio vector|
+       parameter init routine     |
+    3) sub_80011DD0               |  implement when necessary
+    4) sub_80026140               |  implement when necessary
+    5) sub_80026200               |  implement when necessary
+    6) sub_800262DC               |  determine if necessary; implement if so
+                                  |
+11) title screen routines         |                                    |
+    A)  sub_80031D50              |  implement when necessary
+        sub_80031EB4              |  implement when necessary
+        sub_800322CC              |  implement when necessary
+        sub_800326D8              |  implement when necessary
+        sub_80032AF4              |  implement when necessary
+        sub_80032BB4              |  implement when necessary
+        sub_80032DFC              |  implement when necessary
+        sub_80032FDC              |  implement when necessary                                  |
+    B) demo mode                  |  implement when necessary
+       1) sub_8002E8A4 PBAK init  |  implement when necessary
+       2) sub_8002EABC            |  implement when necessary
+    C) random number stuff for    |  implement when necessary
+       demo mode                  |  implement when necessary
+       1) sub_8002F6B0            |  implement when necessary
+       2) sub_8002F75C            |  implement when necessary
+       3) sub_8002F76C            |  implement when necessary
+       4) sub_8002F778            |  implement when necessary
+-----------------------------------------------------------------    
+    
+
+The following lists each function or section of code that has yet to be
+implemented; the implementation of these (not including library) functions is 
+absolutely necessary if all of the engine's features are desired. [This table 
+is essentially the 'main' TODO list.] Each function is listed in order of 
+implementation priority, from highest to lowest. 
+
+A) Font rendering
+  1) game routines
+    a) sub_8001E3D4
+    b) sub_8001E7D8
+  2) graphics lib routines
+    a) sub_80018DBC
+
+B) GOOL Vector routines
+  1) sub_80027A4C
+  2) sub_80027BC4
+  3) sub_80027F50
+  4) sub_8002832C
+  5) sub_80028644
+  6) sub_800289B4
+  7) sub_80028E3C
+  8) sub_8002940C
+  9) GOOL VEC2
+
+C) Misc GOOL-related routines
+  1) sub_8001AC60()
+  2) sub_8001BA18  
+  3) sub_8001BAB0  
+  4) sub_800251B8
+  5) sub_800252C0
+  6) GOOL MSC 11.4
+  7) GOOL MSC 11.5
+  8) GOOL MSC 12.4
+  9) GOOL MSC 13
+  10) GOOL NTRY (requires paging)
+
+D) GFX-lib related routines
+  1) WGEO models
+    a) animated textures
+    b) ALL shading modes/types
+  2) T20 models
+  3) GAME ROUTINE WGEO shading config
+    a) sub_8002EBB4   
+  4) GAME T20 render request    
+  5) Add features
+    a) gpu parameters          
+    b) primitive list          
+    c) game speed/velocity sync
+    d) texture loading         
+    e) projection/screen offset 
+    f) global view matrix,rot,..
+    g) proj dist, clipping stuff (see svtx/tgeo? routines)
+       -sub_0x3460C to sub_0x353b0
+    h) "models"  
+      i) T20 model        
+        1) rot matrix det.
+        2) proj dist      
+        3) visibility dpth
+        4) z-buffer calcs 
+      ii) text/font models
+        1) rot matrix det.
+        2) proj dist      
+        3) visibility dpth
+        4) z-buffer stuff 
+    
+E) Routines whose execution should be user's option
+  1) zone initialization 
+  2) spawnObjects(..)
+  3) cameraDeath() 
+  4) reinitLevel()   
+  5) terminateObjects(..)
+  6) pause screen inline operation 
+  7) crash respawn inline operation
+  8) level trans inline operation 
+  9) GOOL MSC 12.9 'change level'
+  10) sub_80011DD0
+  11) sub_80026140
+  12) sub_80026200  
+   
+F) SLST
+  1) initSLST()          
+  2) killSLST()          
+  3) sortSLST()          
+  4) decodeSLSTForward() 
+  5) decodeSLSTBackward()  
+
+G) Audio-related  (implement when sound implemented)
+  1) audio, midi, music data init
+  2) mdat (music data) entry init
+  3) sub_800248A0 (audio vector transform routine)
+  4) sub_8002EC68   
+  5) GOOL SNDA   
+  6) GOOL SNDB   
+  7) GOOL MSC:12.6
+  8) GOOL MSC:12.10 (disc seek?)
+  9) GOOL VECT:7
+  
+H) Title screen/map related
+  1) camera mode 7
+  2) camera mode 8
+  3) sub_80031D50 
+  4) sub_80031EB4 
+  5) sub_800322CC 
+  6) sub_800326D8 
+  7) sub_80032AF4 
+  8) sub_80032BB4 
+  9) sub_80032DFC 
+  10) sub_80032FDC
+  11) map matrix GFX routine
+
+I) Demo mode related
+  1) demo playback init
+  2) sub_8002EABC          
+  3) random number stuff
+    a) sub_8002F6B0
+    b) sub_8002F75C
+    c) sub_8002F76C
+    d) sub_8002F778
+  
+J) Memory card related
+  1) inventory/mem card init. 
+  2) GOOL MSC:12.11 (reset inv)
+  3) GOOL MSC:15
+
+K) Free/deallocation related
+  1) freeObjects() 
+
+The following lists each section of code (or function) that has already been 
+implemented, but is currently commented out due to lack of implementation
+for referenced functions, an indeterminable purpose, or for other reasons.
+
+1) initLevel()              |  
+  a) various lines          |  uncomment when necessary
+  b) demo mode stuff        |  uncomment when demo mode implemented
+  c) load first zone,sect.  |  uncomment when necessary; allow external option to enable this
+  d) sound routines         |  uncomment when sound implemented
+2) updateLevel()            |  
+  a) SLST handling          |  uncomment when SLST routines implemented
+  b) texpage loading        |  uncomment when routines to allow this are implemented
+3) saveState(..)            |  uncomment when level reiniting implemented
+4) spawnObject(..)          |
+  -savestate stuff          |  uncomment line when savestate implemented
+5) addObject(..)            |  
+  -inherit zone colors      |  uncomment/implement lines that do this
+6) interpret(..)            |
+  a) MSC.12                 |
+     1) 0: save state       |  uncomment when save state implemented
+     2) 1: load state       |  uncomment when reload level implemented
+     3) 5: ?                |  uncomment when purpose determined
+  b) 0x83: ANIS             |  
+     1) dummy vectors for   |  uncomment dummy vectors, verify correctness
+        bound calc call     |
+  c) 0x85: VEC1             |
+     1) 1: project2D        |  uncomment when screen coordinates graphics lib call implemented
+  d) 0x90: sound event?     |  uncomment when sub_800251B8 implemented
+7)  objectPath(..)          |  
+  -statusB bit 16           |  uncomment portions when purpose determined
+8) objectBound(..)          |
+  -prim type 4?             |  uncomment when purpose determined
+9) handleObjects(flag)      |  
+  a) test for crash exists  |  uncomment when necessary (make optional?)
+  b) line for compare w/    |  uncomment when necessary
+     crash aniStamp         |    
+  c) get render count       |  uncomment, after determining if this is what is actually being done
+10)  objectSpace(obj)       |
+  a) preemptive coll. test  |  uncomment when necessary 
+  b) crash colliding objs   |  
+     1) timestamp compare   |  uncomment when necessary
+     2) range check         |  uncomment when necessary
+11) cameraFollow()          |  
+  -getProgressAlt           |  uncomment lines when cameraGetProgressAlt() is fixed
+12) cameraUpdate()          |  
+  a) cameraDeath() call     |  uncomment when implemented
+  b) camera mode 1, 3       |  uncomment when save state implemented
+     save state lines       |  
+
+The following lists each function or section of code that has already been 
+implemented, but whose accuracy requires verification. This will be done 
+by comparing all possible inputs/outputs against the same inputs provided 
+to/outputs generated [during execution] by the corresponding routine from 
+the original PSX binary image. Functions/sections are sorted by likeliness 
+of containing erroneous code; this ordering is not guaranteed, however, as
+such likeliness is only estimated.
+
+[verification procedures for external libs may wait if necessary]
+
+1) GOOL routines                   |  verify correctness, fix, complete
+   a) sub_80026FF0                 |  verify correctness, fix
+                                   |
+2) external libraries              |  verify that complete, exact emulations, are provided 
+    A) crash library               |  verify that an complete, exact emulation, is provided 
+    B) graphics library            |  verify that an complete, exact emulation, is provided
+      1) primitive rendering       |  verify correctness/compare against graphics libs
+      2) screenCoordinates()       |  verify correctness; implement interface w/crash system
+      3) sprite rendering          |  verify correctness, fix (scale, etc..)
+      4) fragment rendering        |  verify correctness, fix (scale, etc..)
+      5) svtx model rendering      |  verify correctness (incl alt rotation, etc)
+      6) draw sync                 |  verify that synchronization allows for the exact frame-rate as psx gpu
+                                   |
+3) camera routines                 |  verify correctness, fix, complete
+      1) cameraCalculate() remain. |  verify correctness, fix?
+      2) adjustCamProgress()       |  verify correctness
+      3) cameraGetProgress()       |  verify correctness, fix?         
+         a) find cam closest to    |  verify correctness
+            player                 |
+         b) det. if updateLevel()  |  verify correctness
+            or adjust progress     |  verify correctness
+         c) remaining cams         |
+           1) create camera        |  verify correctness
+           2) calc progress        |
+              a) getProgress (#1)  |  verify correctness
+           3) record amts & progres|  verify correctness
+           4) rec. additional flags|  verify correctness
+         d) record info (first cam)|
+           1) create camera        |  verify correctness
+           2) calc progress        |
+              a) getProgress (#1)  |  verify correctness
+           3) record amts & progres|  verify correctness
+           4) rec. additional flags|  verify correctness
+         e) det. zoom amts         |
+           1) det. progDet/Scale YZ|  verify correctness
+           2) det. zoomZ           |  verify correctness
+           3) det. panY            |  verify correctness
+         f) det. look flags        |
+           1) det. lookBack        |  verify correctness
+           2) det. lookX           |  verify correctness
+         g) det. look/pan amts     |
+           1) det. lookBackZ       |  verify correctness
+           2) det. panX            |  verify correctness
+         h) det. progress flags    |  verify correctness
+                                   |
+4) object routines                 |  verify correctness, fix, complete
+    A) all other obj routines      |  verify correctness, fix, complete
+      1) objectPath(..)            |
+        a) initial calcs           |  verify correctness
+        b) remaining calcs         |  verify correctness/determine purpose
+      2) renderObject(..)          |
+        a) model type 1            |
+           i)  SVTX model          |  verify/compare against graphics lib
+           ii) inherit zone color  |  verify correctness
+        b) model type 2            |
+           i)  scale size calcs    |  verify correctness
+           ii) pre-rot, trans,     |  verify/compare against graphics lib
+           iii) tex calculations   |  verify correctness
+           iv) result              |  verify correctness of rendered primitive
+        c) model type 5            |
+           i)  scale size calcs    |  verify correctness
+           ii) pre-rot, trans,     |  verify/compare against graphics lib
+           iii) tex/misc calcs     |  verify correctness
+           iv) create rect remain. |  verify/compare against graphics lib
+           v) result               |  verify correctness of rendered primitive
+                                   |
+      3) transPullStopAtSolid()    |  verify correctness, FIX?, (what does it do?)
+      4) plotZoneWalls()           |  verify correctness, fix??
+      5) replotWalls()             |  verify correctness, fix?
+      6) stopAtWalls()             |  verify correctness, fix?
+      7) plotWalls()               |  verify correctness, fix?
+      8) plotWall()                |  verify correctness, fix?
+      9) plotWallB()               |  verify correctness, fix?
+      10) transSmoothStopAtSolid() |  verify correctness, fix?
+      11) plotObjWalls()           |  verify correctness
+      12) objectPhysics(obj)       |
+        a) controlled objs         |
+           1) no move requested    |  verify correctness
+           2) adjust velocity      |  verify correctness
+           3) determine states     |  verify correctness
+              i)  in air           |  verify correctness
+              ii) not in air       |  verify correctness
+        b) rotating objs           |  verify correctness
+           1) objs stopped by solid|  verify correctness
+           2) objs whose pos only..|  verify correctness
+        c) objs ground determined  |  verify correctness
+           by initial y            |  
+           1) objs stopped at the  |  verify correctness
+              ground               |
+        d) objs with min/max vel.  |  verify correctness
+        e) falling objs            |  verify correctness
+      13) processNode()            |  verify correctness
+      14) transStopAtSolid()       |  verify correctness
+      15) findAvgY()               |  verify correctness
+      16) traverseNodes(..)        |  verify correctness
+      17) findHighestBelowObjectY()|  verify correctness
+      18) queryNodes()             |  verify correctness
+      19) stopAtFloor()            |  verify correctness
+      20) findCeil()               |  verify correctness
+      21) handleNodes()            |  verify correctness
+      22) stopAtZone()             |  verify correctness
+      23) objectCollide(..)        |  verify correctness
+      24) handleColors(obj)        |  verify correctness
+      25) handleObject()           |
+          a) determine if handle r.|  verify correctness, fix
+          b) determine if & animate|  verify correctness
+      26) objectRotate(..)         |
+        a) vel/ang dist calcs      |  verify correctness
+        b) velocity adjustments    |  verify correctness
+        c) ang calcs/flags         |  verify correctness
+      27) issueIfColliding(..)     |  verify correctness
+      28) issueToAll(..)           |  verify correctness
+      29) objectSpace(obj) remain. |  verify correctness
+      30) objectBound(..)          |
+        a) other prim types        |  verify correctness
+      31) objectRotateB(..)        |  verify correctness
+      32) handleObjects() remaining|
+      33) approach(..)             |  verify correctness
+      34) leastAngDist(..)         |  verify correctness (should be)
+      35) isColliding(point,..)    |  verify correctness (should be)
+      36) isColliding(spc,spc)     |  verify correctness (should be)
+    B) controller routines         |  verify correctness, fix, complete
+      1) initControls()            |  verify correctness, fix, complete
+      2) readControls()            |  verify correctness, fix, complete
+                                   |
+5) GOOL routines                   |
+    A) all other GOOL routines     |  verify correctness, fix, complete
+      1) interpret                 |
+          0x85: VECT               |
+             1) 0: object path     |  verify correctness
+             2) 2: spin on axis?   |  verify correctness 
+             3) 4: linear trans a  |  verify correctness
+             4) 5: linear trans b  |  verify correctness
+             5) 6: transform object|  verify correctness
+          0x27: ANI                |  verify correctness
+          0x82: control flow       |
+             branch                |  verify correctness
+             state change          |  verify correctness
+             return                |  verify correctness
+               read prev frame     |  verify correctness
+               status flags        |  verify correctness 
+          0x84: ANIF               |  verify correctness
+          0x86: JAL                |  verify correctness
+          0x87: EVNT (single evnt) |  verify correctness
+          0x88: event service state|  verify correctness
+          0x89: event service state|  verify correctness
+          0x8A: CHLD               |  verify correctness
+          0x8F: EVNG (global evnt) |  verify correctness
+          0x91: CHDN               |  verify correctness
+          0x23: PLCV               |  verify correctness
+          0x24: WLCV               |  verify correctness
+          0x10: RND                |  verify correctness          
+          0x13: PRW                |  verify correctness, fix
+          0x1B: SPD                |  verify correctness
+          0x1D: DRS                |  verify correctness
+          0x1E: PRD                |  verify correctness
+          0x21: ANG                |  verify correctness
+          0x22: APH                |  verify correctness
+          0x25: RAPH               |  verify correctness
+          0x1C: MSC                |
+             1) 0: deref.          |  verify correctness
+             2) 1: vect dist a     |  verify correctness
+             3) 2: vect ang        |  verify correctness
+             4) 5: ang dist xz     |  verify correctness
+             5) 6: vect dist b     |  verify correctness
+             6) 7: find obj w/PID  |  verify correctness
+             7) 8: set/clr no resp.|  verify correctness
+             8) 9: set linkobj zone|  verify correctness
+             9) 11: bit read       |
+                 a) 1: no respawn  |  verify correctness
+                 b) 2: ?           |  verify correctness, determine purpose
+                 c) 3: level trans |  verify correctness
+             10) 12: misc          |
+                 a) 2: adopt obj   |  verify correctness
+                 b) 7: term desc.  |  verify correctness
+                 c) 8: look up ang |  verify correctness
+             11)14:test linkobj col|  verify correctness
+             12)3: read link field |  verify correctness (should be)
+             13)4: write link field|  verify correctness (should be)
+             14)10: bit set        |
+                 a) 0: clr 3       |  verify correctness (should be)
+                 b) 1: set 3       |  verify correctness (should be)
+                 c) 2: clr 4       |  verify correctness (should be)
+                 d) 3: set 4       |  verify correctness (should be)
+                 e) 8: clr 1       |  verify correctness (should be)
+                 f) 9: set 1       |  verify correctness (should be)
+          0x02: MUL                |  verify correctness
+          0x03: DIV                |  verify correctness
+          0x06: ORL                |  verify correctness
+          0x0F: TST                |  verify correctness
+          0x11: MOVE               |  verify correctness
+          0x14: LEA                |  verify correctness
+          0x15: SHA                |  verify correctness
+          0x16: PSH                |  verify correctness
+          0x18: MOVC               |  verify correctness 
+          0x1A: PAD                |  verify correctness
+          0x26: PSHB               |  verify correctness
+          0x12: NOTL               |  verify correctness (should be)
+          0x17: NOTB               |  verify correctness (should be)
+          0x19: ABS                |  verify correctness (should be)
+          0x1F: RGL                |  verify correctness (should be)
+          0x20: WGL                |  verify correctness (should be)       
+      2) issueEvent(..)            |  verify correctness, fix      
+      3) spawnObject(..) remain.   |
+      4) changeState(..)           |  verify correctness
+      5) translateA(..)            |  verify correctness
+      6) translateB(..)            |  verify correctness
+      7) testControls(..)          |  verify correctness
+      8) terminateObject(..)       |  verify correctness
+      9) terminateObject(obj)      |  verify correctness
+      10) newFrame(..)             |  verify correctness
+      11) initObjects()            |  verify correctness
+      12) loadStates(..)           |  verify correctness     
+      13) familyRoutinePBC(..)     |  verify correctness
+      14) familyRoutineCBP(..)     |  verify correctness
+      15) findObject(..)           |  verify correctness
+      16) familyRoutinePBCH(..)    |  verify correctness
+      17) familyRoutineCBPH(..)    |  verify correctness
+      18) hasPID(..)               |  verify correctness
+      19) find_RoutineFlags(..)    |  verify correctness
+                                   |
+6) zone routines                   |  verify correctness, fix, complete
+   A) updateLevel() remaining      |  verify correctness
+   B) initLevel() remaining        |  verify correctness
+   C) findZone(..)                 |  verify correctness
+   D) updateLevelMisc(..)          |  verify correctness; determine purpose
+                                   |
+7) matrix routines                 |  verify correctness, fix, complete
+      1) transform()               |  verify correctness
+      2) apxDist(vectA, vectB)     |  verify correctness
+      4) eucDist(vectA, vectB)     |  verify correctness
+      6) angleXZ(vectA, vectB)     |  verify correctness
+      7) angleXY(vectA, vectB)     |  verify correctness
+      8) absdistance(c1, c2)       |  verify correctness
+      9) ScaleMatrix(mat, vector)  |  verify correctness
+                                   |
+8) entry initialization            |  verify correctness, fix, complete
+   A) zone/zdat entry init         |  verify correctness
+   
+The following lists each function or section of code that definitely
+needs fixing. When a function is believed to have been fixed, it should
+return to the above list for re-verification.
+
+1)  handleObject(..)              |
+    - set field 0x24C to 18?      |  fix timing issues so this can be removed
+2)  vertex color shading          |  fix; get to mimic shading in the game
+3)  primitive rendering           |  fix alpha/transparency issues
+4)  cameraGetProgressAlt()        |  fix
+5)  cameraCalculate()             |  
+    - camRotX calculation         |  fix; does not call leastAngDist like in PSX binary
+6)  objectPhysics()               |
+    - move requested              |  fix; does not consider rotation of the camera in 'forward' movement
+
+The following lists each function or section of code that may not need
+implementation; it must first be determined whether or not implementation
+is actually necessary for these functions.
+
+1) clear screen                  
+2) fill screen with tiles   
+3) draw/display buffer and  
+   'swap & render' stage   
+4) wgeo copying             
+5) sub_800262DC          
+6) object/process init?
+7) tgeo entry init     
+ 
+The following lists each function or section of code that is currently 
+in progress of being implemented. These functions will migrate to the 
+verification list when implementation is completed.
+
+A) vector routine sub_800277EC
+
+The following lists each function or section of code that has passed 
+the verification stage.
+                  
+1) interpret(..) 
+  0x00: ADD 
+  0x01: SUB 
+  0X04: CEQ 
+  0x05: ANDL
+  0x07: ANDB
+  0x08: ORB 
+  0x09: SLT 
+  0x0A: SLE 
+  0x0B: SGT 
+  0x0C: SGE 
+  0x0D: MOD 
+  0x0E: XOR 
+  0x80: NOP
+  0x81: NOP
+
+The following table maps each routine from the binary to a source file containing
+its ported C++ equivalent function, including proposed function name and parameters.
+If the function has not been implemented, or the functionalities provided by the function
+have been implemented within a separate library, either the eventual intended source 
+file of implementation is listed (i.e. TODO: <source file>) or the progress of current 
+implementation procedures is listed.
+
+sub_8001177C = _ExpAllocArea           
+sub_80011870 = _expand                 
+sub_80011A18 = InitHeap                
+sub_80011A58 = malloc                  
+sub_80011C8C = free                    
+sub_80011CA0 = realloc                 
+sub_80011D30 = calloc                  
+                                       
+sub_80011D88 | only needed for psx     | main(mode)
+sub_80011DD0 |(TODO: zoneengine.cpp?)  | in mainroutines.txt; implement this when we want to auto-load the levels; i.e. requiring the gool execs we need at init all work properly
+             |                         
+sub_80011FC4 | not near full implement | game(mode)        : documented in mainroutines.txt; currently stripped rendition of 'game' is runGoolSystem in crash.cpp
+
+sub_80012660 | not implemented         | encodeEID(string) : in misc/string.txt
+sub_800126C0 | not implemented         | decodeEID(EID)    : in misc/string.txt
+sub_80012820 | not implemented         | alphaNum(index)   : n/a, observe assembly                                       
+sub_800128A4 | not necessary           | could port an equivalent, though OS is aware of filesystem, so no need to port a mapping routine 
+sub_80012DCC | sort of implemented     | find all entries in nsf/nsd of a specified type (uses eid string)
+sub_80012F10 | paging not implemented  | handlePageChunkEntries(page)                                        
+sub_8001331C | paging not implemented  | freePage(page)            : in guide, pagesys/paging.txt
+sub_800134C8 | paging not implemented  | handlePages(CID)          : in guide, pagesys/paging.txt
+sub_80013748 | *not documented         | handleAllPages()  
+sub_80013798 | *not documented         | seekDiscToPage??? 
+sub_80013B30 | paging not implemented  | setupDecompressPage(page) : in guide, pagesys/paging.txt
+sub_80013D48 | paging not implemented  | handlePage(page, CID)     : in guide, pagesys/paging.txt
+sub_800141F4 | paging not implemented  | allocatePage(count, flag) : in guide, pagesys/paging.txt
+sub_8001439c | *not documented         | texturePage(..)           : in pagesys/textures.txt
+sub_80014514 | *not documented         | ?? texture page related 
+sub_800145C8 | *not documented         | findAudioPage(..)?        : in pagesys/sub_800145c8.txt
+sub_800146F0 | paging not implemented  | newPage(page, CID, EID, count, flag) : in guide, pagesys/paging.txt
+sub_80014930 | *not documented         | clearMapChunk(CID)
+sub_8001495C | *not documented         | ??
+sub_80014C08 | paging not implemented  | pageEntry(EID, CID)
+sub_80014D00 | *not documented         | ??
+sub_80014E34 | *not documented         | ??
+sub_80015034 | *not documented         | findPage(EID or listEntry)
+sub_80015118 | *not documented         | variant of lookupEntry; utilizes 'virtual pages', likely important
+sub_800156D4 | *not documented         | ??see 15978
+sub_8001579C | *not documented         | ??see 15978
+sub_80015978 | *not documented         | ??variant of lookupEntry
+sub_80015A98 | paging not implemented  | lookupEntry(EID or hashPair)
+sub_80015B58 | paging not implemented  | initPaging(LID/mode)
+sub_80016420 | paging not implemented  | killPaging(..)
+sub_800164F8 | *not documented         | truncatePages(pages, index)
+                                       
+sub_8001652C | main hardware init routine, calls all others
+sub_8001668C | main hardware deinit routine (still not documented)
+                                       
+sub_80016718 | emulated: control.cpp   | initControls()
+sub_800167A4 | emulated: control.cpp   | readControls()
+                                       
+sub_800169F8 | *not implemented        | implement in graphics driver as 'clearScreen()'
+sub_80016A6C | *not implemented        | CONSIDER GPU INIT PARAMETERS FOR EMULATION W/GRAPHICS DRIVER
+sub_80016C18 | *not documented         | implement as game mode dependent graphics routine A
+sub_80016D14 | *not documented         | implement as (invalid entry type graphics halt routine?)
+sub_80016DCC | *not documented         | implement with sub_80016c18
+sub_80016E18 | *not necessary          | gl has its own way of accessing the prims created by graphics driver
+sub_80016E5C | *not completely implem. | gpu sync/timing emulation in 'time.cpp'
+sub_800172E8 | *not necessary          | implement if we want to emulate psx gpu draw/display buffer and 'swap & render' stage 
+sub_80017358 | *not implemented        | implement if we want to do fill the screen with black tiles for clearing
+sub_80017448 | *not implemented        | gpu primitive render routine
+sub_800175D0 | *not implemented        | global game speed/velocity rounding routine
+                                       
+sub_8001767C |paging not implemented   | after paging implemented, implement routine in entryengine.cpp to page necessary texture chunks for tgeos
+sub_80017790 |(TODO:    camera.cpp)    | set up projection and screen offset
+sub_80017A14 |(TODO:    camera.cpp)    | global view matrix,rot,angles etc. not fully implemented in gl/camera.cpp 
+sub_800180A0 |  map not implemented    |   generates a matrix for map matrix routine    
+sub_800180CC |(TODO:    model.cpp)     | partially implemented as 'prim_model::calcColors' for light matrix calcs, which also emulates the vertex shading
+sub_80018964 |(TODO:    model.cpp)     | addModelPrim(svtx,frame,trans,rot,scale,light,color,back,backIntensity), functions differently for gl
+sub_80018A40 |(TODO:    model.cpp)     | implement as addModelPrim(..) for T20 type entries
+sub_80018B98 |(TODO:    model.cpp)     | addModelPrim(texEID, texInfoArray, scale, trans)
+sub_80018DBC |(TODO:    model.cpp)     | implement as addPrim() for 'font' type primitives
+                                       
+sub_80019144 |       matrix.cpp        | transform(input, matrix, output)
+                                       
+sub_8001922C |          TODO           | implement copying wgeo entry item 1 contents for each wgeo in zone 
+sub_80019508 |          TODO           | implement as wgeo render mode A
+sub_800195CC |  n/a (unused by game)   |  
+sub_80019BCC |          TODO           | implement as wgeo render mode C
+sub_80019DE0 |          TODO           | implement as wgeo render mode D
+sub_80019F90 |          TODO           | implement as wgeo render mode E
+sub_8001A0CC |          TODO           | implement as wgeo render mode F
+sub_8001A2E0 |          TODO           | implement as wgeo render mode G
+sub_8001A460 |          TODO           | decipher; seems to assist 1922C in copying wgeo item 1 contents for neighboring zones @ edge sections
+                                       
+sub_8001A5F4 |          TODO           | memory card-related image/graphics routine
+sub_8001A754 |          TODO           | memory card-related image/graphics routine
+sub_8001A850 |          TODO           | memory card-related image/graphics routine
+                                       
+sub_8001AAD8 |     goolengine.cpp      | initObjects()
+sub_8001AC28 |(TODO: goolengine.cpp)   | freeObjects()
+sub_8001AC60 |(TODO: goolengine.cpp)   | what does this do again?
+                                       
+sub_8001AC9C |    objectengine.cpp     | objectPath(process, progress, trans)
+sub_8001B3F0 |     goolengine.cpp      | loadStates(levelID)                                      
+sub_8001B648 |     goolengine.cpp      | familyRoutinePBC(obj, routine, arg)
+sub_8001B6F0 |     goolengine.cpp      | familyRoutineCBP(obj, routine, arg)
+sub_8001B788 |     goolengine.cpp      | findObject(obj, routine)
+sub_8001B84C |     goolengine.cpp      | familyRoutinePBCH(obj, routine, arg)
+sub_8001B92C |     goolengine.cpp      | familyRoutineCBPH(obj, routine, arg)
+sub_8001BA18 | (TODO: goolengine.cpp)  | -map related?
+sub_8001BA90 |     goolengine.cpp      | hasPID(obj, PID)
+sub_8001BAB0 |    *not documented      | -calls to 800252C0, where another interpretation can occur 
+sub_8001BCA4 |     goolengine.cpp      | find_RoutineFlags(obj, flags)
+sub_8001BCC8 |     goolengine.cpp      | spawnObject(entity, index)
+sub_8001C6C8 |     goolengine.cpp      | addObject(parent, type, subtype, count, args, flag)
+sub_8001CB80 |     goolengine.cpp      | initProcess(obj, type, subtype, count, args)
+sub_8001CDD0 |     goolengine.cpp      | terminateObject(obj, flag)
+sub_8001D11C | (TODO: goolengine.cpp)  | terminateObject(...) alt used by terminateObjects
+sub_8001D1E0 |     goolengine.cpp      | terminateObject(obj)
+sub_8001D200 | (TODO: goolengine.cpp)  | terminateObjects(...), used when restarting level
+sub_8001D33C |    objectengine.cpp     | objectBound(obj, scale)
+sub_8001D5EC |    objectengine.cpp     | handleObjects(flag)
+                                       
+sub_8001D698 |     goolengine.cpp      | changeState(obj, state, count, args)
+sub_8001D914 |     goolengine.cpp      | newFrame(obj, offset, status_flags)
+sub_8001DA0C |    objectengine.cpp     | handleObject(obj, flag)
+sub_8001DE78 |    objectengine.cpp     | renderObject(obj)
+sub_8001E3D4 |(TODO: objectengine.cpp) | implement text rendering routine 
+sub_8001E7D8 |(TODO: objectengine.cpp) | implement text rendering routine 
+sub_8001EB28 |    objectengine.cpp     | handleColors(obj)
+sub_8001EEA8 |    objectengine.cpp     | objectSpace(obj)
+sub_8001F30C |    objectengine.cpp     | objectPhysics(obj)
+             |                         
+sub_8001FB34 |      goolengine.cpp     | translateA(obj)
+sub_8001FC4C |      goolengine.cpp     | translateB(obj)
+sub_8001FDC4 |      goolengine.cpp     | testControls(inst, port)
+sub_800201DC |      goolengine.cpp     | interpret(obj, status_flags, ret)
+sub_80024040 |      goolengine.cpp     | issueEvent(..)               
+sub_800243A0 |    objectengine.cpp     | objectRotate(angA, angB, speed, obj)
+sub_80024528 |    objectengine.cpp     | objectRotateB(angA, angB, speed, obj)
+sub_800245F0 |    objectengine.cpp     | leastAngDist(angA, angB)
+sub_80024628 |    objectengine.cpp     | approach(oldVal, newVal, maxVal)
+sub_8002465C |        matrix.cpp       | transform(input, trans, rot, scale, output)
+sub_800248A0 |    (TODO: implement)    |  
+sub_800249E0 |      context_gl.cpp     | project2d(input, output)
+                        
+sub_80024AD4 |    objectengine.cpp     | objectCollide(collidee, collideeSpc, collider, colliderSpc)
+sub_80024CC8 |    objectengine.cpp     | issueIfColliding(recip, query)
+sub_80025134 |    objectengine.cpp     | issueToAll(sender, event, mode, count, args)
+                                       
+sub_800251B8 |     *not documented     |
+sub_800252C0 |     *not documented     | -another interpretation can occur from here
+                         
+sub_800253A0 |     zoneengine.cpp      | loadLevel()
+sub_80025628 |     entryengine.cpp     | initZdat()
+sub_800256DC |   map not implemented   | when map is implemented, implement: initMdat()
+sub_80025928 | (TODO: zoneengine.cpp)  | implement auto object spawning: spawnObjects()
+sub_80025A60 |     zoneengine.cpp      | updateLevel()
+sub_800260AC |     zoneengine.cpp      | updateLevelMisc()
+                                       
+sub_80026140 |           n/a           | implement the init routines when game is fully ported
+sub_80026200 |           n/a           | 
+sub_800262DC | auto load not implement | implement level dependent entry loading routines when game fully ported
+                                       
+sub_80026460 | (TODO: zoneengine.cpp)  | saveState(obj, state, flag)
+sub_80026650 | (TODO: zoneengine.cpp)  | implement reiniting of level: reinitLevel()
+sub_80026B80 |     objectengine.cpp    | isColliding(point, space)
+sub_80026CA8 |     objectengine.cpp    | isColliding(spcA, spcB)
+sub_80026DD4 |      zoneengine.cpp     | findZone(..)
+             |  
+sub_80026FF0 |TODO: impl for gool 0x87 | implement after provided a better example of gool code that utilizes instruction 0x87
+sub_800277EC |TODO: impl for gool 0x87 |    |
+sub_80027A4C |TODO: impl for gool 0x87 |    |
+sub_80027BC4 |TODO: impl for gool 0x87 |    |
+sub_80027F50 |TODO: impl for gool 0x87 |    |
+sub_8002832C |TODO: impl for gool 0x87 |    |
+sub_80028644 |TODO: impl for gool 0x87 |    |
+sub_800289B4 |TODO: impl for gool 0x87 |    |
+sub_80028E3C |TODO: impl for gool 0x87 |    |
+sub_8002940C |TODO: impl for gool 0x87 |    V
+             |
+sub_800294B0 |      objectengine.cpp   | traverseNodes(newTrans, obj, trav)
+sub_800296A8 |      cameraengine.cpp   | cameraCalculate(section, progressV, cam)
+
+sub_80029A58 |(TODO: zoneengine.cpp)   | implement initing structs for SLST sorting
+sub_80029AD8 |(TODO: zoneengine.cpp)   | implement deiniting structs for SLST sorting
+sub_80029B0C |(TODO: zoneengine.cpp/gl)| implement sorting SLST lists for primitive order
+
+sub_80029B90 |  matrix.cpp             | apxDist(vectA, vectB)
+sub_80029C90 |  checks collision given 2 points and a bounding volume [specified as a cube containing all points in range (-maxX, -maxY, -maxZ) : (maxX, maxY, maxZ)] 
+sub_80029D30 |  matrix.cpp             | eucDist(vectA, vectB)
+sub_80029BD0 |  calculates euclidian distance in XZ plane between 2 vectors
+sub_80029E10 |  matrix.cpp             | angleXZ(vectA, vectB)
+sub_80029E48 |  matrix.cpp             | angleXY(vectA, vectB)
+
+sub_80029F6C |  cameraengine.cpp       | adjustCamProgress(camSpeed, cam)
+sub_8002A0C4 |  cameraengine.cpp       | cameraGetProgress(trans, section, cam, bitfield, flag)
+sub_8002A3EC |  cameraengine.cpp       | cameraGetProgressAlt(trans, section, cam, bitfield, flag)
+sub_8002A82C |  cameraengine.cpp       | cameraFollow(obj, flag)
+sub_8002B2BC |  cameraengine.cpp       | cameraUpdate()
+sub_8002BAB4 |(TODO: cameraengine.cpp) | cameraDeath()
+
+sub_8002BE8C |      objectengine.cpp   | transSmoothStopAtSolid(obj, vel, trav)
+sub_8002C184 |      objectengine.cpp   | transPullStopAtSolid(obj, trans, trav, vel)     
+sub_8002C3B8 |      objectengine.cpp   | processNode(obj, nodeValue)
+sub_8002C660 |      objectengine.cpp   | findHighestBelowObjectY(obj, trans, newTrans, trav)
+sub_8002C8EC |      objectengine.cpp   | stopAtFloor(obj, oldTrans, newTrans, out)
+sub_8002CD9C |      objectengine.cpp   | findCeil(obj, trans, trav)
+sub_8002D18C |      objectengine.cpp   | stopAtZone(obj, trans)
+sub_8002D384 |      objectengine.cpp   | transStopAtSolid(obj, trav, trans, pull, newTrans)
+sub_8002D638 |(unused/objectengine.cpp)| -BINF initA, inits collision related stuff in scratch mem 
+sub_8002D694 |(unused/objectengine.cpp)| -BINF killB, only returns GOOL success code 
+sub_8002D69C |      objectengine.cpp   | plotWallB(x, z)
+sub_8002D8B8 |      objectengine.cpp   | plotObjWalls(trans, obj, trav, flag)
+sub_8002DF50 |      objectengine.cpp   | plotWalls(trans, obj, trav)
+sub_8002E0A0 |      objectengine.cpp   | replotWalls(noClear, flags, trans, obj)
+sub_8002E3F8 |      objectengine.cpp   | stopAtWalls(trans, reqX, reqZ, movX, movZ, obj, ret)
+
+sub_8002E8A4 |  for PBAK entries (sub 2, init A)
+nullsub_28   |
+sub_8002E98C |  zone/zdat subsystem init routine
+sub_8002EABC |  demo mode routine
+sub_8002EBB4 | (TODO: wgeo shaders)    | level specific wgeo vertex shader parameter init routine
+sub_8002EC68 | audio not yet implement | level specific audio vector parameter init routine
+
+sub_8002F6B0 | (TODO: specifics)       | SEED A (gp[0xDC]) RANDOM NUMBER routine
+sub_8002F75C | (TODO: specifics)       | SEED A (gp[0xDC]) = 0x3039 (init routine)
+sub_8002F76C | (TODO: specifics)       | SEED A (gp[0xDC]) = arg_a0 (alt init routine)
+sub_8002F778 | (TODO: specifics)       | SEED B (gp[0xE0]) RANDOM NUMBER routine
+absdistance  |      goolengine.cpp     | absdistance(c1, c2)
+
+sub_8002F8C4 | (TODO: document, no imp)| CD FILESYSTEM READ ROUTINE
+SeVibOn                
+SetVib         
+SsUtVibrateOn   
+SsUtVibrateOff    
+SeVibOn_0       
+SetVib_0        
+SsUtVibrateOn_0  
+SsUtVibrateOff_0  
+SeVibOn_1         
+SetVib_1          
+SsUtVibrateOn_1    
+SsUtVibrateOff_1   
+SeVibOn_2           
+SetVib_2           
+SsUtVibrateOn_2     
+SsUtVibrateOff_2     
+SeVibOn_3             
+SetVib_3             
+SsUtVibrateOn_3       
+SsUtVibrateOff_3     
+nullsub_2    
+
+----SOUND/MIDI/AUDIO DRIVERS/ENGINE------------     
+sub_8002FDE0 =  for ADIO entries (sub 2, initA)      
+sub_8002FFC0 =  for ADIO entries (sub 6, deinit) deinit != chunk deinit
+sub_8002FFFC         
+sub_80030008          
+sub_80030078           
+sub_80030260 =  initialize/set up hardware voices for a process         
+sub_80030328           
+sub_800304C8           
+sub_80030840           
+sub_80030CC0           
+sub_800311B0           
+sub_80031244           
+sub_800313B4 =  for MIDI entries (sub 2, init A)         
+sub_800313C4         
+sub_800314C4           
+sub_800317DC           
+sub_800317F8           
+sub_80031938 =  for MIDI entries (sub 6, deinit)          
+sub_80031964           
+sub_800319DC           
+sub_80031A40           
+
+sub_80031BAC =  for MDAT entries (sub 2 initA)         
+sub_80031BF8 =  for MDAT entries (sub 3 initB)
+sub_80031D50 =    load title specific entries       
+sub_80031EB4 =  world map subroutine        
+sub_800322CC =  loading screen subroutine
+sub_800326D8 =  titles/title screen subroutine   
+sub_80032AF4           
+sub_80032BB4 =  called before 32DFC in titles routine      
+sub_80032DFC =  called after  32BB4 in titles routine
+sub_80032FDC =  do palette fade, load next appropriate title card, etc?       
+nullsub_27             
+sub_800334A0 =  SLST DECODE (SWAP/REBUILD) FORWARD  ROUTINE         
+sub_80033878 =  SLST DECODE (SWAP/REBUILD) BACKWARD ROUTINE
+nullsub_5              
+sub_80033FBC =  optimized data copy routine (used for copying model geometry, slsts, etc)          
+nullsub_6              
+sub_800342D8 =  primitive linked list initialization routine
+sub_80034504 =  root counter callback routine; increments 34520 = counter  
+
+sub_80034524 = calculations for audio
+sub_80034580 = calculations for audio 
+
+       
+sub_8003460C = SVTX/TGEO rendering routine
+sub_80034B08 = T20 rendering routine **** TODO WE CAN FIND FORMAT OF T20 BY ANALYSIS
+
+-basically we use the below 3 routines for determining the objects 3d bound box projected to the
+ closest 2d bound box (that could contain the box) so we can trivially reject objects with 2d
+ bound boxes outside the clipping region
+sub_800351C8 = vertex 2d display range/bound box routine (for determining clip)       
+sub_80035370 = find the 2d space confined to 3 points* (not specific enough, look over again)
+sub_800353B0 = find the 2d space confined to 2 points* (not specific enough, look over again)
+
+sub_80035438 = wgeo transform routine         
+sub_80035898 = wgeo transform routine w/high road/road to nowhere depth shader
+sub_80035E10 = wgeo transform routine w/ripple effect vertex shader
+sub_80036340 = wgeo transform routine w/lightning effect vertex shader
+sub_80036BF4 = wgeo transform routine w/darken depth effect shader        
+sub_80036D9C   = extends 36bf4, starts interpolation portion
+sub_800375EC = wgeo transform routine w/darken effect vertex shader          
+sub_80037D50 |      objectengine.cpp   | queryNodes(zoneDim, nodeSpace, out, index) 
+sub_8003864C |      objectengine.cpp   | plotZoneWalls(trav, nodeSpace, flag, yvalA, yvalB, transY, transX, transZ);
+sub_800389A8 |      objectengine.cpp   | plotWall(x, z)
+sub_80038AC4 |      objectengine.cpp   | handleNodes(obj, trav, nodeSpace, colSpace, height, out, defY, routine)
+sub_80038DF8 |      objectengine.cpp   | findAvgY(obj, trav, nodeSpace, colliderSpace, typeA, typeB, defY)
+sub_8003905C =  sine           
+sub_800390D0 =  cosine          
+sub_8003913C |  TODO: ..........       | IMPLEMENT SVTX LIGHT VERTEX SHADERS PROPERLY; light matrix, rot matrix routine     
+sub_80039BD4 |  TODO: ..........       | ALT SVTX LIGHT VERTEX ROUTINE THAT I IGNORED??!        
+sub_8003A144 |  TODO: ..........       | AND SPRITE ROTATION ROUTINE??
+sub_8003A76C |  TODO: recreate         | sprite rendering routine
+
+----mem card stuff---------
+sub_8003A94C |            
+sub_8003AA7C           
+sub_8003ABA4           
+sub_8003AC2C           
+sub_8003ADB8           
+sub_8003AE08           
+sub_8003AED8           
+sub_8003AF24           
+sub_8003B5E0           
+sub_8003B74C           
+sub_8003B8B8           
+sub_8003BE40           
+sub_8003BFFC           
+sub_8003C038           
+sub_8003C358           
+nullsub_3              
+nullsub_4              
+sub_8003C3E4           
+sub_8003C3FC           
+sub_8003C420           
+sub_8003C538           
+sub_8003C608           
+sub_8003C69C           
+sub_8003C6E4           
+sub_8003C714           
+sub_8003C7A8           
+sub_8003C900           
+sub_8003C970           
+sub_8003C9B8           
+sub_8003CA04           
+sub_8003CA50           
+sub_8003CAB0           
+sub_8003CAD8           
+sub_8003CAF8           
+sub_8003CB74           
+sub_8003CB88           
+sub_8003CB9C           
+sub_8003CD3C           
+sub_8003CD60           
+sub_8003CE20           
+sub_8003CEA8           
+sub_8003CEF0           
+sub_8003D094           
+sub_8003D1B4           
+sub_8003D1F0           
+sub_8003D308           
+sub_8003D444           
+sub_8003D4EC = gool mem card interface        
+-----------------
+  
+exit                   
+atoi                   
+strcat                 
+strcmp                 
+strncmp                
+strcpy                 
+strlen                 
+bcopy                  
+bzero                  
+memcpy                 
+memset                 
+printf                 
+sub_8003D740           
+memchr                 
+sub_8003DFAC           
+start                  
+_bu_init               
+OpenEvent              
+CloseEvent             
+TestEvent              
+EnableEvent            
+DisableEvent           
+EnterCriticalSection   
+ExitCriticalSection    
+open                   
+read                   
+write                  
+close                  
+format                 
+firstfile2             
+nextfile               
+erase                  
+SetRCnt          
+StartRCnt        
+StopRCnt        
+ResetRCnt  
+sub_8003E410 = controller init HW routine        
+sub_8003E460 = controller read HW routine          
+sub_8003E490 = controller deinit HW routine    
+StopPAD2               
+PAD_init2              
+PAD_dr                 
+ChangeClearPAD 
+VSync           
+sub_8003E638 = timeout part of VSync         
+puts          
+ChangeClearRCnt        
+ResetCallback          
+InterruptCallback      
+DMACallback            
+VSyncCallback          
+StopCallback           
+CheckCallback          
+SetIntrMask  
+
+--interrupts stuff          
+sub_8003E88C           
+sub_8003E968           
+sub_8003EB50           
+sub_8003ECA4           
+sub_8003ED50           
+sub_8003EDD8           
+setjmp                 
+sub_8003EE14           
+ReturnFromException    
+ResetEntryInt          
+HookEntryInt           
+sub_8003EE54           
+sub_8003EEAC           
+sub_8003EF24           
+sub_8003EF50           
+sub_8003EF7C           
+sub_8003EFCC           
+sub_8003F150           
+sub_8003F1F8           
+sub_8003F224   
+
+---gpu functions        
+GsGetWorkBase          
+LoadClut           
+SetDefDrawEnv          
+SetDefDispEnv          
+sub_8003F514           
+GetClut               
+AddPrim               
+TermPrim              
+SetSemiTrans          
+SetPolyF4             
+SetSprt16             
+SetBlockFill          
+ResetGraph            
+SetGraphDebug         
+GetGraphType          
+SetDispMask           
+DrawSync              
+checkRECT             
+LoadImage             
+StoreImage            
+DrawPrim              
+DrawOTag              
+PutDrawEnv            
+PutDispEnv            
+SetDrawMode           
+SetDrawEnv            
+get_mode              
+get_cs                
+get_ce                
+get_ofs               
+get_tw                
+get_dx                
+_status               
+_otc                  
+_clr                  
+_dws                  
+_drs                  
+_ctl                  
+_getctl               
+_cwb                  
+_cwc                  
+_param                
+_addque               
+_addque2              
+_exeque               
+_reset                
+_sync                 
+set_alarm             
+get_alarm             
+_version              
+GPU_memset            
+GPU_cw                
+sub_80042B1C    = coprocessor (cop0 and cop2=gte) init routine    
+sub_80042B9C    = square root     
+MulMatrix             
+TransMatrix           
+sub_80042D6C |        matrix.cpp       | ScaleMatrix(mat, vector)        
+SetRotMatrix          
+SetLightMatrix        
+SetColorMatrix        
+SetTransMatrix        
+ReadSZfifo3           
+SetFarColor           
+SetGeomOffset         
+SetGeomScreen         
+RotTransPers          
+RotTrans              
+ratan2                
+sub_8004319C   = cop0 cache init routine        
+FlushCache  
+
+------CD-ROM stuff----          
+CdInit                
+def_cbsync            
+def_cbready           
+def_cbread            
+DeliverEvent          
+CdReset               
+PadChkVsync           
+CdSyncCallback        
+CdReadyCallback       
+CdReadCallback        
+CdControl             
+CdControlF            
+sub_80043984          
+sub_800439A4          
+CdIntToPos            
+getintr               
+CD_sync               
+CD_ready              
+CD_cw                 
+CD_vol                
+sub_80044B30          
+CD_flush              
+CD_initvol            
+CD_initintr           
+CD_init               
+sub_8004519C          
+sub_80045518          
+CD_read               
+CD_datasync           
+CD_getsector          
+sub_80045C04          
+
+--------SPU stuff-------
+SpuInitMalloc         
+_spu_init             
+_spu_writeByIO        
+_spu_FiDMA            
+_spu_t                
+_spu_write            
+_spu_FsetRXX          
+_spu_FsetRXXa         
+SpuSetReverb          
+sub_80046FB0          
+sub_80047078          
+_SpuDataCallback      
+_SpuIsInAllocateArea_ 
+SpuSetReverbModeParam 
+_spu_setReverbAttr    
+SpuSetReverbDepth     
+SpuSetReverbVoice     
+_SpuSetAnyVoice       
+SpuClearReverbWorkArea
+WaitEvent             
+sub_80047EE4          
+SpuSetVoiceAttr       
+_SpuSetVoiceAttr      
+sub_800485E0          
+SpuWrite              
+SpuSetTransferStartAdd
+SpuSetTransferMode    
+SpuIsTransferCompleted
+SpuSetCommonAttr      
+sub_80048EC4          
+sub_80048FB4          
+sub_800491E0          
+sub_80049268          
+sub_80049404          
+sub_80049428          
+sub_80049504          
+sub_80049538          
+sub_80049614          
+sub_80049648          
+_SsInit               
+sub_800497F4          
+sub_80049824          
+SsSepOpen             
+sub_80049BA0          
+sub_80049C20          
+sub_8004A060          
+sub_8004A128          
+sub_8004A1EC          
+sub_8004A298          
+_SsContNrpn1          
+_SsContNrpn2          
+_SsContRpn1           
+_SsContRpn2           
+sub_8004A67C          
+sub_8004A740          
+sub_8004A7E8          
+_SsGetMetaEvent       
+_SsNoteOn             
+_SsSetProgramChange   
+_SsReadDeltaValue     
+_SsSndNextSep         
+_SsInitSoundSep       
+_SsSndSetPauseMode    
+SsSepPause            
+SsSepPlay             
+_SsSndSetReplayMode   
+SsSepReplay           
+Snd_SetPlayMode       
+SsSetMVol             
+_SsTrapIntrVSync      
+_SsSeqCalledTbyT_1per2
+_SsStart              
+SsStart               
+_SsSndCrescendo       
+_SsSndDecrescendo     
+_SsSndPause           
+_SsSndPlay            
+_SsSeqPlay            
+_SsGetSeqData         
+_SsSndReplay          
+_SsSndStop            
+SsSepStop             
+sub_8004C990          
+sub_8004CB6C          
+SsSepSetVol?          
+sub_8004CD58          
+_SsSndTempo           
+_SsSndSetVolData      
+SsUtSetProgAtr        
+SsUtSetVagAtr         
+SsSetRVol?            
+SsUtReverbOff         
+sub_8004D498          
+sub_8004D65C          
+sub_8004D66C          
+SpuVmFlush            
+SpuSetNoiseVoice      
+SpuVmInit             
+_spu_setInTransfer    
+_spu_getInTransfer    
+SpuVmKeyOn            
+SpuVmKeyOff           
+_unnamed_             
+SpuVmDoAllocate       
+note2pitch            
+note2pitch2           
+vmNoiseOn             
+sub_8004F090          
+sub_8004F0D4          
+SpuVmKeyOnNow         
+SpuVmPBVoice          
+SpuVmPitchBend        
+SpuVmSetSeqVol        
+SpuVmGetSeqVol        
+SpuVmSeqKeyOff        
+sub_800500F8          
+sub_800501A8          
+SpuVmVSetUp           
+sub_800507EC          
+SsVabClose            
+SpuFree               
+_spu_gcSPU            
+SsVabFakeBody         
+SsVabOpenHead         
+SsVabOpenHeadWithMode 
+SpuMalloc             
+sub_80051424          
+_card_load            
+InitCARD2             
+StartCARD2            
+StopCARD2             
+_card_read            
+_new_card             
+sub_80051494          
+_card_write           

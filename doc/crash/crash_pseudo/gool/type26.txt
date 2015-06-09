@@ -1,0 +1,296 @@
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE 0x1A/26):
+
+GOOL OPCODE TYPE Z:
+
+00011010 000AAAAA AAAAAAAA AAAAAAAA
+
+
+*(process[0xDC]) = sub_8001FDC4(abits, 0);
+process[0xDC] += 4;
+
+
+-------------------------
+//controller structs - 5E718
+//
+//struct padInputs              
+//{
+//  word count;                                    
+//  struct padInput
+//  {
+//    word          pState; 
+//    word    currentState; 
+//    word   previousState; 
+//    word  previouspState; 
+//    
+//    word  prevprevState;     
+//  } inputs[count]
+//}
+
+//prState         - bits are set only at the instant of button press
+                    I.E. detects change from previous state to current state for buttons
+                    not held down in the previous state, 
+//currentState    - initially the data from the corresponding controller port is read here
+//previousState   - the data from the previous controller port read is saved here
+//previousprState - this is the previous 'press' state determined by the change in
+                    the 2 previous 'current and previous' states for buttons not held
+                    down in the previous 'previous' state
+//prevprevState   - just like previouspState is the result of change from 
+                    previous previous (yes 2 previous) state to previous state for buttons
+                    not held down in the previous 'previous' state we should
+                    also then remember prevprevState
+
+
+  //0 = L2      0x00000001
+  //1 = R2      0x00000002
+  //2 = L1      0x00000004
+  //3 = R1      0x00000008
+  //4 = /\      0x00000010
+  //5 = ()      0x00000020
+  //6 = ><      0x00000040
+  //7 = []      0x00000080
+  //8 = select  0x00000100
+  //9 = L3      0x00000200
+  //10 = R3     0x00000400
+  //11 = start  0x00000800
+  //12 = up     0x00001000
+  //13 = right  0x00002000
+  //14 = down   0x00004000
+  //15 = left   0x00008000
+  
+sub_8001FDC4(arg_a0 = EDDDD CCBBAAAA AAAAAAAA  //- 21 bits, arg_a1):
+
+
+BB = 00  -    nothing
+BB = 01  -    check if button(s) specified by A have been tapped
+BB = 10  -    check if button(s) specified by A are held down
+BB = 11  -    check if button(s) specified by A are held down
+
+if the test passes then
+
+CC = 00  -    return controller state that passed
+CC = 01  -    check if a button has been tapped    (2 frame)
+CC = 10  -    check if a button has been held down (1 frame)
+CC = 11  -    check if a button has been held down (2 frame)
+
+DDDD - button num to check (corresponds to bit number of button)
+
+
+(52b64 is an array corresponding to each combination of urdl that can be pressed, which holds a button that was pressed at the same time the last time one of the directions was held)
+
+a3 = arg_a0;
+
+if (bbits == 0) 
+{ 
+  a2 = 1;
+}
+else if (bbits == 1) 
+{ 
+  v0 = *(0x5E71C + (arg_a1*20)) & 0xFFF;      //grab 'has just been pressed' state (1 or 1 at instant of either occurence)
+  a2 = abits & v0;                            //(a bits are then 12 bits of controller button data to compare?)
+  if (a2 == 0) { return ebit; }               //if none of the buttons have just been pressed or released
+}
+else if (bbits == 2) 
+{
+  //1fe30:
+  v0 = *(0x5E720 + (arg_a1*20)) & 0xFFF;      //grab 'IS currently held down (1) or not (0)' state
+  a2 = abits & v0;                            //
+  if (a2 == 0) { return ebit; }               //if none of the buttons (referred to by abits) are currently held down
+}
+else if (bbits >= 3) 
+{ 
+  //1fdf8; 
+  if (bbits == 3) 
+  { 
+
+    1fe80:
+
+    v0 = arg_a1 * 20; 
+
+    v1 = *(0x5E71C + v0);  //index 0
+    v0 = *(0x5E728 + v0);  //index C
+
+    a0 = abits;
+    a2 = abits & (v1 | v0); //determine if the button has just been pressed in 
+                            //either the current or the previous read
+    
+    if (a2 == 0) { return ebit; }    
+  }
+  else if (bbits == 4)
+  {
+    1fe58:
+
+    v0 = arg_a1 * 20;
+
+    v1 = *(0x5E720 + v0);   //determine if the button is being held down in
+    v0 = *(0x5E724 + v0);   //either the current or previous read
+
+    a0 = abits;
+    a2 = abits & (v1 | v0);
+
+    if (a2 == 0) { return ebit; }
+  }    
+}
+
+if (cbits == 2) { 2003c; }
+if (cbits == 1) { 1ff08;  }
+if (cbits == 3) { 1fef4; }  
+if (cbits == 0) 
+{ 
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }
+}
+
+-----------------
+
+1ff08:
+
+v0 = *(0x5E71C + (arg_a1*20));                              //has been tapped
+
+if (dbits == 9) 
+{
+  a2 = v0 & 0x1000;                                         //if up has been tapped
+
+  if (ebit) { return a2; }                                   
+  else      { if (a2==0) { return 1; } else { return 0; } }
+}
+else if (dbits == 0xA) 
+{
+  a2 = v0 & 0x2000;                                         //if right has been tapped
+
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }
+}
+else if (dbits == 0xB) 
+{
+  a2 = v0 & 0x4000;                                          //if down has been tapped
+
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }
+}
+else if (dbits == 0xC) 
+{ 
+  a2 = v0 & 0x8000;                                           //if left has been tapped
+
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }
+}
+else  //if a direction has been tapped
+{
+  v0 = arg_a1 * 20;
+
+  v1 = *(0x5E720 + v0);
+  v1 = ((v1 & 0xF000)>>12) * 12;
+  v0 = *(0x52B64 + v1);              //52b64 array corresponding to all possible states for URDL buttons
+  a2 = 0;
+
+  if (dbits == v0) { a2 = 1; }       //if the value corresponding to the pressed/held state is the same as dbits, return true (or false if ebit set)
+  else
+  {
+    v1 = *(0x5E724 + v0);              //grab previous state
+    v1 = ((v1 & 0xF000)>>12) * 12;
+    v0 = *(0x52B64 + v1);              //and the value corresponding to the previous pressed/held state
+
+    v0 = dbits ^ v0;                   
+
+    if (v0 > 0) { a2 = 1; }            //if dbits would show a change from corresponding value for previous pressed/held state. return true
+    else        { a2 = 0; }
+  }
+
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }
+}
+ 
+--
+
+//2003C:
+
+v0 = *(0x5E720 + (arg_a1*20));       //is held down
+
+if (dbits == 9) 
+{
+  a2 = v0 & 0x1000;
+
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }
+}
+else if (dbits == 0xA) 
+{
+  a2 = v0 & 0x2000;
+
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }
+}
+else if (dbits == 0xB) 
+{
+  a2 = v0 & 0x4000;
+
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }
+}
+else if (dbits == 0xC) 
+{ 
+  a2 = v0 & 0x8000;
+
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }
+}
+else
+{
+  v1 = *(0x5E720 + v0);
+  v1 = ((v1 & 0xF000)>>12) * 12;
+  v0 = *(0x52B64 + v1);
+
+  v0 = dbits ^ v0;
+
+  if (v0 > 0) { a2 = 1; }
+  else        { a2 = 0; }
+
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }  
+}
+-------------
+
+
+1fef4:
+
+v0 = 0x100000;
+
+if (v1 > 4) 
+{ 
+
+  if (ebit) { return a2; }
+  else      { if (a2==0) { return 1; } else { return 0; } }
+
+} //how can v1 be anything > 3 even
+
+goto 20138
+   
+----------
+
+20138: 
+
+v0 = arg_a1 * 20;
+
+v1 = *(0x5E720 + v0);
+v1 = ((v1 & 0xF000)>>12) * 12;
+v0 = *(0x52B64 + v1);
+/
+a2 = 0;
+
+if (dbits == v0) { a2 = 1; }
+else
+{
+
+  v1 = *(0x5E724 + v0);
+  v1 = ((v1 & 0xF000)>>12) * 12;
+  v0 = *(0x52B64 + v1);
+
+  if (dbits == v0) { a2 = 1; }
+
+}
+
+if (ebit) { return a2; }
+else      { if (a2==0) { return 1; } else { return 0; } }
+
+
+

@@ -1,0 +1,174 @@
+-----------------
+-  T7 ENTRIES   - 
+-----------------
+
+  various...
+
+-----------------
+
+variation 2: not first zone
+
+ITEM 1:
+
+...
+0x0: number of WGEO models within this zone
+0x4-0x203: space for max 8 WGEO models. 
+  -initially only the first word of each model exists-an EID for a T3 entry
+  -the rest of each model's data is left zeroed so that, in game, subroutine 0x80017A14 can copy
+   data from their corresponding T3 entries over this empty space
+0x204: count including item1 (=1) + number of item2s 
+0x208: count of number of item3s
+0x20C: count of number of item4s
+0x210: count of neighboring/visible zones
+0x214-0x233: max 8 neighboring/visible zones including itself (t7 EIDs)
+0x234: count texture page entries
+0x238: count texture chunk CIDs
+0x23C-0x25B: max 8 texture page entries
+0x25C-0x2DB: max 32 texture chunks
+0x2DC: bitfield 
+  bit 1: determines whether bit 2 is set by a neighboring section
+  bit 2: set by a neighboring section if bit 1 is set
+         one shot bit, tells the object spawning routine to spawn objects in the current loop/frame (and clear itself when done)
+  bit 3: set or cleared depending on texture loading priority of a neighboring section?
+0x2E0: VRAM fill height for clearing draw buffer
+0x2E4: ?
+0x2E8: zone visibility depth? used when rendering object prims
+0x2EC: ?
+0x2F0: ?
+0x2F4: ?
+0x2F8: ?
+0x2FC: bitfield
+  bit 1:  
+  bit 2:  zone is not solid at the bottom and causes death if fallen below
+  bit 3:  zone has water?
+  bit 4:  
+  bit 5:  alt display mode: sub_80019BCC (also with bit 10 = sub_8001A0CC)
+  bit 6:
+  bit 7:  
+  bit 8:  zone intended to be travelled forward
+  bit 9:  alt display mode: call to sub_8002EBB4, also sub_80019DE0
+  bit 10: alt display mode: call to sub_8002EC68, sub_80019F90 vertex colors calculated with depth cuing
+  bit 11: alt display mode: call to sub_8002EC68, sub_8001A2E0 
+  bit 12:
+  bit 13: alternate rotation mode (see 17A14)
+  bit 14: can not save state here (for checkpoints)
+  bit 15: zone intended to be travelled left/right
+  bit 16: force camera backward?
+  bit 17: if this along with bit 24 are clear then we can skip the camera transition at the beginning of the zone
+  bit 18: top of zone is top of entire level (if no other zones above then solid at top)
+  bit 19: for sections where x accounts for progress, if 3.125 down y-wise from camera 
+          section, no adjustment made to camera
+  bit 20: 
+  bit 21: zone has no solid walls
+  ...
+  bit 24: see bit 17...
+  ...
+0x300: see collision (death bound? max water height?)
+0x304: ??
+0x308: ??
+0x30C: ? see sub_260AC
+0x310: VRAM fill/clear R
+0x311: VRAM fill/clear G
+0x312: VRAM fill/clear B
+0x313: (? unused ?)
+0x314: far color R
+0x315: far color G
+0x316: far color B
+0x317: (? unused ?)
+0x318-0x329: object light matrix (9 hwords)
+0x32A-0x32F: object color vector (3 hwords)
+0x330-0x341: object color matrix (9 hwords)
+0x342-0x347: object light vector (3 hwords)
+0x348-0x359: crash light matrix (9 hwords)
+0x35A-0x35F: crash color vector (3 hwords)
+0x360-0x371: crash color matrix (9 hwords)
+0x372-0x377: crash light vector (3 hwords)
+
+ITEM 2:
+
+0x0:  zone X location
+0x4:  zone Y location
+0x8:  zone Z location
+0xC:  zone width
+0x10: zone height
+0x14: zone depth
+0x18: ?
+
+0x1C - 0x23: zone surface/collision octree header
+
+  0x1C: root node
+  0x1E: maximum depth X
+  0x20: maximum depth Y
+  0x22: maximum depth Z
+
+0x24 - end: zone surface/collision octree
+  
+  each node in the octree is an hword and belongs to a parent
+  node of either 8, 4, or 2 nodes. 
+  -internal nodes are indicated by an unset least significant bit;
+   consequently, their value refers to the relative offset of their 
+   children in the item. child nodes are stored contiguously (either
+   as groups of 8, 4, or 2); if a node has a value of 0 then that child
+   does not exist (the tree is not likely to be full)
+   
+  -leaf nodes are indicated by a set least significant bit; 
+   the remaining 15 bits describe collision attributes for the 
+   node's corresponding subdivision/partition (implied to be a bounding
+   box). attribute format TBD
+  
+  
+ITEM 3M: (M=can be multiple of this item, so if multiple then item3A is actually item 1+N+1, item 3B is item 1+N+2, item3C is item 1+N+3, etc.)
+
+0x0: EID of an SLST entry
+0x4: EID for the T7 zone entry with the proper camera values and new zone to load (itself?)
+0x8: count of following structures:
+0xC-0x1B: (max 4 structures):
+
+  byte 1: bitfield?
+  byte 2: index of EID in item 1 at 0x214 of T7 referred to by 0x4
+  byte 3: index of 'item N' fields at 0x204 of item 1 of this new EID
+  byte 4: bitfield?
+    - bit 1 (indicates zone flipped?)
+
+0x1C: section start (optional)
+0x1D: section end   (optional)
+0x1E: section length/depth
+0x20: section camera mode
+0x22: section path scale
+
+0x24: section scale value?
+0x26: ??
+0x28: ??
+0x2A: ??
+0x2C: section path vector X
+0x2E: section path vector Y
+0x30: section path vector Z
+0x32: (3x2 hword stuctures for each section Z...? z=0, 1, 2, 3, 4, etc..)
+  
+  hword 1: camera X offset   (total calculated by adding to offsets at item2 of 0x4 entry)
+  hword 2: camera Y offset
+  hword 3: camera Z offset
+  hword 4: camera Y rotation
+  hword 5: camera X rotation
+  hword 6: camera Z rotation
+
+.....
+
+ITEM 4O: 'entitys'/objects (O = number of entitys in this zone)
+
+0x0:  intentionally left blank? a pointer to the entry must be copied here at some point
+0x4:  bitfield.. bit 1 determines whether to create process with initial (direction?) vector 2 as 0xC-0x10 
+0x6:  object process subtype set to this field
+0x8:  entity ID (refers to an index into the 'process bit list', process [0xD8] set to this << 8)
+0xA:  P = number of object paths (1 if travels a single path)
+0xC:  initial object process [0xBC] Y angle/orientation (*256)
+0xE:  initial object process [0xC0] X angle/orientation (*256)
+0x10: initial object process [0xC4] Z angle/orientation (*256)
+0x12: object process code level listEntry index
+0x13: object process code initial subroutine  
+0x14: P x path vectors
+  hword 1: path X distance
+  hword 2: path Y distance
+  hword 3: path Z distance
+
+0x14+(P*4): ?

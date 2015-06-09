@@ -1,0 +1,528 @@
+
+//pseudo-code style modified here to show datatypes
+unsigned long sub_80025A60(entry *zone, unsigned char *section, unsigned long progressV, bool flag):
+{
+  unsigned short sectionDepth = section[0x1E];
+ 
+  if (!entry || !section) { return 0; }
+
+  unsigned short sectionDepthV = sectionDepth << 8;
+  
+  //restrict the progress value from the input if it does not lie in the section
+  if (progressV < (sectionDepthV-1))
+    if (progressV < 0) { progressV = 0; }
+  else
+    progressV = (sectionDepthV - 1);
+
+  zoneHeader = zone[0x10];
+  unsigned long zoneModelCount = zoneHeader[0];
+  
+  unsigned long progress    = progressV << 8;
+  unsigned long curProgress = curProgressV << 8;
+  
+  /*sorts an objects precomputed zvalues into a main binary tree?*/
+  if (zoneModelCount != 0)
+  {
+    //if new level section, new level subsection, or change in progress
+    if (zone != curZone || section != curSection || progress != curProgress) 
+    {
+      unsigned long slstEID = section[0];
+      
+      entry *slst = sub_80015118(slstEID, 1, 1);    // refers to a T4 entry
+
+      unsigned long changeProgress = abs((curProgressV - progressV) >> 8);    
+
+      /* SLST stuff
+      if (section != curSection)  //if new zone section
+      {
+        if (curProgress >= changeProgress || (progress - curProgress) >= changeProgress)
+        {
+          swap(gp[0x2C0], gp[0x304]);  
+
+          if (curProgress >= (progress/2))   //if scalarShift is 'near' splitter
+          {
+            item1 = objEntry[0x10];
+        
+            gp[0x2BC] = sub_80029B0C(item1, gp[0x2BC], gp[0x304], 1);
+
+            newVal = 0;
+          }
+          else                              //else scalarShift is 'far' from splitter
+          {
+            offset = progress/2;
+            itemN = objEntry[0x10 + (offset)*4]
+
+            gp[0x2BC] = sub_80029B0C(itemN, gp[0x2BC], gp[0x304], 0);
+
+            newVal = itemVal - 1
+          }
+        }
+        else
+        {
+          newVal = scalarShift           //bufscalar not in scalarshift's or splitter's fov
+        }
+    
+        //t0 = var_68
+
+        s0 = scalarShift - newVal;
+
+        offset2 = (newVal*4);
+        itemJPtr = &objEntry[0x10 + offset2];  
+    
+        if (s0 != 0)                    //for scalarShift found 'near' splitter: start from scalarShift
+        {                               //for scalarShift found 'far'  splitter: start from splitterZ-1
+
+          do 
+          {
+            swap(gp[0x2C0], gp[0x304]);
+
+            if (s0 > 0)
+            {
+              offset2 += 4;
+              itemJ = objEntry[0x10 + offset2];  //a0
+          
+              gp[0x2BC] = sub_80029B0C(itemJ, gp[0x2BC], gp[0x304], 1)
+
+              s0--;
+            }
+            else
+            {
+              offset2 -= 4;
+              itemJ = objEntry[0x10 + offset2];
+
+              gp[0x2BC] = sub_80029B0C(itemJ, gp[0x2BC], gp[0x304], 0)
+      
+              s0++;
+            }
+          } while (s0 != 0)
+        }
+
+        sub_80015458(item, 1); add slst to paging system
+      }*/
+    }
+    else
+    {
+      if (progressV == curProgressV) { return 0; }
+      else
+      {
+        curProgressV = progressV;
+
+        goto 80026000;
+      }
+    }
+  }
+
+  if (curZone != zone)  //
+  {
+    var_58 = 1;
+
+    item1 = entry[0x10];   //s6
+
+    *(0x61998) = 0;
+ 
+    //set by the camera routine
+    if (*(0x618D0) == 0x600)  //level mode?
+      var_58 = ((unknown & 2) != 0); //evaluated boolean expression (check bit 2)
+
+    if (curZone) //if there is a current zone (should be the case)
+    {
+      unsigned char *prevHeader = curZone[0x10];
+      var_58                    = (unknown & 2);   //this time if bit set sets to 2 rater than 1
+
+      *(0x57918) = prevHeader;      //???
+
+      unsigned long neighborCount = curZone[0x210];     //count of neighboring Zdat entrys? including itself?
+      
+      for (int countA = 0; countA < neighborCount; countA++)
+      {
+        neighborZone = EID_PROCESS(curZone[0x214+(countA*4)]);   //
+        unsigned long neighbNeighborCount = neighborZone[0x210]; 
+        
+        //ensure that the zone is valid: that it contains itself in its list of neighbors
+        bool match = false;
+        for (int countB = 0; countB < neighbNeighborCount; countB++)
+        {
+          entry *neighbNeighborZone = EID_PROCESS(neighborZone[0x214]);
+
+          if (neighbNeighborZone == neighborZone)
+          {
+            match = true;
+            break;
+          }
+        }
+  
+        if (match) 
+        {
+          unsigned char *neighbHeader = neighborZone[0x10];
+ 
+          //if zone is loaded then remove it from the system and reset bits
+          if (neighbHeader[0x2DC] & 1)
+          {
+            sub_8001D200(neighborZone);  //remove it from the system
+            neighbHeader[0x2DC] &= 0xFFFFFFFC; //clear bits 1 & 2
+          }
+        }
+      }
+    }
+        
+    if (flag & 1 == 0)
+    {
+      for (int count = 0; count < 0x130; count++)
+        states[count] &= 0xFFFFFFF9;  //clear bit 2 & 3
+    }
+        
+    curZone      = zone;
+    curSection   = section;
+    curProgressV = progressV;    
+    
+    //texture page entry/chunk array routine (gets set up for load to appropriate slots?)
+    if (section)
+      sub_8001495C(&zoneHeader[0x234], 0);
+    else
+      sub_8001495C(0, 0);
+ 
+    //load all zone tpage entries
+    unsigned long texCount = zoneHeader[0x234]
+    for (int count = 0; count < texCount; count++)
+    {
+      unsigned long texEID = zoneHeader[0x23C+(count*4)];
+      sub_80015118(texEID, 0, 1);
+    }
+
+    unsigned long CIDCount = zoneHeader[0x238];
+    for (int count = 0; count < CIDCount; count++)
+    {
+      unsigned long texCID = zoneHeader[0x25C];
+      sub_80014DD0(texCID, 0, 1, 0x6396347F);
+    }
+
+    if (var_58 != 0)     //bit 2 from the flags if set
+      sub_80013748();    //process ALL chunkinfos in the CID list
+
+    unsigned long neighborCount = zoneHeader[0x210];
+    
+    for (int count = 0; count < neighborCount; count++)
+    {
+      unsigned long neighborEID = zoneHeader[0x214 + (count*4)];
+      neighborZone              = EID_PROCESS(neighborEID);    
+      
+      unsigned char *neighborHeader = neighborZone[0x10];
+
+      if (neighborHeader[0x2DC] & 1 == 0)  //if bit 1 not set
+      {
+        *(0x61A5C) = 0;
+        *(0x61A64) = 0;
+
+        *(0x61A60) = 0x19000;
+
+        neighborHeader[0x2DC] |= 3;
+      }             
+      
+      if (var_58 != 0)
+        neighborHeader[0x2DC] |= 4;
+      else
+        neighborHeader[0x2DC] &= 3;
+    }
+        
+    sub_800260AC(neighborHeader + 0x2E0, unknown);
+  } 
+}
+else  //dont remember item in a buffer?
+{
+  *(0x57914) = entry;
+  *(0x5791C) = scalar;       //shouldnt we go here if the bufferentry doesnt exist?    
+}
+
+  //80026000:
+
+  *(0x57940) = *(0x57870);     //copy camera X rotation angle value before sub
+  *(0x57944) = *(0x57874);     //copy camera Y rotation angle value before sub
+  *(0x57948) = *(0x57878);     //copy camera Z rotation angle value before sub
+
+  sub_800296A8(*(0x5791C), -*(0x57920), 0x57864);  //adjust camera for current zone
+
+  *(0x57934) = *(0x57870);     //copy camera X rotation angle value after sub
+  *(0x57938) = *(0x57874);     //copy camera Y rotation angle value after sub
+  *(0x5793C) = *(0x57878);     //copy camera Z rotation angle value after sub
+
+  *(0x5CFC0) = 0;
+
+  return;   
+}
+
+
+sub_80026650(struct)        //reinits the level
+{                           //struct is a structure that holds info about the previous level state
+  v0 = *(0x5c53c);          //it describes how to reinitialize crash's vectors, which zone entry to reload, and index of its item3
+                            //sub_80025A60 accomplishes reloading of the zone
+  *(0x6197C) = 0;
+
+  //if somehow the state structure describes a zone different then
+  //the current then we have a problem
+  if (struct[0x30] != v0[4])    
+  {
+    gp[0x318] = 0xFFFFFFFE;
+    gp[0xA4]  =          1;
+
+    return 1;
+  }
+
+  //sound routine, reinit hardware voices
+  sub_80025134(0, 0x1300, 0, 0, 0);       //does stuff to structs at 56804 somewhere deep within its recursion
+
+  curZone = *(0x57914)             
+  if (curZone)
+  {
+    item1 = curZone[0x10];
+
+    *(0x57918) = 0xFFFFFFFF;    //this set to FFFFFFFF
+              
+    if (curZone[0x210] >= 0)    //neighboring t7 EIDs/entry count
+    {
+      do
+      {     
+        neighbor = curZone[0x214 + (count*4)];
+        entry = EID_PROCESS(neighbor);
+  
+        neighborItem1 = entry[0x10];     //grab item1 for the EID's corresponding entry
+  
+        if ((neighborItem1[0x2DC] & 1) != 0)
+        {
+          sub_8001D200(entry);
+          neighborItem1[0x2DC] = neighborItem1[0x2DC] & 0xFFFFFFFC;
+        }
+
+        count++;
+      } while (count < curZone[0x210])
+    }
+
+    sub_8001495C(&curZone[0x234], 0);    //remove all current zone tpage entries from lists
+  }
+
+  *(0x57914) = 0;             //no current zone
+
+  --  
+  SetGeomScreen(*(0x578D0));  //reset projection
+
+  --
+  if (gp[0xA4] != 0)
+  {
+
+
+    a0 = *(0x5FF58)
+  
+    s1 = 0;
+  
+    //reload bitlists from that state
+    do
+    {
+      *(a0) = zoneItem1[0x38 + (s1*4)];
+      s1++;
+      a0 += 4;
+
+    } while (s1 < 0x130) //i.e. copy 0x130 bytes from 0x38+header(0x48) in item 1 to 0x5FF58 
+
+    if (*(0x619A0) != 0xFFFFFFFF)
+    {
+      v1 = 0x5FF58 + ((*(0x619A0) >> 8) << 2);
+            
+      *(v1) = (*(v1) & 0xFFFFFFFD) | 8;
+    }
+
+    s1 = 0;
+    v1 = 0x5FF58;
+
+    do
+    {
+ 
+      *(v1) = *(V1) & 0xFFFFFFFE;
+      v1+=4;
+      s1++;
+    } while (s1 < 0x130)
+
+  }
+  
+  //struct[0x24] is a T7 entry for the zone in that state
+  //struct[0x28] is an index into its item 3s (section for that state)
+  //struct[0x2C] is the progress into that section in that state
+  entry        = sub_80015118(struct[0x24], 1, 1);
+  item1        = entry[0x10];
+  skiptoItems3 = item1[0x204];
+  item3N       = entry[0x10 + ((skiptoItems3 + struct[0x28])*4)];
+
+  //then this is the flags argument to 25a60
+  a3 = gp[0xA4];
+  if (a3==0) { a3 = 1; }
+  
+  //load this zone, add it to the list (what is 15458 doing again?)
+  sub_80025A60(entry, item3N, struct[0x2C], a3);
+  sub_80015458(struct[0x24], 1);
+
+  
+  if (*(0x566B4) == 0)   //if crash process does not exist ((0x566B4 == gp[0x2BC]))
+  {
+    sub_8001C6C8(0x60DE8, 0, 0, 0, 0, 1);   //add WillC starting with init sub to Glist
+  }
+
+  //from struct[0] -> struct[0x24] are the 3 vectors that are the initial vectors for crash
+  //these are copied...
+  //------------------
+  copyStart = struct;
+  copyEnd   = struct + 0x20;
+  crashVectors = *(0x566B4) + 0x80;
+ 
+  copy = copyStart;
+  do
+  {
+    crashVectors[0]   =   copy[0];
+    crashVectors[4]   =   copy[4];
+    crashVectors[8]   =   copy[8];
+    crashVectors[0xC] =   copy[0xC];
+    
+    copy         += 0x10;
+    crashVectors += 0x10;
+  } while (copy < copyEnd)   
+  crashVectors[0] = copy[0];      //i.e. copy 0x24 bytes
+  //-------------------
+ 
+  //then additional crash members are set
+  crash = *(0x566B4);
+  crash[0x28] =    *(0x57914);   //set crashes containing zone entry to current zone
+  crash[0x130]=             0;   //?
+  crash[0xA4] =             0;   //clear vector D
+  crash[0xA8] =             0;
+  crash[0xAC] =             0;
+  crash[0x124]=             0;   //?
+  crash[0xC8] = process[0xC8];   //same flags
+  crash[0xB4] = process[0x90];   //copy XZ angle     
+  
+  linkC = process[0x78];            //linkC, or 3rd variable link
+  if (linkC != 0)
+  {
+    process[0x78] =        0;
+    linkC[0x78]   =        0;    
+  }
+  
+  //??????????
+  *(0x57960) = 0;
+  *(0x61894) = 0;      //reset geometry offset value
+  *(0x566E8) = 0;       //gp[0x2EC]
+  *(0x6189C) = 0xFFFF; //reset flags? (set before title fade in?)
+
+  if (gp[0xA4] == 0)
+  {
+    *(0x618A0) = *(0x618A0) + 0x100;
+  
+    if (struct[0x34] == 0)
+    {
+      *(0x61A3C) = *(0x61A3C) + 0x100;
+    }
+    else
+    {
+      *(0x61A3C) = 0;
+    }
+  }
+
+  sub_800262DC(0);     //reinitialize level
+
+  if (gp[0xA4] == 0) { return -1; }
+ 
+  //boxes broken
+  *(0x61984) = struct[0x4F8];
+
+  gp[0xA4] = 0;      //SETTING GP VALUE!!!!!!
+  
+  if (*(0x619A0) != -1)
+  {
+    *(0x61984) -= 0x100;  //prevent gem from being recieved
+  }
+}
+  
+//---------------------------------------------
+
+
+
+//occupies a struct with information from the current
+//zone and specified process
+sub_80026460(process, struct, flag)
+{
+  //struct = 0x57974
+  zone = *(0x57914)[0x10];
+  
+  if (zone[0x2FC] & 0x2000 != 0) { return; }
+  
+  //t0 = struct
+  //a3 = struct
+  struct[0x34] = flag; //0x579A8
+  
+  //initially we copy the vectors from 
+  //crash to struct[0]-struct[0x30]
+  //translate, rotate, and scale
+  crash = *(0x566B4);
+  crashVectors  = crash + 0x80;
+  crashVectorsEnd = crash + 0xA0;
+  copy(struct, crashVectors, crashVectorsEnd-crashVectors);
+  
+  //if the specified process has bit 10 cleared in field 0xCC
+  //then replace struct[0]-struct[8] with its
+  //translation vector
+  if (process[0xCC] & 0x200 == 0)
+  {
+    struct[0] = process[0x80];
+    struct[4] = process[0x84];
+    struct[8] = process[0x88];
+  }
+  
+  //if this variable 619A0 is not -1 or 0
+  //replace struct[0]-struct[8] with the vector
+  //at 61A24
+  if (*(0x619A0) != -1 && != 0)
+  {
+    struct[0] = *(0x61A24);
+    struct[4] = *(0x61A28);
+    struct[8] = *(0x61A2C);
+  }
+  
+  struct[0xC]  = 0;  //reset angle
+  struct[0x10] = 0;
+  struct[0x14] = 0;
+  
+  zoneid = *(0x57914)[4];
+  
+  struct[0x24] = zoneid;
+  struct[0x2C] = *(0x57920);
+  
+  //IS THIS LEVEL ID OR SOMETHING ELSE?
+  struct[0x30] = *(0x5C53C)[4];  
+  
+  numItems = zone[0x208];  //number of item3s
+  
+  curItem3 = *(0x5791C);
+  curZone = *(0x57914);
+  curZoneHeader = *(0x57914)[0x10];
+  
+  count = 0;
+  if (numItems > 0)
+  {
+    do
+    {
+      item3offset = curZoneHeader[0x204];
+      iterItem3 = curZone[0x10 + (item3offset+count)*4];
+      if (curItem3 == iterItem3)
+      {
+        struct[0x28] = count;
+        break;
+      }
+      else
+        count++;
+    } while (count < numItems)
+  }
+  
+  bitlist = 0x5FF58;
+  //a1 = struct
+  
+  struct[0x4F8] = *(0x61984);  //count?
+  
+  for (int lp = 0; lp < 0x130; lp++)
+    struct[0x38+lp*4] = bitlist[lp*4];
+}

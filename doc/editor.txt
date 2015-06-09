@@ -1,0 +1,168 @@
+CrashUtils Level Editor
+-----------------------
+
+The purpose of this document is to provide a brief overview of the 
+CrashUtils Level Editor and its currently implemented functionalities. 
+At the moment, the editor is no where near close to completion; please 
+refer to the 'Level Editor' section in the requirements table of 
+requirements.txt for a full list of planned features.
+
+
+The CrashUtils editor is a 'context plugin' used by context objects 
+of the CrashPC graphics API. Like all context plugins, it inherits the context_plugin base 
+class. A context object has a single root [context] plugin that defines the hierarchy
+of all other descendant context plugins. Each plugin references the ancestor
+context object through its parentContext field.
+
+Editor functionality requirements:
+
+1) Display level/NSF geometry content
+   - This is the minimum requirement for a read-only editor.
+
+     The function is already provided by the CrashPC graphics API. We must 
+     simply specify the portion or zone of the level that [contains the geometry] 
+     we wish to display to the parent context's scene.
+
+     We can choose to accumulate (without resetting) the scene with zones' geometric
+     content as they are specified or reset the scene each time a new zone is requested.
+
+2) Display level/NSF 3-dimensional boundary, path, collision, and vector content; normally 
+   invisible 
+        
+     Since it will be possible to change this content directly within the NSF in real-time
+     by the editor, a clever implementation is needed to synchronize these changes with 
+     the corresponding graphic data. 
+
+3) Allow user to graphically OR externally specify level/NSF content to be selected
+   - The editor has the notion of a current 'working area' and current 'foci' that
+     exist within that area. These parameters are specified by the user or an external
+     source and can be changed at any time. The editor must have a method for graphically 
+     rendering a foci as 'selected' and visually apparent to the user. 
+     
+     Foci:
+     - Current Zone 
+       - Current Section
+         - Current Path Node
+       - Current Entity
+       - Current World
+       - Current Polygon
+       - Current Vertex
+
+As described above, general functionality for the editor is provided by its representative 
+base context plugin implementation; all other functionality is provided by that of its 
+descendant plugins. This hierarchical organization allows the separation of editor 
+functionalities into distinct plugins:
+
+                           I. editor
+                                |
+         ---------------------------------------------
+         |              |              |             |
+         |              |              |             |
+     1. visual   2. view/camera   3. select       4....  
+       /                \               \
+      /                  \               \
+ 1a. zone_visual     2a. camera_control  3a. zone_select
+ 1b. section_visual  2b. camera_trans    3b. section_select
+     ...             2c. camera_sync     3c. world_select
+                         ...             3d. polygon_select
+                                               ...
+I. editor
+
+The root plugin keeps track of all general state information for the editor, such as 
+the current selected foci of each type. It provides all functions that assist in
+occupying the scene with initial content:
+
+ loadLevel()            - load all geometry within all zones from the NSF file 
+                          associated with the scene
+ loadModel(wgeo)        - reset the scene with a single world geometry 
+ loadModel(svtx, frame) - reset the scene with a single object geometry
+ addZone(zone)          - add all geometry within the specified zone to the scene
+ selectZone(zone)       - select a zone (set as the focal/current zone)
+ selectSection(section) - select a section (set as the focal/current section)
+  
+When performing one of the above operations, the editors' descendant plugins are 
+additionally notified with a corresponding 'message'. Each operation has an 
+associated message. Plugins override the 'messageRouter' function to handle reception
+of these messages; in this way, each plugin may perform a different operation, thus 
+extending these general operations with additional distinct functionalities.
+
+  message             |    left param    |   right param    |   info
+  -----------------------------------------------------------------------------------------
+  CPM_LOAD_LEVEL:     |        n/a       |       n/a        | sent when loading level
+  CPM_LOAD_WGEO:      |    wgeo entry    |       n/a        | sent when loading wgeo model
+  CPM_LOAD_SVTX:      |    svtx entry    |      frame       | sent when loading svtx model
+  CPM_ADD_ZONE:       |  zdat entry/zone |       n/a        | sent when adding zone to scene
+  CPM_SELECT_ZONE:    |  zdat entry/zone |       n/a        | sent when selecting a zone 
+  CPM_SELECT_SECTION: |   section item   |       n/a        | sent when selecting a section
+
+Editor functionality requirement 1, "Display level/NSF geometry content", as previously 
+noted, is already provided by the CrashPC graphics API; this is exactly the functionality
+being extended by the editor as a context plugin. The remaining functionality requirements
+are [to be] implemented by the child plugins.
+
+1. visual
+
+This child plugin and its descendants are responsible for the display of level/NSF 
+3-dimensional boundary, path, collision, and vector content-normally invisible. 
+        
+This is a responsibility of the editor and -NOT- the graphics API. The CrashPC
+graphics API provides an interface for the operations requested by an instance of 
+the Crash Bandicoot game engine on its geometric model data: generation and
+transformation of the corresponding primitives for rendering from a requested location; 
+additional implementation utilizes lower-level graphics API calls for rendering 
+(ex OpenGL). The CrashPC graphics API provides an additional mechanism for the 
+generation and rendering of some additional, miscellaneous primitives whose addition 
+to the scene can be requested by an external source (i.e. context plugin);
+this is the mechanism utilized by visual plugins.
+
+2. view/camera
+
+This child plugin and descendants are responsible for providing control, synchronization,
+smooth translation, and any other extended features for the parent context's scene's 
+camera.
+
+3. select
+
+This child plugin and its descendants are responsible for allowing the user 
+to graphically select level/NSF content; this is accomplished by hovering 
+over the context area and clicking at a location that appears to be 
+contained within, or is near, the 3d space occupied by the level content 
+of interest.
+
+This plugin and its descendants are also responsible for displaying each of
+the currently selected foci as 'selected'; each descendant plugin corresponds
+to a different type of foci and may have a different display method from 
+the others. Prior to the selection of a potential foci, the user must hover
+the mouse within the context area to its location before clicking; these
+plugins may also provide an method of 'displaying as a potential selection'
+for potential foci when hovered over.
+
+For level content that occupies or can be identified by a single point in 3d 
+space, such a point can be projected to 2 dimensions with the parent context's 
+project2d function to determine the exact coordinates on-screen at which
+that content or its identifying point appears to the user. A map can be built
+that associates each point within the area of 2 dimensional space occupied
+by the context with, possibly the 3d content that projects to that point, 
+or no content at all if none projects to that point. When the context is 
+clicked, all points within less than a six pixel radius from the location
+clicked can be tested (in order of euclidean distance) by checking the map
+at those locations for projected content. When the first point associated
+with a potential foci is found, a select notification can be issued with 
+the desired foci as a parameter.
+
+Main method (for content that occupies/can be identified by a single point in 3d space)
+-----------
+-  Map each 2d context coordinate to the closest types of 3d content
+   that appear from the users' perspective
+-  When the context is clicked, signal with the potential foci that is 
+   mapped to the nearest 2d coordinate that has been mapped in relation 
+   to the clicked location.
+-  The appropriate plugin will receive the notification and shall render
+   the foci as selected
+
+The above method is the responsibility of the root select plugin. Some 
+descendant plugins may directly handle the select notifications sent
+from this plugin when their associated type of content is selected. 
+Other descendant plugins may use a different method, or a combination 
+of this method and others, for the selection of their associated content.
+

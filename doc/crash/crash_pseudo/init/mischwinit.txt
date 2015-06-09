@@ -1,0 +1,98 @@
+sub_8001652C:
+
+scratchMem = 0x1F8003FF;
+
+for (int v0=0x3FF; v0 >= 0; v0--)
+  *(scratchMem--) = 0;
+
+sub_8003F224(0):  //int sub_8003F224(int val) { old = *(0x54A20); *(0x54A20) = val; return old; }
+
+
+--cop0 and cop2 init stuff--
+sub_80042B1C();
+
+if (*(0x56410) != 0)
+{
+  ResetCallback();
+  sub_8004324C();
+}
+--------------------------
+
+sub_80016718(2);  //init both controllers?
+sub_8003C9BC();
+
+EnterCriticalSection();
+
+//event descriptor 0xF2000002 defined in kernel headers as 'one-eighth of system clock'
+//this is root counter no. 2...
+StopRCnt(0xF2000002);
+
+//open event for RCntCNT2, spec 0x0002 (EvSpINT, 'interrupted'), 
+//mode 0x1000 (EvMdINTR, i.e we want to permit interrupting),
+//and call sub_80034504 which increments the global memory location
+//0x34520; 
+gp[0x30C] = OpenEvent(0xF2000002, 0x0002, 0x1000, sub_80034504);
+EnableEvent(gp[0x30C]);
+
+//set RCntCNT2 to 0x1000, and set its mode to permit interrupts
+//this means that every 0x1000 1/8th clock cycles we will generate
+//an interrupt to increment global memory location 0x34520 as a global
+//timer/counter
+SetRCnt(0xF2000002, 0x1000, 0x1000);
+
+//start that counter
+StartRCnt(0xF2000002);
+
+ExitCriticalSection();
+
+
+sub_80016A6C();        //initialize draw/display buffers
+
+sub_8002F75C();
+
+*(0x5C54C) = 0;
+
+//4x of 6396347F at 0x57298...
+wordArray = 0x57298;
+for (int v0 = 3; v0>=0; v0--)
+  *(wordArray--) = 0x6396347F;
+
+//initialize chunkinfo buffer chunkinfo eid
+//(chunkinfo buffer, 16 chunkinfos at 0x580A0-0x5835F
+for (int v0 = 0x294; v0-=0x2C; v0++)
+{
+  *(0x580B8 + v0) = 0x6396743F; //this sets each eid 
+} 
+
+//-----------------
+
+if (*(0x56410) != 0)
+{
+  sub_8002F8C4();
+}
+
+return 0xFFFFFF01;
+
+
+
+-------------------------
+
+sub_80042B1C()
+{
+  *(0x54B8C) = ra;
+  sub_8004319C();
+  ra = *(0x54B8C);
+
+  SR = SR | 0x4000; //cop0 status register
+
+  GTE.ZSF3 =        341;  //average scale factor for 3 values
+  GTE.ZSF4 =        256;  //average scale factor for 4 values
+
+  GTE.H    =       1000;  //projection plane distance
+
+  GTE.DQA  = 0xFFFFEF9E;  //depth cuing parameter A
+  GTE.DQB  = 0x01400000;  //depth cuing parameter B
+
+  GTE.OFX  =          0;  //screen offset X
+  GTE.OFY  =          0;  //screen offset Y
+}

@@ -1,0 +1,61 @@
+sub_80011FC4
+  -sub_80015B58   - 
+   cd-rom filesystem analyzed, load tables into memory, set up paging:
+   1) loads appropriate nsd file into memory
+      a) record location of global entity type->code entry map  
+      b) sub_800322CC?	  
+	  c) setup EID->entry hash table
+	    i.) convert relative table offsets to absolute offsets 
+		   (these will point 'EID key/CID' pairs to search for one 'slot', each slot corresponding to a range of potential EID key values)
+   2) block position on cd-rom of appropriate nsf file saved 
+   3) allocate memory for and initialize CID->page map with 'null page' pointers (one slot for each CID/chunk, i.e. CID=index)
+   4) run 'pre-page allocation initialization routines' for all subsystems (initA)
+   5) allocate memory for 22 64k blocks/pages to be associated with various 'page structures', from which data corresponding to their associated entry and chunk
+      will be paged from the nsf file on the cd-rom. 
+	  i)   set up first 22 page structures to refer to consecutive blocks
+	  ii)  set up remaining 38 page structures to refer to null data (no 64k block associated)
+      iii) set up system of 16 texture pages but dont allocate space 
+	  iv)  set up 8 sound/audio related pages
+	  
+  -sub_80011DD0 (mainroutines.txt)
+    1) sub_800167A4 (reset controller)
+	2) create 3 processes for 3 individual instances starting on separate routines of the display code
+    3) add main game code entrys to system (HUD/display, crash, aku aku, shadows, boxes, fruit) 
+    4) 262DC: may create various level-dependent processes, reset collision and various variables
+      	
+  MAIN LOOP:
+  
+   1) (based on a check of unknown variables, maybe hud related)
+    -gp[4] is some flip-flop that deals with another instance of the display process
+  
+   2) if crash process does not exist (gp[0x2B8] has not yet been inited with WillC/set to point to its allocated space): 
+      A) sub_8002E98C, where one of the HUD/graphics process is initialized; values from LDAT? or MDAT? are 
+	     used to set crash's initial bounding volume (or is this position)
+	     -sub_80026650, [here that same item (that set crashes initial bounding volume) used like the structs that           
+	      reinit the level after death/checkpoint as args to the sub], where MAINLY:
+		     1) all processes terminated/reinited
+		     2) zone flags cleared/reinit
+		     3) screen geometry reset
+		     4) initial zone determined (from item in args) and loaded
+		     5) CRASH PROCESS INITIALIZED with WillC subroutine 0
+		     6) additional values setup from the arg item
+	
+   3) stuff for return to title screen?
+	  ....  
+   4) handle all entries loaded into system
+   5) spawn all objects/processes in current zone if the respawn bit is set
+   6) 3 camera (scroll/positioning/follow) routines
+      2ec68 and 2ebb4 are important as they have not been thoroughly documented
+      ......
+   7) recalculate global matrices for camera location/angle/scale/light and load current zone world models/geometry (17a14)
+   8) recreate primitives for zone world geometry/models based on global matrices and zone primitive display mode   (19508, various)
+   9) execute, animate, and create primitives for all objects (includes physics and collision engine)               (1d5ec)
+   10) title routine?
+   11) gpu routine
+	
+	
+		   
+  
+		   
+       
+       

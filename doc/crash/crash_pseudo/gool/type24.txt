@@ -1,0 +1,29 @@
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE 0x18/24):
+
+GOOL OPCODE TYPE Y:
+
+00011000 0000AAAA AABBBBBB BBBBBBBB
+
+//if abits = 0x1F: pushes to stack a pointer to code specified by bbits
+  if abits < 0x1F: puts a pointer to code specified by bbits at process memory location determined by abits
+//
+
+entry = process[0x20];
+code  =   entry[0x14];
+
+if (abits == 0x1F)  //if abits of the form 011111
+{
+  if (bbits == 0x3FFF)
+    process.push(0);
+  else
+    process.push(&(code[bbits]));  //is a ptr
+}
+else
+{
+  if (bbits == 0x3FFF)
+    process[0x60 + (abits*4)] = 0;
+  else
+    process[0x60 + (abits*4)] = code + (bbits*4);
+    
+}
+

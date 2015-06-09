@@ -1,0 +1,265 @@
+jump routines and variations:
+
+//explains how the stack frame tags/addresses work to allow subs to branch/jump/return
+
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE TYPE 130):
+
+GOOL OPCODE TYPE W:
+
+10000010 XXYYZZZZ ZZ?????? ????????
+
+- 10000010 01YYZZZZ ZZAAAAAA AAAAAAAA    -  run routine specified by abits (refers to process entry item5 structs) creating new stack frame (execution ends if return                                             error)
+- 10000010 00YYZZZZ ZZBBBBAA AAAAAAAA    -  jump to address in process specified by abits, increment gfp by bbits
+- 10000010 10YYZZZZ ZZ000000 00000000    -  todo
+- 10000010 11YYZZZZ ZZ000000 00000000    -  todo
+
+YY bits determine the way to set var_48 
+
+NOTE THAT VAR_70 = GOOL INTERPRETER ARG_A1
+     AND  VAR_68 = GOOL INTERPRETER ARG_A2
+
+//when YY = 00, var_48 set to 1
+//when YY = 01, if (ZZZZZZ = 011111) then: gfp set back a word, and var_48 set to value at gfp
+                else                     : ZZZZZZ used as word index to process[0x60], and var_48 set to that
+//when YY = 10, just like YY=01 but var_48 is toggled to 1 when the value is 0, and 0 when anything else
+//when YY = 11, nothing
+
+//at this point if var_48 = 0 then next instruction
+
+//when XX = 00, abits offset the current gpc, and bbits offset the gfp  (relative jump)
+//when XX = 01, abits determine an offset into process entrys item5 structs
+                header of the struct is anded with process[0xD0] (which is also ored with 0x1002 when process[0x128]=2,3,4) 
+                if that value is zero then 1d698 called with process and abits..
+                if it returns > 0xFFFFFF02 or bit 2 of var_78 set then gpf decremented, otherwise process execution ends
+
+//when XX = 10, var_D8 set to var_70, and gfp set to process[0xE4]+2 words (location of the tag)
+                if the left side of the tag is nonzero
+                  gpf moved back a word, and gpc set to the word there
+                  gpf moved back a word, and var_D8 set to (left of var_70 and right of val at gpf)
+                  val at gpf replaced with ptr to process[0x60 + right side of tag];
+                  
+                if bit 4 of var_70 not set
+                  if bit 1 of var_70 not set and left side of tag was nonzero   
+                    if all bits in right of var_D8 not set then var_70 just set to right of var_D8 
+                    (end check goto next instruction)
+                  if bit 5 of var_70 not set
+                    if left side of tag was zero, then set val at gpf to 0 and set gpf back a word
+                    end process execution (with 0xFFFFFFE7 if left of tag was 0, else 0xFFFFFF01 if left of tag was nonzero)
+                if bit 6 of var_70 not set
+                  end process execution with 0xFFFFFFE6
+                else
+                  val pted to by var_68 set to 0xFF
+                  end process execution with 0xFFFFFF01
+                  
+//when XX = 11, nothing
+
+
+
+if (YY == 0) { 22CD8 }
+if (YY == 1) { 22CE4 }
+if (YY == 2) { 22D20 }
+if (YY == 3) { 22D60 }
+
+------(1)-------
+22cd8:
+
+var_48 = 1;                //jmp
+
+goto 22d60
+
+----------------
+
+------(2)-------
+22d20:
+
+if (ZZZZZZ == 0x1F)
+{
+  process[0xDC] = process[0xDC] - 4;
+  
+  v0 = process[0xDC];
+}
+else
+{
+  v0 = &process[0x60 + (ZZZZZZ*4)];
+}
+
+v0 = *(v0);
+var_48 = (v0 == 0);       //beqz
+
+goto 22d60
+----------------
+
+------(3)-------
+22ce4
+
+if (ZZZZZZ == 0x1F)                  //if all 5 set then pop stack as condition
+{
+  process[0xDC] = process[0xDC] - 4;
+  
+  v0 = process[0xDC];
+}
+else
+{
+  v0 = process[0x60 + (ZZZZZZ*4)];   //else Z bits refer to a link to use as condition
+}
+
+var_48 = *(v0);          //bnez
+
+goto 22d60
+
+----------------
+
+
+22d60:
+
+if (var_48 == 0) { next instruction; }
+if (XX     == 3) { next instruction; }
+
+if (XX == 0) 
+{ 
+  process[0xE0] = process[0xE0] + (abits * 4);  //relative jump
+  process[0xDC] = process[0xDC] - bbits;
+
+  next instruction;
+
+}
+if (XX == 1) 
+{ 
+
+  //22ED4
+  //code entry is on the stack?
+  entry = process[0x20];
+  item5 = entry[0x20];
+
+  a1 = process[0x128];
+
+  item5Offset       = item5 + (abits * 16);
+  item5structHeader =       item5Offset[0];
+
+  if ( (process[0x128]) == 4 || 3 || 2)
+  {
+    v0 = (process[0xD0] | 0x1002) & item5StructHeader;
+  }
+  else
+  {
+    v0 = (process[0xD0]) & item5StructHeader;
+  }
+
+  if (v0 != 0) { next instruction; }
+  else
+  {
+    subid  = abits;
+    retval = sub_8001D698(process, subid, 0, 0);
+
+    if (retval >= 0xFFFFFF02 || ((var_70 & 2) == 0))
+    {
+      process[0xD4] = process[0xD4] - 4;
+    }
+    else
+    {
+      RETURN retval;                    //the process execution finally ends
+    }
+    
+  }
+
+}
+if (XX == 2)
+{
+  var_D8 = var_70;
+
+  process[0xDC] = process[0xE4] + 8;  //set back to return frame
+
+
+  lval = *(process[0xDC]) >> 16;      //grab tag there
+  rval = *(process[0xDC]) & 0xFFFF;
+
+  if (lval != 0)                      //if not the initial frame
+  {
+    a0 = 0xFFFFFF01;
+
+    process[0xDC] = process[0xDC] - 4;
+    process[0xE0] = *(process[0xDC]);  //return to the code for this frame
+    process[0xDC] = process[0xDC] - 4;
+
+    
+    //remember the status flags for this frame as it's been returned to at least once,
+    //[when it has been returned to twice the initial 0xFFFF here should NOT be 0xFFFF]
+    var_D8 = (var_70 & 0xFFFF0000) | *(process[0xDC]); 
+
+    v0 = &process[0x60 + rval];  //but then r of tag determines index into links
+    *(process[0xDC]) = v0;       //which we put at stack (but not PUSH)
+    
+    //EDIT: seems to replace the initial 0xFFFF, first thing put at a frame when created
+    //for the frame that is now finished with a pointer to where it said the stack left off
+    //(should point to itself) indicating that a sub has been called at that stack location
+    //and the the sub that was ran's frame will now be replaced with data that will extend the
+    //frame for the current sub    
+  }
+  else
+  {
+
+    a0 = 0xFFFFFFE7;
+  }
+
+  //status bits
+  //===========
+  //bit 4- when not set: IF rte to initial frame, halts execution/returns 0xFFFFFFE7
+           else check
+           bit 1- when not set: execution is not halted after the RTE
+                      when set: execution halted after the RTE, returns 0xFFFFFF01
+                      (if bit 5 is set additionally replace initial 0xFFFF of the 
+                      old frame with 0, pushing forward)
+           when set check:
+           bit 6- when not set, halts execution/returns 0xFFFFFFE6
+                  when set, halts execution/returns 0xFFFFFF01 and sets var_68=0xFF
+           (NOTE THAT BIT 6 IS SET BY 'ERROR HANDLING' instruction when it passes true)
+           
+  if ((var_70 & 8) == 0)    //bit 4 not set        //22e48
+  {  
+    if ((var_70 & 1) == 0)  //bit 1 not set
+    {
+      if (a0 <= 0xFFFFFF02) //and not initial frame
+      { 
+        //if this frame has been returned to more than once, use the status flags
+        //from when it was last returned to
+        if ((var_D8 & 0xFFFF) != 0xFFFF)
+        {
+          var_70 = var_D8;
+        }
+
+        //continue execution 
+        next instruction;      
+      }
+    }
+
+    //bit 4 not set, and bit 1 set or is initial frame, and bit 5 not set
+    if ((var_70 & 0x10) != 0) 
+    {
+
+      if (a0 > 0xFFFFFF02) { RETURN a0; }  //bit 4&5 not set & is initial frame, the process execution finally                                              ends
+    
+      *(process[0xDC]) = 0;                //bit 4&5 not set & not initial frame, push 0
+      process[0xDC] = process[0xDC] + 4;
+    }
+
+    RETURN a0;                             //the process execution finally ends
+  }
+  
+  if ((var_70 & 0x20) == 0)                //bit 4 and bit 6 set, end with this error
+  {  
+    RETURN 0xFFFFFFE6;                     //the process execution finally ends
+  }
+  else
+  {
+    *(var_68) = 0xFF;                      //bit 4 and bit 6 not set, end with this error,
+                                           //set global subID to 0xFF?
+    RETURN 0xFFFFFF01;                     //the process execution finally ends
+  }
+      
+}  
+
+  
+
+//2 other times in this sub where execution is ended
+
+//only other place execution ends is case 132 and 143 (& 136, 137 with 24008)

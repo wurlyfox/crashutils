@@ -1,0 +1,50 @@
+box global bitlist bitfields
+
+bit  val    purpose
+---  ---    -------
+1    0x1
+2    0x2
+3    0x4    wireframe box has been triggered, or hidden box has been touched 
+4    0x8   
+5    0x10
+...
+
+
+box bitfields
+
+0xC0:
+
+bit  val          purpose
+---  ---          -------
+1    0x1          
+2    0x2
+3    0x4
+4    0x8
+5    0x10
+6    0x20
+7    0x40
+8    0x80
+9    0x100       hidden box
+10   0x200       wireframe box
+11   0x400
+12   0x800       forces a 0 Z-index?
+13   0x1000      with bit 12 forces -0x18 z-index?
+14   0x2000
+15   0x4000
+16   0x8000      override nearby box chain behaviors?
+17   0x10000
+18   0x20000     box has potential to change to a checkpoint
+19   0x40000     with bit 12&13 forces -0x24 z-index?
+20   0x80000
+21   0x100000
+22   0x200000
+23   0x400000
+24   0x800000
+25   0x1000000
+26   0x2000000
+27   0x4000000
+28   0x8000000
+29   0x10000000
+30   0x20000000
+31   0x40000000
+32   0x80000000

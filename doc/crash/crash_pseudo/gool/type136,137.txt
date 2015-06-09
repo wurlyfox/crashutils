@@ -1,0 +1,156 @@
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE TYPE 136,137):
+--ERROR HANDLING--
+
+GOOL OPCODE TYPE :
+
+________ DDCCBBBB BBAAAAAA AAAAAAAA
+
+if bit 2 of arg_a1 clear then end execution with 0xFFFFFFF2
+
+cbits = 0: force check pass
+cbits = 1: checks a value IF NONZERO from top of stack(bbits when != 0x1F) or pops from stack(bbits == 0x1F)
+cbits = 2: checks a value IF    ZERO from top of stack(bbits when != 0x1F) or pops from stack(bbits == 0x1F)
+cbits = 3: force check fail
+
+if check pass:
+set bit 6 of arg_a1
+set arg_a2[4] if bits 4 or 8 of gool global reg var s5 are cleared
+
+-reset stack frame variables (pc, fp, sp) with cur stack frame and end execution with error 0xFFFFFF01 (next sub = 0xFF)
+(end execution with 0xFFFFFFE7 if topmost frame)  [if dbits != 3]
+dbits = 0, 2: next sub = 0xFF  (arg_a2)
+dbits = 1:    next sub = abits (arg_a2)
+dbits = 3: (dont end execution or reset stack frame variables)
+
+if check fail:
+
+if dbits == 0
+  abits = UUUULL LLLLLLLL
+  pop stack count ubits words
+  pc = lbits
+next instruction
+----------------------------------------------------
+
+NOTE THAT VAR_70 = GOOL INTERPRETER ARG_A1
+     AND  VAR_68 = GOOL INTERPRETER ARG_A2
+	 
+if (var_70 & 3 == 0) { end execution, return 0xFFFFFFF2; }
+if (cbits == 0) 
+{ 
+  var_50 = 1;
+}
+else if (cbits == 1) 
+{
+  if (bbits == 0x1F) { var_50 = *(process.pop());  }  dereferences pointer on stack
+  else               { var_50 = process[0x60+(bbits*4)]; } grabs link instead
+}
+else if (cbits == 2) 
+{ 
+  if (bbits == 0x1F) { var_50 = *(process.pop()) < 1; }        
+  else               { var_50 = process[0x60+(bbits*4)] < 1; } //sets true if invalid link
+
+}
+else if (cbits == 3) { }  //do nothing
+
+if (var_50)  //else 22C7C
+{
+  var_70 |= 0x20;
+  
+  var_68[4] = ((s5^0x88) >= 0)
+
+  if (dbits == 0) { 22BA0; }
+  if (dbits == 1) { 22C0C; }
+  if (dbits == 2) { 22BA0; }
+  if (dbits == 3) { next instruction; }
+  
+  22BA0:
+  
+  stackpos = &process[0xE4][8];   //curframe[8] = current stack frame:  sp at creation | fp at creation
+  tagval   = process[0xE4][8];    //
+  
+  process[0xDC] = stackpos;       //set sp to this location 2 words into current stack frame
+  
+  initfp = tagval >> 16;          //top of the current frame
+  
+  if (initfp != 0)                //if the current frame is not at the top of the stack
+  {
+    stackpos = &process[0xE4][4]; 
+    returnpc = process[0xE4][4];    //get the location of the subroutine for the current frame
+  
+    process[0xDC] = stackpos;       //set sp to this location 1 word into current stack frame
+                                    //pointless, but shows virtually how the stack works
+    initsp = tagval & 0xFFFF;  
+    stackpos = process[0x60 + initsp]; 
+    process[0xDC] = stackpos;       //reset sp to its initial location for this frame      
+    
+	process[0xE4] = initfp;         //reset fp to its initial location for this frame
+    process[0xE0] = returnpc;       //reset pc to its initial location for this frame
+  
+    code = 0xFFFFFF01;              //end execution with error 0xFFFFFF01 (also var_68 = 0xFF)
+  }
+  else
+  {
+    code = 0xFFFFFFE7;            //else current frame is at top of stack, end execution with error 0xFFFFFFE7
+  }
+  
+  if (code < 0xFFFFFF02) { var_68 = 0xFF; end execution, returing code (0xFFFFFF01); }
+  else                   { end execution, returning code (0xFFFFFFE7) }
+
+  --
+  
+  22C0C:   //does same thing as 22BA0, but sets var_68 to abits when check passes
+           //also jmp to 22E38 rather than 22E2C
+  stackpos = &process[0xE4][8];   //curframe[8] = current stack frame:  sp at creation | fp at creation
+  tagval   = process[0xE4][8];    //
+  
+  process[0xDC] = stackpos;       //set sp to this location 2 words into current stack frame
+  
+  initfp = tagval >> 16;          //top of the current frame
+  
+  if (initfp != 0)                //if the current frame is not at the top of the stack
+  {
+    stackpos = &process[0xE4][4]; 
+    returnpc = process[0xE4][4];    //get the location of the subroutine for the current frame
+  
+    process[0xDC] = stackpos;       //set sp to this location 1 word into current stack frame
+                                    //pointless, but shows virtually how the stack works
+    initsp = tagval & 0xFFFF;  
+    stackpos = process[0x60 + initsp]; 
+    process[0xDC] = stackpos;       //reset sp to its initial location for this frame      
+    
+	process[0xE4] = initfp;         //reset fp to its initial location for this frame
+    process[0xE0] = returnpc;       //reset pc to its initial location for this frame
+  
+    code = 0xFFFFFF01;              //end execution with error 0xFFFFFF01 (also var_68 = abits)
+  }
+  else
+  {
+    code = 0xFFFFFFE7;            //else current frame is at top of stack, end execution with error 0xFFFFFFE7
+  }
+  
+  if (code < 0xFFFFFF02) 
+  { 
+    var_68 = abits;
+	end execution, returning code (0xFFFFFF01)
+  }
+  else                   
+  { 
+    end execution, returning code (0xFFFFFFE7)
+  }
+}
+else  //var_50 == 0
+{
+  if (dbits != 0) { next instruction; }
+  
+  codelocation = (abits & 0x3FF) * 4;      //UUUULL LLLLLLLL
+  process.pc += codelocation;
+  
+  stackpop = ((abits & 0x3C00) >> 10) * 4;
+  
+  process[0xDC] -= stackpop;
+  
+  next instruction;
+}
+
+
+

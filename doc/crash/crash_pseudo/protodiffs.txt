@@ -1,0 +1,725 @@
+FINAL OFFSET |   PROTO OFFSET  | ROUTINE NAME                            | PROTO DIFF              
+             |                 |                                         | 
+sub_8001177C |                 | _ExpAllocArea                           |  
+sub_80011870 | sub_80011328    | _expand                                 | n/a
+sub_80011A18 | sub_800114D0    | InitHeap                                | n/a
+sub_80011A58 | sub_80011510    | malloc                                  | n/a
+sub_80011C8C | sub_80011744    | free                                    | n/a
+sub_80011CA0 | sub_80011758    | realloc                                 | n/a
+sub_80011D30 | sub_800117E8    | calloc                                  | n/a
+                               |                                         |
+sub_80011D88 | sub_80011840    | main(mode)                              | proto does not return 0
+sub_80011DD0 | sub_80011884    | in mainroutines.txt                     | various?
+             |                                                           |
+sub_80011FC4 | sub_800121E8    | game(mode)                              | 1) subsystem init and paging init done separately
+                                                                         |      80015028          80014AF4
+                                                                         | 2) kill or reset all objects not mass gool event
+                                                                         |     done manually in sub_800298EC
+
+sub_80012660 |                 | encodeEID(string)                       |
+sub_800126C0 |                 | decodeEID(EID)                          |
+sub_80012820 |                 | alphaNum(index)                         |
+                                                                         |
+sub_800128A4 |                 | could port an equivalent, though OS is a|
+sub_80012DCC |                 | find all entries in nsf/nsd of a specifi|
+                                                                         |
+sub_80012F10 |                 | handlePageChunkEntries(page)            |                           
+sub_8001331C |                 | freePage(page)                          |
+sub_800134C8 | sub_800135C8    | handlePages(CID)                        |
+sub_80013748 |                 | handleAllPages()                        |
+sub_80013798 |                 | seekDiscToPage???                       |
+sub_80013B30 |                 | setupDecompressPage(page)               |
+sub_80013D48 |                 | handlePage(page, CID)                   |
+sub_800141F4 |                 | allocatePage(count, flag)               |
+sub_8001439c |                 | texturePage(..)                         |
+sub_80014514 |                 | ?? texture page related                 |
+sub_800145C8 |                 | findAudioPage(..)?                      |
+sub_800146F0 |                 | newPage(page, CID, EID, count, flag)    |
+sub_80014930 |                 | clearMapChunk(CID)                      |
+sub_8001495C |                 | ??                                      |
+sub_80014C08 |                 | pageEntry(EID, CID)                     |
+sub_80014D00 |                 | ??                                      |
+sub_80014E34 |                 | ??                                      |
+sub_80015034 |                 | findPage(EID or listEntry)              |
+sub_80015118 |                 | variant of lookupEntry;                 |
+sub_800156D4 |                 | ??see 15978                             |
+sub_8001579C |                 | ??see 15978                             |
+sub_80015978 |                 | ??variant of lookupEntry                |
+sub_80015A98 | sub_80014AA8    | lookupEntry(EID or hashPair)            |
+sub_80015B58 |sub_80014AF4,5028| initPaging(LID/mode)                    |
+sub_80016420 |                 | killPaging(..)                          |
+sub_800164F8 |                 | truncatePages(pages, index)             |
+                                                                         |
+sub_8001652C |                 ne, calls all others                      |
+sub_8001668C |                 tine (still not documented)               |
+                                                                         |
+sub_80016718 |                 | initControls()                          |
+sub_800167A4 |                 | readControls()                          |
+                                                                         |
+sub_800169F8 |                 | 'clearScreen()'                         |
+sub_80016A6C |                 | gpu init param routine                  |
+sub_80016C18 |                 | game mode dependent graphics routine A  |                        
+sub_80016D14 |                 | (invalid entry type graphics halt routin|                        
+sub_80016DCC |                 | implement with sub_80016c18             |                        
+sub_80016E18 |                 | prim routine                            |                        
+sub_80016E5C | sub_800156C4    | gpu main routine                        |                        
+sub_800172E8 |                 | gpu draw/display buffer 'swap & render' |                        
+sub_80017358 |                 | screen with black tiles for clearing    |                        
+sub_80017448 |                 | gpu primitive render routine            |                        
+sub_800175D0 |                 | global game speed/velocity rounding rout|                        
+                                                                         |                        
+sub_8001767C |                 | after paging implemented, implement rout|                        geos
+sub_80017790 |                 | set up projection and screen offset     |                        
+sub_80017A14 | sub_8001615C    | global view matrix,rot,angles etc. not f| 1) looks like they do 5/8 matrix scaling in a separate routine 160B0
+               
+sub_800180A0 |                 |   generates a matrix for map matrix rout|                        
+sub_800180CC |(                | svtx light/shading                      |                        
+sub_80018964 |(                | addModelPrim(svtx,frame,trans,rot,scale,|                        
+sub_80018A40 |(                | implement as addModelPrim(..) for T20 ty|                        
+sub_80018B98 |(                | addModelPrim(texEID, texInfoArray, scale|                        
+sub_80018DBC |(                | implement as addPrim() for 'font' type p|                        
+                                                                         |                        
+sub_80019144 |                 | transform(input, matrix, output)        |                        
+                                                                         |                        
+sub_8001922C | sub_80017AE0    | implement copying wgeo entry item 1 cont|                        
+sub_80019508 | sub_80017C9C    | implement as wgeo render mode A         |                        
+sub_800195CC |                 |                                         |                        
+sub_80019BCC | sub_80018358    | implement as wgeo render mode C         |                        
+sub_80019DE0 | sub_80018438    | implement as wgeo render mode D         |                        
+sub_80019F90 | sub_800185D0    | implement as wgeo render mode E         |                        
+sub_8001A0CC | sub_8001870C    | implement as wgeo render mode F         |                        
+sub_8001A2E0 | sub_80018864    | implement as wgeo render mode G         |                        
+sub_8001A460 |                 | decipher; seems to assist 1922C in copyi|                        
+                                                                         |                        
+sub_8001A5F4 |                 | memory card-related image/graphics routi|                        
+sub_8001A754 |                 | memory card-related image/graphics routi|                        
+sub_8001A850 |                 | memory card-related image/graphics routi|                        
+                                                                         |                        
+sub_8001AAD8 |                 | initObjects()                           |                        
+sub_8001AC28 |(                | freeObjects()                           |                        
+sub_8001AC60 |(                | what does this do again?                |                        
+                                                                         |                        
+sub_8001AC9C |                 | objectPath(process, progress, trans)    |                        
+sub_8001B3F0 |                 | loadStates(levelID)                     |                        
+sub_8001B648 |                 | familyRoutinePBC(obj, routine, arg)     |                        
+sub_8001B6F0 |                 | familyRoutineCBP(obj, routine, arg)     |                        
+sub_8001B788 |                 | findObject(obj, routine)                |                        
+sub_8001B84C |                 | familyRoutinePBCH(obj, routine, arg)    |                        
+sub_8001B92C |                 | familyRoutineCBPH(obj, routine, arg)    |                        
+sub_8001BA18 |                 | -map related?                           |                        
+sub_8001BA90 |                 | hasPID(obj, PID)                        |                        
+sub_8001BAB0 |                 | -calls to 800252C0, where another interpr|                              
+sub_8001BCA4 |                 | find_RoutineFlags(obj, flags)            |                              
+sub_8001BCC8 | sub_80019AE0    | spawnObject(entity, index)               |                              
+sub_8001C6C8 |                 | addObject(parent, type, subtype, count, a|                              
+sub_8001CB80 | sub_8001A390    | initProcess(obj, type, subtype, count, ar|                              
+sub_8001CDD0 |                 | terminateObject(obj, flag)               |                              
+sub_8001D11C |                 | terminateObject(...) alt used by terminat|                              
+sub_8001D1E0 |                 | terminateObject(obj)                     |                              
+sub_8001D200 |                 | terminateObjects(...), used when restarti|                              
+sub_8001D33C |                 | objectBound(obj, scale)                  |                              
+sub_8001D5EC |  sub_8001AAE0   | handleObjects(flag)                      | 1) passing false stores 34*counter at 2d6c4, rather than calculate anew                
+                                                                          | 2) sub_80019868 does the object loop for listobjs rather than inline                             
+sub_8001D698 |                 | changeState(obj, state, count, args)     |                              
+sub_8001D914 |                 | newFrame(obj, offset, status_flags)      |                              
+sub_8001DA0C | sub_8001AEF0    | handleObject(obj, flag)                  | 1) no check for obj type 7 present                  
+                                                                            2) no check on routineFlagsA
+                                                                            3) creating stack frame is -not- inline: @1ADF8
+                                                                            4) no renderObject; it is inline code at end of this sub
+                                                                            
+sub_8001DE78 |      n/a        | renderObject(obj)                        |  inline in 1AEF0                        
+sub_8001E3D4 |(                | implement text rendering routine         |                              
+sub_8001E7D8 |(                | implement text rendering routine         |                              
+sub_8001EB28 |                 | handleColors(obj)                        |                              
+sub_8001EEA8 |                 | objectSpace(obj)                         |                              
+sub_8001F30C |                 | objectPhysics(obj)                       |                              
+             |                                                            |                              
+sub_8001FB34 |                 | translateA(obj)                          |                              
+sub_8001FC4C |                 | translateB(obj)                          |                              
+sub_8001FDC4 |                 | testControls(inst, port)                 |                              
+sub_800201DC | sub_8001DFB8    | interpret(obj, status_flags, ret)        | 1) PRINTF CALLS PRESENT :D For GOOL Debugging
+
+1) It officially appears that GOOL has its own 8 bit fixed-point precision type, different from the 12 bit precision used
+   by the GTE. These are the additional 8 bits we've seen shifted for vectors, operands of that implied type, etc.
+   GOOL Instruction 0x81 is -not- a NOP in the proto; it accepts only 2 GOOL operands as input and issues calls to 
+   printf for debugging information:
+   
+   When operand A translates to a nonzero pointer, the value at that address is an 8 bit-precision fixed point value.
+   The following message is printed:
+   
+   " obj  a:[hex value here] [dec value here]=[left 24 bits of dec value].[right 8 bits of dec value]"
+   
+   When operand B translates to a nonzero pointer, the same is done as above but with no " obj  " preceding string
+   and the value for operand B used instead
+   
+   Finally a newline is printed.
+   
+
+
+             
+sub_80024040 |                 | issueEvent(..)                           |                              
+sub_800243A0 |                 | objectRotate(angA, angB, speed, obj)     |                              
+sub_80024528 |                 | objectRotateB(angA, angB, speed, obj)    |                              
+sub_800245F0 |                 | leastAngDist(angA, angB)                 |                              
+sub_80024628 |                 | approach(oldVal, newVal, maxVal)         |                              
+sub_8002465C |                 | transform(input, trans, rot, scale, outpu|                              
+sub_800248A0 |                 |                                          |                              
+sub_800249E0 |                 | screenCoordinates(input, output)         |                              
+                                                                          |                              
+sub_80024AD4 |                 | objectCollide(collidee, collideeSpc, coll|                              
+sub_80024CC8 |                 | issueIfColliding(recip, query)           |                              
+sub_80025134 |                 | issueToAll(sender, event, mode, count, ar|                              
+                                                                          |                              
+sub_800251B8 |                 |                                          |                              
+sub_800252C0 |                 | -another interpretation can occur from he|                              
+                                                                          |                              
+sub_800253A0 | sub_8002021C    | loadLevel()                              |                              
+
+Note that the above becomes the LDAT subsystem specific entry handling routine rather than initA
+The prototype has LDAT entries; this is where the level header normally found in NSD files of the
+original resides.**
+
+sub_80025628 |                 | initZdat()                               |                              
+sub_800256DC |                 | when map is implemented, implement: initM|                              
+sub_80025928 | sub_800206F0,20 | implement auto object spawning: spawnObje|                              
+sub_80025A60 |                 | updateLevel()                            |                              
+sub_800260AC |                 | updateLevelMisc()                        |                              
+                                                                          |                              
+sub_80026140 |                 | implement the init routines when game is |                              
+sub_80026200 |                 |                                          |                              
+sub_800262DC |                 | implement level dependent entry loading r|                              
+                                                                          |                              
+sub_80026460 |                 | saveState(obj, state, flag)              |                              
+sub_80026650 | sub_800210EC    | implement reiniting of level: reinitLevel|                              
+sub_80026B80 |                 | isColliding(point, space)                |                              
+sub_80026CA8 |                 | isColliding(spcA, spcB)                  |                              
+sub_80026DD4 |                 | findZone(..)                             |                              
+             |                                                            |                              
+sub_80026FF0 |T                | implement after provided a better example|                              
+sub_800277EC |T                |    |                                     |                              
+sub_80027A4C |T                |    |                                     |                              
+sub_80027BC4 |T                |    |                                     |                              
+sub_80027F50 |T                |    |                                     |                              
+sub_8002832C |T                |    |                                     |                              
+sub_80028644 |T                |    |                                     |                              
+sub_800289B4 |T                |    |                                     |                              
+sub_80028E3C |T                |    |                                     |                              
+sub_8002940C |T                |    V                                     |                              
+             |                                                            |                              
+sub_800294B0 |                 | traverseNodes(newTrans, obj, trav)       |                              
+sub_800296A8 |                 | cameraCalculate(section, progressV, cam) |                              
+                                                                          |                              
+sub_80029A58 |(                | implement initing structs for SLST sortin|                              
+sub_80029AD8 |(                | implement deiniting structs for SLST sort|                              
+sub_80029B0C |(                | implement sorting SLST lists for primitiv|                              
+                                                                          |                              
+sub_80029B90 |                 | apxDist(vectA, vectB)                    |                              
+sub_80029C90 |                 2 points and a bounding volume [specified a|                              X, -maxY, -maxZ) : (maxX, maxY, maxZ)] 
+sub_80029D30 |                 | eucDist(vectA, vectB)                    |                              
+sub_80029BD0 |                 stance in XZ plane between 2 vectors       |                              
+sub_80029E10 |                 | angleXZ(vectA, vectB)                    |                              
+sub_80029E48 |                 | angleXY(vectA, vectB)                    |                              
+                                                                          |                              
+sub_80029F6C |                 | adjustCamProgress(camSpeed, cam)         |                              
+sub_8002A0C4 |                 | cameraGetProgress(trans, section, cam, bi|                              
+sub_8002A3EC |                 | cameraGetProgressAlt(trans, section, cam,|                              
+sub_8002A82C |                 | cameraFollow(obj, flag)                  |                              
+sub_8002B2BC | sub_80025AB4    | cameraUpdate()                           |                              
+sub_8002BAB4 |                 | cameraDeath()                            |                              
+                                                                          |                              
+sub_8002BE8C |                 | transSmoothStopAtSolid(obj, vel, trav)   |                              
+sub_8002C184 |                 | transPullStopAtSolid(obj, trans, trav, ve|                              
+sub_8002C3B8 |                 | processNode(obj, nodeValue)              |                              
+sub_8002C660 |                 | findHighestBelowObjectY(obj, trans, newTr|                              
+sub_8002C8EC |                 | stopAtFloor(obj, oldTrans, newTrans, out)|                              
+sub_8002CD9C |                 | findCeil(obj, trans, trav)               |                              
+sub_8002D18C |                 | stopAtZone(obj, trans)                   |                              
+sub_8002D384 |                 | transStopAtSolid(obj, trav, trans, pull, |                              
+sub_8002D638 |                 | -BINF initA, inits collision related stuf|                              
+sub_8002D694 |                 | -BINF killB, only returns GOOL success co|                              
+sub_8002D69C |                 | plotWallB(x, z)                          |                              
+sub_8002D8B8 |                 | plotObjWalls(trans, obj, trav, flag)     |                              
+sub_8002DF50 |                 | plotWalls(trans, obj, trav)              |                              
+sub_8002E0A0 |                 | replotWalls(noClear, flags, trans, obj)  |                              
+sub_8002E3F8 |                 | stopAtWalls(trans, reqX, reqZ, movX, movZ|                              
+                                                                          |                              
+sub_8002E8A4 |                 , init A)                                  |                              
+nullsub_28   |                                                            |                              
+sub_8002E98C |                 t routine                                  |                              
+sub_8002EABC |                                                            |                              
+sub_8002EBB4 | sub_800119A0    | level specific wgeo vertex shader paramet|                              
+sub_8002EC68 | sub_80011A08    | level specific audio vector parameter ini|                              
+                                                                          |                              
+sub_8002F6B0 |                 | SEED A (gp[0xDC]) RANDOM NUMBER routine  |                              
+sub_8002F75C |                 | SEED A (gp[0xDC]) = 0x3039 (init routine)|                              
+sub_8002F76C |                 | SEED A (gp[0xDC]) = arg_a0 (alt init rout|                              
+sub_8002F778 |                 | SEED B (gp[0xE0]) RANDOM NUMBER routine  |                              
+absdistance  |                 | absdistance(c1, c2)                      |                              
+                                                                          |                              
+sub_8002F8C4 |                 | CD FILESYSTEM READ ROUTINE               |                              
+SeVibOn                                                                   |                              
+SetVib                                                                    |                              
+SsUtVibrateOn                                                             |                              
+SsUtVibrateOff                                                            |                              
+SeVibOn_0                                                                 |                              
+SetVib_0                                                                  |                              
+SsUtVibrateOn_0                                                           |                              
+SsUtVibrateOff_0                                                          |                              
+SeVibOn_1                                                                 |                              
+SetVib_1                                                                  |                              
+SsUtVibrateOn_1                                                           |                              
+SsUtVibrateOff_1                                                          |                              
+SeVibOn_2                                                                 |                              
+SetVib_2                                                                  |                              
+SsUtVibrateOn_2                                                           |                              
+SsUtVibrateOff_2                                                          |                              
+SeVibOn_3                                                                 |                              
+SetVib_3                                                                  |                              
+SsUtVibrateOn_3                                                           |                              
+SsUtVibrateOff_3                                                          |                              
+nullsub_2                                                                 |                              
+                                                                          |                              
+----SOUND/MIDI/AUDIO DRIVERS/ENGINE------------                           |                              
+sub_8002FDE0 |  for ADIO entrie| (sub 2, initA)                           |                              
+sub_8002FFC0 |  for ADIO entrie| (sub 6, deinit) deinit != chunk deinit   |                              
+sub_8002FFFC |                 |                                          |                              
+sub_80030008 |                 |                                          |                              
+sub_80030078 |                 |                                          |                              
+sub_80030260 |                 | initialize/set p hardware voices for a pr|                              
+sub_80030328 |                 |                                          |                |                              
+sub_800304C8 |                 |                                          |                |                              
+sub_80030840 |                 |                                          |                |                              
+sub_80030CC0 |                 |                                          |                |                              
+sub_800311B0 |                 |                                          |                |                              
+sub_80031244 |                 |                                          |                |                              
+sub_800313B4 |                 | for MIDI entries (sub 2, init A)         |                |                              
+sub_800313C4 |                 |                                          |                |                              
+sub_800314C4 |                 |                                          |                |                              
+sub_800317DC |                 |                                          |                |                              
+sub_800317F8 |                 |                                          |                |                              
+sub_80031938 |                 | for MIDI entries (sub 6, deinit)         |                |                              
+sub_80031964 |                 |                                          |                              
+sub_800319DC |                 |                                          |                              
+sub_80031A40 |                 |                                          |                              
+             |                 |                                          |                              
+sub_80031BAC |                 | for MDAT entrie| (sub 2 initA)           |                              
+sub_80031BF8 |                 | for MDAT entrie| (sub 3 initB)           |                              
+sub_80031D50 |                 |   load title sp|cific entries            |                              
+sub_80031EB4 |                 | world map subro|tine                     |                              
+sub_800322CC |                 | loading screen |ubroutine                |                              
+sub_800326D8 | sub_80029C74    |een subroutine                            |                              
+sub_80032AF4 |                 |                                          |                              
+sub_80032BB4 |                 | called before 3|DFC in titles routine    |                |                              
+sub_80032DFC |                 | called after  3|BB4 in titles routine    |                |                              
+sub_80032FDC |                 | do palette fade| load next appropriate ti|le card, etc?   |                              
+nullsub_27   |                 |                |                         |                |                              
+sub_800334A0 |                 | SLST DECODE (SW|P/REBUILD) FORWARD  ROUTI|E               |                              
+sub_80033878 |                 | SLST DECODE (SW|P/REBUILD) BACKWARD ROUTI|E               |                              
+nullsub_5    |                 |                |                         |                |                              
+sub_80033FBC |                 | optimized data |opy routine (used for cop|ing model geomet|                              
+nullsub_6    |                 |                |                         |                |                              
+sub_800342D8 |                 | primitive linke| list initialization rout|ne              |                              
+sub_80034504 |                 | root counter ca|lback routine; increments|34520 = counter |                              
+             |                 |                |                         |                |                              
+sub_80034524 |                 |calculations for|audio                    |                |                              
+sub_80034580 |                 |calculations for|audio                    |                |                              
+             |                 |                                          |                              
+             |                                                            |                              
+sub_8003460C | SVTX/TGEO rendering routine                                |                              
+sub_80034B08 | T20 rendering routine **** TODO WE CAN FIND FORMAT OF T20 B|                              
+             |                                                            |                              
+-basically we|use the below 3 routines for determining the objects 3d boun|                              
+ closest 2d b|und box (that could contain the box) so we can trivially rej|                              
+ bound boxes |utside the clipping region                                  |                              
+sub_800351C8 | vertex 2d display range/bound box routine (for determining |                              
+sub_80035370 | find the 2d space confined to 3 points* (not specific enoug|                              
+sub_800353B0 | find the 2d space confined to 2 points* (not specific enoug|                              
+             |                                                            |                              
+sub_80035438 | wgeo transform routine                                     |                              
+sub_80035898 | wgeo transform routine w/high road/road to nowhere depth sh|                              
+sub_80035E10 | wgeo transform routine w/ripple effect vertex shader       |                              
+sub_80036340 | wgeo transform routine w/lightning effect vertex shader    |                              
+sub_80036BF4 | wgeo transform routine w/darken depth effect shader        |                              
+sub_80036D9C | = extends 36bf4, starts interpolation portion              |                              
+sub_800375EC | wgeo transform routine w/darken effect vertex shader       |                              
+sub_80037D50 |      objectengine.cpp   | queryNodes(zoneDim, nodeSpace, ou|                              
+sub_8003864C |      objectengine.cpp   | plotZoneWalls(trav, nodeSpace, fl|                              
+sub_800389A8 |      objectengine.cpp   | plotWall(x, z)                   |                              
+sub_80038AC4 |      objectengine.cpp   | handleNodes(obj, trav, nodeSpace,|                              
+sub_80038DF8 |      objectengine.cpp   | findAvgY(obj, trav, nodeSpace, co|                              
+sub_8003905C |  sine                                                      |                              
+sub_800390D0 |  cosine                                                    |                              
+sub_8003913C |  TODO: ..........       | IMPLEMENT SVTX LIGHT VERTEX SHADE|                                   
+sub_80039BD4 |  TODO: ..........       | ALT SVTX LIGHT VERTEX ROUTINE THA|                              
+sub_8003A144 |  TODO: ..........       | AND SPRITE ROTATION ROUTINE??    |                              
+sub_8003A76C |  TODO: recreate         | sprite rendering routine         |                              
+
+----mem card stuff---------
+sub_8003A94C |            
+sub_8003AA7C           
+sub_8003ABA4           
+sub_8003AC2C           
+sub_8003ADB8           
+sub_8003AE08           
+sub_8003AED8           
+sub_8003AF24           
+sub_8003B5E0           
+sub_8003B74C           
+sub_8003B8B8           
+sub_8003BE40           
+sub_8003BFFC           
+sub_8003C038           
+sub_8003C358           
+nullsub_3              
+nullsub_4              
+sub_8003C3E4           
+sub_8003C3FC           
+sub_8003C420           
+sub_8003C538           
+sub_8003C608           
+sub_8003C69C           
+sub_8003C6E4           
+sub_8003C714           
+sub_8003C7A8           
+sub_8003C900           
+sub_8003C970           
+sub_8003C9B8           
+sub_8003CA04           
+sub_8003CA50           
+sub_8003CAB0           
+sub_8003CAD8           
+sub_8003CAF8           
+sub_8003CB74           
+sub_8003CB88           
+sub_8003CB9C           
+sub_8003CD3C           
+sub_8003CD60           
+sub_8003CE20           
+sub_8003CEA8           
+sub_8003CEF0           
+sub_8003D094           
+sub_8003D1B4           
+sub_8003D1F0           
+sub_8003D308           
+sub_8003D444           
+sub_8003D4EC = gool mem card interface        
+-----------------
+  
+exit                   
+atoi                   
+strcat                 
+strcmp                 
+strncmp                
+strcpy                 
+strlen                 
+bcopy                  
+bzero                  
+memcpy                 
+memset                 
+printf                 
+sub_8003D740           
+memchr                 
+sub_8003DFAC           
+start                  
+_bu_init               
+OpenEvent              
+CloseEvent             
+TestEvent              
+EnableEvent            
+DisableEvent           
+EnterCriticalSection   
+ExitCriticalSection    
+open                   
+read                   
+write                  
+close                  
+format                 
+firstfile2             
+nextfile               
+erase                  
+SetRCnt          
+StartRCnt        
+StopRCnt        
+ResetRCnt  
+sub_8003E410 = controller init HW routine        
+sub_8003E460 = controller read HW routine          
+sub_8003E490 = controller deinit HW routine    
+StopPAD2               
+PAD_init2              
+PAD_dr                 
+ChangeClearPAD 
+VSync           
+sub_8003E638 = timeout part of VSync         
+puts          
+ChangeClearRCnt        
+ResetCallback          
+InterruptCallback      
+DMACallback            
+VSyncCallback          
+StopCallback           
+CheckCallback          
+SetIntrMask  
+
+--interrupts stuff          
+sub_8003E88C           
+sub_8003E968           
+sub_8003EB50           
+sub_8003ECA4           
+sub_8003ED50           
+sub_8003EDD8           
+setjmp                 
+sub_8003EE14           
+ReturnFromException    
+ResetEntryInt          
+HookEntryInt           
+sub_8003EE54           
+sub_8003EEAC           
+sub_8003EF24           
+sub_8003EF50           
+sub_8003EF7C           
+sub_8003EFCC           
+sub_8003F150           
+sub_8003F1F8           
+sub_8003F224   
+
+---gpu functions        
+GsGetWorkBase          
+LoadClut           
+SetDefDrawEnv          
+SetDefDispEnv          
+sub_8003F514           
+GetClut               
+AddPrim               
+TermPrim              
+SetSemiTrans          
+SetPolyF4             
+SetSprt16             
+SetBlockFill          
+ResetGraph            
+SetGraphDebug         
+GetGraphType          
+SetDispMask           
+DrawSync              
+checkRECT             
+LoadImage             
+StoreImage            
+DrawPrim              
+DrawOTag              
+PutDrawEnv            
+PutDispEnv            
+SetDrawMode           
+SetDrawEnv            
+get_mode              
+get_cs                
+get_ce                
+get_ofs               
+get_tw                
+get_dx                
+_status               
+_otc                  
+_clr                  
+_dws                  
+_drs                  
+_ctl                  
+_getctl               
+_cwb                  
+_cwc                  
+_param                
+_addque               
+_addque2              
+_exeque               
+_reset                
+_sync                 
+set_alarm             
+get_alarm             
+_version              
+GPU_memset            
+GPU_cw                
+sub_80042B1C    = coprocessor (cop0 and cop2=gte) init routine    
+sub_80042B9C    = square root     
+MulMatrix             
+TransMatrix           
+sub_80042D6C |        matrix.cpp       | ScaleMatrix(mat, vector)        
+SetRotMatrix          
+SetLightMatrix        
+SetColorMatrix        
+SetTransMatrix        
+ReadSZfifo3           
+SetFarColor           
+SetGeomOffset         
+SetGeomScreen         
+RotTransPers          
+RotTrans              
+ratan2                
+sub_8004319C   = cop0 cache init routine        
+FlushCache  
+
+------CD-ROM stuff----          
+CdInit                
+def_cbsync            
+def_cbready           
+def_cbread            
+DeliverEvent          
+CdReset               
+PadChkVsync           
+CdSyncCallback        
+CdReadyCallback       
+CdReadCallback        
+CdControl             
+CdControlF            
+sub_80043984          
+sub_800439A4          
+CdIntToPos            
+getintr               
+CD_sync               
+CD_ready              
+CD_cw                 
+CD_vol                
+sub_80044B30          
+CD_flush              
+CD_initvol            
+CD_initintr           
+CD_init               
+sub_8004519C          
+sub_80045518          
+CD_read               
+CD_datasync           
+CD_getsector          
+sub_80045C04          
+
+--------SPU stuff-------
+SpuInitMalloc         
+_spu_init             
+_spu_writeByIO        
+_spu_FiDMA            
+_spu_t                
+_spu_write            
+_spu_FsetRXX          
+_spu_FsetRXXa         
+SpuSetReverb          
+sub_80046FB0          
+sub_80047078          
+_SpuDataCallback      
+_SpuIsInAllocateArea_ 
+SpuSetReverbModeParam 
+_spu_setReverbAttr    
+SpuSetReverbDepth     
+SpuSetReverbVoice     
+_SpuSetAnyVoice       
+SpuClearReverbWorkArea
+WaitEvent             
+sub_80047EE4          
+SpuSetVoiceAttr       
+_SpuSetVoiceAttr      
+sub_800485E0          
+SpuWrite              
+SpuSetTransferStartAdd
+SpuSetTransferMode    
+SpuIsTransferCompleted
+SpuSetCommonAttr      
+sub_80048EC4          
+sub_80048FB4          
+sub_800491E0          
+sub_80049268          
+sub_80049404          
+sub_80049428          
+sub_80049504          
+sub_80049538          
+sub_80049614          
+sub_80049648          
+_SsInit               
+sub_800497F4          
+sub_80049824          
+SsSepOpen             
+sub_80049BA0          
+sub_80049C20          
+sub_8004A060          
+sub_8004A128          
+sub_8004A1EC          
+sub_8004A298          
+_SsContNrpn1          
+_SsContNrpn2          
+_SsContRpn1           
+_SsContRpn2           
+sub_8004A67C          
+sub_8004A740          
+sub_8004A7E8          
+_SsGetMetaEvent       
+_SsNoteOn             
+_SsSetProgramChange   
+_SsReadDeltaValue     
+_SsSndNextSep         
+_SsInitSoundSep       
+_SsSndSetPauseMode    
+SsSepPause            
+SsSepPlay             
+_SsSndSetReplayMode   
+SsSepReplay           
+Snd_SetPlayMode       
+SsSetMVol             
+_SsTrapIntrVSync      
+_SsSeqCalledTbyT_1per2
+_SsStart              
+SsStart               
+_SsSndCrescendo       
+_SsSndDecrescendo     
+_SsSndPause           
+_SsSndPlay            
+_SsSeqPlay            
+_SsGetSeqData         
+_SsSndReplay          
+_SsSndStop            
+SsSepStop             
+sub_8004C990          
+sub_8004CB6C          
+SsSepSetVol?          
+sub_8004CD58          
+_SsSndTempo           
+_SsSndSetVolData      
+SsUtSetProgAtr        
+SsUtSetVagAtr         
+SsSetRVol?            
+SsUtReverbOff         
+sub_8004D498          
+sub_8004D65C          
+sub_8004D66C          
+SpuVmFlush            
+SpuSetNoiseVoice      
+SpuVmInit             
+_spu_setInTransfer    
+_spu_getInTransfer    
+SpuVmKeyOn            
+SpuVmKeyOff           
+_unnamed_             
+SpuVmDoAllocate       
+note2pitch            
+note2pitch2           
+vmNoiseOn             
+sub_8004F090          
+sub_8004F0D4          
+SpuVmKeyOnNow         
+SpuVmPBVoice          
+SpuVmPitchBend        
+SpuVmSetSeqVol        
+SpuVmGetSeqVol        
+SpuVmSeqKeyOff        
+sub_800500F8          
+sub_800501A8          
+SpuVmVSetUp           
+sub_800507EC          
+SsVabClose            
+SpuFree               
+_spu_gcSPU            
+SsVabFakeBody         
+SsVabOpenHead         
+SsVabOpenHeadWithMode 
+SpuMalloc             
+sub_80051424          
+_card_load            
+InitCARD2             
+StartCARD2            
+StopCARD2             
+_card_read            
+_new_card             
+sub_80051494          
+_card_write           

@@ -1,0 +1,64 @@
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE 0x8D/141):
+
+//probably some sort of sound opcode
+GOOL OPCODE TYPE:
+
+________ FEDDCCBB BBBBAAAA AAAAAAAA 
+
+if (abits != 0xE00) //111000000000
+{
+  a0   =        process;
+  a1   =          abits;
+  addr = sub_8001FB34();  
+}
+else
+{
+  if (fp == abits)
+  {
+    addr = &process[0x60 + ((abits & 0x1FF) * 4)];
+  }
+  else
+  {
+    process[0xDC] = process[0xDC] - 4;
+
+    addr = process[0xDC];
+  }
+}
+
+if (bbits != 0)
+{
+  if (bbits == 0x1F) //else v0 = bbits*4
+  {
+    data = process.pop()
+  }
+  else
+  {
+    data = process[0x60 + (bbits*4)];
+  }
+}
+else
+{
+  data = 0;
+}
+
+flags = dbits;
+if (flags == 0xF)
+{
+  flags |= 0x80000000;
+}
+  
+if (ebit)
+{
+  flags |= 0x40000000;
+}
+  
+if (fbit)
+{
+  flags |= 0x20000000;
+}
+  
+sub_80030840(data, flags, addr, process);
+
+next instr;
+  
+  

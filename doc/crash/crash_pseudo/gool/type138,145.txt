@@ -1,0 +1,70 @@
+GOOL SUBSYSTEM (JUMPTABLE CASE/OPCODE TYPE 138, 145):
+//creates a group of multiple identical child processes (assigning this process as parent) 
+
+GOOL OPCODE TYPE :
+
+________ EEEECCCC CCCCBBBB BBAAAAAA 
+
+//AAAAAA = number of child processes to spawn, also number of words to pad each child process with
+//BBBBBB = code subroutine
+//CCCCCCCC = code list entry
+//EEEE = number of words to pop off current proc stack and
+         push to child proc stack (i.e. count of initializing
+         args for child proc)
+
+loc_80023DC0: 
+
+//s3 = abits
+//s4 = ebits
+
+if (abits == 0)
+{
+  //v0 = ebits + 1
+  //s4 = ebits + 1
+  
+  stackpeekback = process[0xDC] - ((ebits + 1) * 4);
+  max = *(stackpeekback);  //s3
+}
+else
+{
+  max = abits;  //s3
+}
+
+//where else s5 used????
+if (max > 0)
+{
+  //s7 = -(abits * 4)
+ 
+  //(S5 is the OPCODE)
+  //if bit 1 set,
+  //   bit 2 clear,
+  //   bit 3 clear,
+  //   bit 4 clear,
+  //   bit 5 set,
+  //   bit 6 clear,
+  //   bit 7 clear,
+  //   bit 8 set
+  //clear all bits and set bit 1
+  //else clear all bits
+  
+  s5 = (s5 ^ 0x91) < 1;
+
+  do
+  {
+    childProc = sub_8001C6C8(process, cbits, bbits, ebits, process[0xDC] - (abits*4), s5);
+	
+	  if (isErrorCode(childProc)) { process[0xF4] = 0; }
+	
+	  childProc[0x70] = process;  //finally we know how one of the additional links are used
+	                              //child processes instantiated by this instruction point back to the parent process
+                                //that created them through this field
+	  process[0xF4] = childProc;  //this field seems to be the last child in the group of identical processes 
+                                //spawned by this sub, by following its sibling links, the processes created by this sub
+                                //can be followed in order to retrieve the processes again, starting with last and ending
+                                //with first
+  	count++;
+  } while (max < val)
+}
+
+//then pop the words back
+process[0xDC] -= (ebits * 4);

@@ -1,0 +1,233 @@
+sub_80017A14:
+
+nullsub_1();
+
+a0 = -*(0x57878);               //z rotation angle
+s0 = sub_8003905C();            //cosine
+
+a0 = -*(0x57878);
+v0 = sub_800390D0();            //sine
+
+s2 = 0x57864;  //main matrix ptr?
+ 
+577C4 =        [v0,  -s0,      0]
+               [s0,   v0,      0]          Z ROTATION  MATRIX
+               [ 0,    0, 0x1000]
+
+a0 = -*(0x57870);              //x rotation angle
+s0 = sub_8003905C();
+
+a0 = -*(0x57870);
+v0 = sub_800390D0();
+
+
+a0 = 0x577C4;
+a1 = &var_48;  [0x1000,    0,     0]      
+               [     0,   v0,   -s0]       X ROTATION MATRIX
+               [     0,   s0,    v0] 
+
+a0 = MulMatrix(a0, a1);
+s0 = a0;
+
+a0 = -*(0x57874);             //y rotation angle
+s0 = sub_8003905C();
+
+a0 = -*(0x57874);
+v0 = sub_800390D0();
+
+
+a0 = 0x577C4;
+a1 = &var_48;  [    v0,      0,    s0]      
+               [     0, 0x1000,     0]     Y ROTATION MATRIX
+               [   -s0,      0,    v0] 
+
+a0 = MulMatrix(s0, a1);
+
+(a0 now refers to complete rotation matrix for camera angle values)
+-----
+//also set far color
+
+farcolorinfo = 0x57914[0x10];
+SetFarColor(farcolorinfo[0x314], farcolorinfo[0x315], farcolorinfo[0x316]);
+
+
+----
+//then translate the rotation matrix (these will be the camera X, Y, Z into a particular section)
+v1 = *(0x5786C)>>8;
+v2 = *(0x57868)>>8;
+v0 = *(0x57864)>>8; 
+
+a1 = &var_28;  [ v1 ]
+               [ v2 ]
+               [ v0 ]
+
+
+a0 = TransMatrix(a0, a1);
+
+a0 is now...
+
+[ x1,  x2,  x3 ]
+[ y1,  y2,  y3 ]         y1*-5/8
+[ z1,  z2,  z3 ]
+
+577e4 becomes:
+
+[        x1,        x2,          x3 ]
+[ y1*(-5/8),  y2*(-5/8),  y3*(-5/8) ]
+[       -z1,       -z2,         -z3 ]
+
+a1 = 0x57804
+
+57804 becomes:
+
+[        x1,        x2,          x3 ]
+[ y1*(-5/8), y2*(-5/8),   y3*(-5/8) ]
+[       -z1,       -z2, NOT REPLACED]
+
+
+ginfostruct = 0x57914[0x10];
+v0 = ginfostruct[0x2FC] & 0x1000;
+
+if (v0 != 0)
+{
+  if (*(0x57960) >= 0)
+  {
+    v1 = *(0x57960);
+  }
+  else
+  {
+    v1 = *(0x57960) + 0x7F;
+  }
+
+  a0 = 0x7D;
+  a1 = 0xDC1E0;
+ 
+  fixedSign = (v1 >> 7) << 7;
+  mult = abs((fixedSign - 0x40) * 800) + 0xDC1E0;
+  *(0x5788C) = mult;
+
+  s0 = sub_8003905C(0x7D);   //these must be sin and cosine subs  
+  v0 = sub_800390D0(0x7D);
+
+     
+  57824 =        [  0x1000,       0,          0]
+                 [       0,      v0,        -s0]
+                 [       0,      s0,         v0]
+                
+  57844 =        57824 * [  1,   1,   1]
+                         [5/8, 5/8, 5/8]
+                         [ -1,  -1,  -1]
+}
+else
+{
+  57824  = 577C4;
+
+  57844  = 577E4;
+  
+  //577e4 WAS:
+
+  [        x1,        x2,          x3 ]
+  [ y1*(-5/8),  y2*(-5/8),  y3*(-5/8) ]
+  [       -z1,       -z2,         -z3 ]
+
+}
+
+geomOffset = *(0x61894)/256;
+SetGeomOffset(*(0x6139C), geomOffset + *(0x61940));
+
+if (geomOffset = 0)
+{
+  *(0x61894) = 0;
+}
+else
+{
+  if (geomOfset > 0)
+  {
+    geomOffset = 1 - geomOffset;
+  }
+  else
+  {
+    geomOffset = 0 nor geomOffset;
+  }
+
+  *(0x61894) = geomOffset * 256;
+}
+
+
+*(0x61920) = *(0x57864);
+*(0x61924) = *(0x57868);
+*(0x61928) = *(0x5786C);
+*(0x6192C) = *(0x57870);
+*(0x61930) = *(0x57874);
+*(0x61934) = *(0x57878);
+
+ginfo = *(0X57914)[0X10];
+
+if (ginfo[0x2FC] & 0x1000 == 0)
+{
+  *(0x57888) = *(0x57864);
+  *(0x5788C) = *(0x57868);
+  *(0x57890) = *(0x5786C);
+
+  *(0x57930) = *(0x57938) & 0xFFF;
+}
+else
+{
+  *(0x57930) = 0;
+}
+
+*(0x618C8) = *(0x57930);
+
+a0 = *(0x618C8);
+valA = sub_8003905C(a0);
+*(0x5794C) = valA/16;
+
+*(0x57950) = 0;
+
+a0 = *(0x57930);
+valB = sub_800390D0(a0);
+*(0x57954) = valB/16;
+
+sub_8001922C(ginfo);
+
+
+
+--------
+
+sub_8003905C(arg_a0):
+
+v1 = 0x5306C;
+
+a0 = arg_a0 & 0xFFF;
+
+if (a0 < 0x800)
+{
+  if (a0 < 0x400)
+  {
+    v0 = 0x5306C + (a0 << 1);
+    
+    return *(v0);
+  }
+
+  v0 = 0x5306C - (a0 << 1);
+  
+  return v0[0x1000];
+}
+
+if (a0 > 0xC00)
+{
+  v0 = 0x5306C + (a0 << 1)
+
+  return -v0[-0x1000];
+}
+
+v0 = 0x5306C - (a0 << 1);
+return -v0[0x2000];
+
+---------------------------------
+
+
+      
+          
+      
+      

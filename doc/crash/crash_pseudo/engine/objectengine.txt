@@ -1,0 +1,3849 @@
+//OBJECT SYSTEM = ALL OVERHEAD CODE FOR OBJECTS INCLUDING:
+                  1) HANDLING OF EXECUTION OF 
+                    - OBJECT ANIMATION GOOL CODE
+                    - 'PER FRAME' GOOL CODE
+                  2) DEFAULT OBJECT PHYSICS ROUTINES                  
+                  3) ROUTINES TO DISPLAY OBJECT
+
+//for a process of type 3: (non-type 3 will quit the sub)
+//1) if crash process exists, read controller data and issue a controller event
+//2) remember last process to run this subroutine in a buffer
+//
+//(bit 4 of 618B0 must be set to run part A)
+//A) if bit 16 of 618B0 set then:
+       if bit  26 of process field  0xCC
+       or bit  18 of process field 0x120 
+       then the following check can be skipped:
+         for process executable type 0x100, if bit 6 of 618B0
+         for process executable type 0x300, if bit 8 of 618B0
+         for process executable type 0x400, if bit 12of 618B0
+         for process executable type 0x500, if bit 8 of 618B0
+         for process executable type 0x600, if bit 8 of 618B0
+         for process executable type 0x200, if bit 9 of 618B0 (also if 4==process[0xD4] and header1=4 or 7 then override flag)     
+       
+       if the check passed (or was skipped) & flag is set
+         some additional important stuff (process execution) is done that needs documentation
+
+       decrement process [0x104] counter and clear hi bit of process[0xCC] if counter has reached 0
+
+//B) if process[0x108] field is null
+     or process[0xCC] bitfield bit 9 is set 
+     or 618B0 bit 3 is clear
+     ---
+     forget the process that runs this subroutine in the buffer and return
+       
+
+//C) if bit 15 of 618B0 set then:
+       if bit  26 of process field  0xCC
+       or bit  18 of process field 0x120 
+       then the following check can be skipped:
+         for process executable type 0x100, if bit 5 of 618B0
+         for process executable type 0x300, if bit 7 of 618B0
+         for process executable type 0x400, if bit 12of 618B0
+         for process executable type 0x500, if bit 7 of 618B0
+         for process executable type 0x600, if bit 7 of 618B0
+         for process executable type 0x200, if bit 10 of 618B0 (also if 4==process[0xD4] and header1=4 or 7 then override flag)     
+
+       if the check passed then sub_8001DE78(process)
+
+       forget the process that runs this subroutine in the buffer and return
+
+--------------------------------------------------------------------
+       
+sub_8001DA0C(process, flag)
+{
+  if (process.type != 3) { return 0xFFFFFF01; }
+  if (gp[0x2B8]    != 0) {    sub_800167A4(); }        //if crash process exists, read controller data
+
+  //this is set at the beginning of this sub, and cleared after it
+  //executes successfully; if the per-frame gool routine or main routine
+  //for the process returns error, then this will remain as the process
+  //that returned the error for this sub will return
+  *(0x60E00) = process; 
+
+  --
+  //*(0x618B0) is global primitive type rendering bitfield?
+  // -bit 1:
+  // -bit 2:
+  // -bit 3: do not animate or display processes
+  // -bit 4:
+  // -bit 5: display processes of code type 0x100 (player)
+  // -bit 6: animate processes of code type 0x100 (player)
+  // -bit 7: display processes of code type 0x300, 0x500, and 0x600 (enemys, and etc?)
+  // -bit 8: animate processes of code type 0x300, 0x500, and 0x600 
+  // -bit 9:  animate process of type 0x200 that has the code slot in NSD of the display process (PAUSE MENU)
+  // -bit 10: display process of type 0x200 that has the code slot in NSD of the display process (PAUSE MENU)
+  // -bit 11: 
+  // -bit 12: animate and display processes of code type 0x400 (sprites)
+  // -bit 13:
+  // -bit 14: 
+  // -bit 15: if set, always display (given bit 3 not set)
+              when 0xCC bit 26 set or header 2 [0x120] has bit 18 set
+  // -bit 16: if set, always animate (given bit 3 not set) 
+              when 0xCC bit 26 set or header 2 [0x120] has bit 18 set
+  
+  if (*(0x618B0) & 8 == 0) { a1 = 0; }                 //
+  else
+  {
+    if ((process[0xCC] & 0x2000000 != 0 || process[0x120] & 0x20000 != 0) && (*(0x618B0) & 0x8000 != 0))
+      a1 = 1;
+    else
+    { 
+      entry = process[0x20];
+      item1 =   entry[0x10];
+
+      //note that this is not the actual order of the check, as the code is optimized 
+      (i.e. the branching in the assembly is organized by probability)
+
+      if (item1[4] == 0x200) 
+      { 
+        a1 = *(0x618B0) & 0x100;
+
+        if (item1[0] == 4)
+        {
+          if (process[0xD4] == item1[0] || process[0xD4] == 7)
+            flag = 1;
+        }
+      }
+      else if (item1[4] == 0x100) { a1 = *(0x618B0) & 0x20; }
+      else if (item1[4] == 0x300) { a1 = *(0x618B0) & 0x80; }      //process executable type
+      else if (item1[4] == 0x400) { a1 = *(0x618B0) & 0x800;}
+      else if (item1[4] == 0x500) { a1 = *(0x618B0) & 0x80; }
+      else if (item1[4] == 0x600) { a1 = *(0x618B0) & 0x80; }
+      else                        { a1 = 0; }
+    }
+  }
+ 
+  if (flag && a1 != 0)
+  {
+    
+    if (process[0xCC] & 0x1000 == 0 || process[0x104] == 0) 
+    {
+      //set for elapsed frames at THIS point in code 
+      //(i.e this portion is reached when process[0x104] counter reaches 0) 
+      process[0xFC] = *(0x60E04); 
+
+      if (process[0xCC] & 0x10 != 0)
+      {
+        crashProcess = gp[0x2B8];
+        if (process[0xFC] == crashProcess[0xFC]) 
+          sub_8001EEA8(process);
+      }
+
+      //process[0xE8] is then a subroutine to execute for each 'object frame'
+      //'object frame' being determined by each time the [0x104] counter 
+      //reaches 0
+      if (process[0xE8] != 0)  
+      {
+
+        oldsframeOffset = process.getstackframeOffset() - 0x60;
+        oldrframeOffset = process.getreturnframeOffset() - 0x60;
+    
+        oldStack = process.stack;
+        oldFrame = process[0xE4];
+
+        process.returnframe = oldStack;
+   
+        process.push(0xFFFF);                   //-header-, ---PC---, stak|ret
+        process.push(process.pc);
+        process.push(framerange(oldrframeoffset, oldsframeOffset - (offset*4));  //WHAT IS OFFSET?
+
+        process.pc = process[0xE8];
+
+        result = sub_800201DC(process, 3, 0);
+   
+        //v0 = result
+        if (isErrorCode(result)) { return result; }
+      }
+
+      //get the wait frames/time stamp pair/tag from last left off instruction before execution halt from animation instruction
+      waitStamp = process.peek();       
+      timeStamp = (waitStamp & 0x00FFFFFF);
+      wait      = (waitStamp & 0xFF000000)>>24;
+      
+      elapsedSince = *(0x60E04) - timeStamp;
+    
+      //if more frames have passed since the time required to wait
+      if (elapsedSince > wait)
+      {
+        //get rid of the now useless tag
+        process.pop();
+        
+        //and continue execution until another animation instruction is reached 
+        result = sub_800201DC(process, 4, 0);
+        if (isErrorCode(result) { return result; }
+      }  
+
+      //
+      sub_8001EB28(process);       //s1 was the flag from above;
+      sub_8001F30C(process, s1);
+
+      process[0xC8] &= 0xFFFFFFDF;
+
+    }
+
+    //decrement the 'object frame wait' counter
+    process[0x104]--;
+
+    if (process[0x104] == 0)
+    {
+      process[0xCC] = proess[0xCC] & 0xEFFFFFFF;
+    }
+  }
+
+  //if 
+  //    -process has no animation structure,
+  //or  -process not displayable
+  //or  -some global animation flag not set?
+  if (process[0x108] == 0 || process[0xCC]&0x100 != 0 || *(0x618B0) & 4 == 0) 
+  {
+    //indicate that no process returned error, it just can't be displayed
+    *(0x60E00) = 0;
+    
+    //and don't render or display the process
+    return 0xFFFFFF01;
+  }
+
+  
+  if ((process[0xCC] & 0x2000000 != 0 || process[0x120] & 0x20000 != 0) && *(0x618B0) & 0x4000 != 0)
+  {
+    a1 = 1;
+  }
+  else
+  {
+    entry = process[0x20];
+    item1 =   entry[0x10];
+
+    if      (item1[4] == 0x200) 
+    {
+      a1 = *(0x618B0) & 0x200;
+
+      if (item1[0] == 4)
+      {
+        if (process[0xD4] == item1[0] || process[0xD4] == 7)
+          s1 = 1;
+      }
+    }
+    else if (item1[4] == 0x100) { a1 = *(0x618B0) & 0x10; }
+    else if (item1[4] == 0x300) { a1 = *(0x618B0) & 0x40; }
+    else if (item1[4] == 0x400) { a1 = *(0x618B0) & 0x800;}
+    else if (item1[4] == 0x500) { a1 = *(0x618B0) & 0x40; }      //process executable type
+    else if (item1[4] == 0x600) { a1 = *(0x618B0) & 0x40; }
+    else                        { a1 = 0; }
+  }
+
+  if (a1 != 0)
+  {
+    sub_8001DE78(process)
+  }
+
+  *(0x60E00) = 0;
+ 
+  return 0xFFFFFF01;
+}
+
+------------------------------------------
+
+sub_8001EEA8(process)
+{
+  *(0x61888)++;    //counter field
+
+  offset = *(0x61888) * 28;  //then determines index into array of some 28 byte structs
+  struct = 0x60E08[offset];
+
+  //the process associated with the bounding box in this structure
+  struct[0x18] = process;
+  
+  //ok so at 0x60E08 is an array of structures
+  //for each call to this routine a new structure is created
+  //struct 
+  //{
+  //  point P1, P2;
+  //  object *process;
+  //}
+  //(P1=x1,y1,y2) - (P2=x2,y2,z2) is the bounding box with which to update 
+  //the corresponding process.
+
+  //After all objects have run this sub for a frame, these structures 
+  //will probably be processed/eliminated where necessary.. then each
+  //object can be updated accordingly
+  
+  if (process[0xC8] & 0x8000)     //check bit 16
+  {
+    //uses a scale vector and the processes current animation frame (which determines the item in the current svtx entry)/current svtx item to
+    //determine the bounding volume for the process (whose x1,y1,z1-x2,y2,z2 coordinates are set accordingly)
+    sub_8001D33C(process, process+0x98);
+
+    process[0xC8] &= 0xFFFF7FFF;  //clear bit 16
+  }
+
+  animStruct = process[0x108];
+  animMode = animStruct[0];    //lb
+
+  //for animation of type != 1 then the new bounding volume
+  //determined by adding the current to the translation (velocity?) vector
+  if (animMode != 1)
+  { 
+    struct[0] = process[0x80] + process[8];       //x translation vector + x1 position
+    struct[4] = process[0x84] + process[0xC];     //y translation vector + y1 position
+    struct[8] = process[0x88] + process[0x10];    //z translation vector + z1 position
+
+    struct[0xC] = process[0x80] + process[0x14];  //x translation vector + x2 position
+    struct[0x10]= process[0x84] + process[0x18];  //y translation vector + y2 position
+    struct[0x14]= process[0x88] + process[0x1C];  //z translation vector + z2 position
+  }
+  //for anim type 1, an additional vector is added from index 0x2C of
+  //'the model item for the object's animation frame from the 
+  //animation/svtx/model entry for the object's current animation sequence'  
+  else
+  {
+    animEntry = EID_PROCESS(animStruct[4]);                   //holds the entry with the animation data
+
+    animFrame = process[0x10C];
+    itemOffset = (animFrame >> 8) * 4;
+    animItem = animEntry[0x10 + itemOffset];  //a0
+
+    angleX = process[0x90] & 0xFFF;  //s2
+    scaleX = process[0x98];
+
+    //v0 = &var_38
+    //if the object is facing forward and is of normal scale
+    //then there is no need to transform (scale and rotate)
+    //the current model's forward vector, so it is added directly to
+    //the translation vector to calculate the new total position of the
+    //object in three space    
+    if (angleX == 0 && scaleX == 0x1000) //default scaleX/angleX value
+    {
+      directionX = process[0x80];
+      directionY = process[0x84];
+      directionZ = process[0x88];
+ 
+      totalAnimDirX = directionX + animItem[0x2C];
+      totalAnimDirY = directionY + animItem[0x30];
+      totalAnimDirZ = directionZ + animItem[0x34];
+ 
+      var_38 = totalAnimDirX;
+      var_34 = totalAnimDirY;
+      var_30 = totalAnimDirZ;
+    }
+    //otherwise: given the object's tait-bryan angle vector and scale vector,
+    //first transform the forward vector for it's current model before adding
+    //to the translation vector to calculate the new total position of the
+    //object in three space
+    else
+    {
+      sub_8002465C(animItem+0x2C, process+0x80, process+0x8C, process+0x98, var_38);
+    }
+   
+    //using this new position and adding it to the bounding region for
+    //the object will calculate the specific region in three-space that the 
+    //object will occupy
+    if (angleX - 0x200 >= 0xC01)
+    {
+      struct[0] = var_38 + process[8];
+      struct[4] = var_34 + process[0xC];
+      struct[8] = var_30 + process[0x10];
+
+      struct[0xC]  = var_38 + process[0x14];
+      struct[0x10] = var_34 + process[0x18];
+      struct[0x14] = var_30 + process[0x1C];
+    }
+    else if (angleX - 0x200 < 0x600)
+    {
+      struct[0]   = var_38 + process[0x10];
+      struct[0xC] = var_38 + process[0x1C];
+      struct[4] =   var_34 + process[0xC];
+
+      struct[0x10]  =var_34 + process[0x18];
+      struct[8]    = var_30 - process[0x14];
+      struct[0x14] = var_30 - process[8]; 
+    }
+    else if (angleX - 0x200 < 0xA00)
+    {
+      struct[0]   = var_38 + process[0x8];
+      struct[0xC] = var_38 + process[0x14];
+      struct[4]   = var_34 + process[0xC];
+     
+      struct[0x10]= var_34 + process[0x18];
+      struct[8]   = var_30 - process[0x1C];
+      struct[0x14]= var_30 - process[0x10];
+    }
+    else
+    {
+      struct[0]   = var_38 - process[0x1C];
+      struct[0xC] = var_38 - process[0x10];
+      struct[4]   = var_34 + process[0xC];
+ 
+      struct[0x10]= var_34 + process[0x18];
+      struct[8]   = var_30 + process[0x8];
+      struct[0x14] =var_30 + process[0x14];    
+    }
+  }
+
+  crashProcess = gp[0x2B8];
+
+  if (process[0xFC] == crashProcess[0xFC])
+  {
+    crashDirX = crashProcess[0x80];
+    crashDirY = crashProcess[0x84];
+    crashDirZ = crashProcess[0x88];
+
+    crashX1 = crashProcess[0x8];
+    crashY1 = crashProcess[0xC];
+    crashZ1 = crashProcess[0x10];
+    crashX2 = crashProcess[0x14];
+    crashY2 = crashProcess[0x18];
+    crashZ2 = crashProcess[0x1C];
+
+    var_28 = crashDirX + crashX1;
+    var_24 = crashDirY + crashY1;
+    var_20 = crashDirZ + crashZ1;
+    var_1C = crashDirX + crashX2;
+    var_18 = crashDirY + crashY2;
+    var_14 = crashDirZ + crashZ2;
+    
+    //if crash were to eventually collide with the current object
+    if (sub_80026CA8(&var_28, struct) == 0)
+    {
+      process[0x78] = 0;
+    }
+    else
+    {
+      sub_80024AD4(process, struct, crashProcess, &var_28)
+    }
+  }
+}
+     
+
+-------------------------
+
+//determines color intensity of a object/process based on
+//-process[0x128] = visibility phase (fading in/out, done fading in/out, terminating, etc)
+//-process[0x12C] = frames elapsed at initiation?
+
+sub_8001EB28(process)
+{
+  //s0 = process
+  //s1 = &process[0x30]  i.e. colors
+
+  switch(process[0x128])
+  {
+    case 6:
+    
+    elapsed = *(0x60E04); //v0
+    
+    if (elapsed - process[0x12C] < 0x10)
+      return 0xFFFFFF01;
+    else 
+      goto 1EBCC;
+      
+    break;
+    
+    case 7:
+    
+     elapsed = *(0x60E04); //v0
+    
+    if (   elapsed - process[0x12C] < 0x10
+        && process[0xC8] & 1 == 0) 
+      return 0xFFFFFF01;
+    else 
+      goto 1EBCC;
+      
+    1EBCC:
+    
+    process[0xCC] |= 0x80;
+    process[0x128] = 0;
+    return 0xFFFFFF01;
+    
+    break;
+    
+    case 4:
+    
+    elapsed = *(0x60E04); //v0
+    
+    if (elapsed - process[0x12C] >= 0x3D)
+    {
+      //copy the color intensity from the current
+      //zone for the object to itself
+      
+      zone = (process[0x28] ? process[0x28]: *(0x57914));
+      process[0x128] = 0;
+    
+      if (process == gp[0x2B8])
+        zonecol = zone[0x10] + 0x348;
+      else
+        zonecol = zone[0x10] + 0x318;
+      
+      process[0x5A] = zonecols[0x2A];  
+      process[0x5C] = zonecols[0x2C];  
+      process[0x5E] = zonecols[0x2E];
+    }
+    
+    continue on to case 3...
+    
+    case 3:
+    
+    if (process[0x128] == 3) 
+    {
+      elapsed = *(0x60E04); //v0
+    
+      if (elapsed - process[0x12C] >= 0x1C4) 
+      {
+        zone = (process[0x28] ? process[0x28]: *(0x57914));
+        process[0x128] = 0;
+    
+        if (process == gp[0x2B8])
+          zonecol = zone[0x10] + 0x348;
+        else
+          zonecol = zone[0x10] + 0x318;
+      
+        process[0x5A] = zonecols[0x2A];  
+        process[0x5C] = zonecols[0x2C];  
+        process[0x5E] = zonecols[0x2E];
+        
+        goto case 5;
+      }
+    }
+    
+    if (process[0x128] == 4 && process[0x78] != 0)
+    {
+      codeEntry  = process[0x20];
+      codeHeader = codeEntry[0x10];
+        
+      codeType = codeHeader[4];
+      
+      if (codeType == 0x300)
+      {
+        var_18 = { 0, ? }
+        sub_80024040(process, process[0x78], 0xA00, 1, &var_18);
+      }
+    }
+    
+    goto case 5;
+    
+    case 5:
+    
+    if (process[0x128] == 5)
+    {
+      elapsed = *(0x60E04); //v0
+    
+      if (elapsed - process[0x12C] >= 0x25B) 
+      {
+        zone = (process[0x28] ? process[0x28]: *(0x57914));
+        process[0x128] = 0;
+    
+        if (process == gp[0x2B8])
+          zonecol = zone[0x10] + 0x348;
+        else
+          zonecol = zone[0x10] + 0x318;
+          
+        process[0x5A] = zonecols[0x2A];  
+        process[0x5C] = zonecols[0x2C];  
+        process[0x5E] = zonecols[0x2E];
+      }
+    }
+    
+    goto case 2;
+    
+    case 2:
+    
+    //quarter is one of 4 quarters calculated based on modulus of
+    //the 0x57960 counter
+    quarter = (*(0x57960) >= 0 ? *(0x57960):*(0x57960)+3) % 4;
+    quarterScale = quarter << 8;
+    
+    //quarterscale scales the value to an appropriate color
+    //also additional calculations determine the fade intensity
+    if ((quarterScale) < 0x100)
+      fade = quarterScale + 0x7F;
+    else
+      fade = 0x47F - quarterScale;
+      
+    zonecols[0x2A] = fade;
+    zonecols[0x2C] = fade;
+    zonecols[0x2E] = fade;
+    
+    return 0xFFFFFF01;
+    
+    case default:
+    
+    if (process == gp[0x2B8])
+    {
+      if (process[0xCC] & 0x400 != 0)
+      {
+        zone = (process[0x28]);
+    
+        
+        zonecol = zone[0x10] + 0x348;
+     
+        //these operations still confuse me >.>  
+        //lwl     $v1, 0x375($v0)
+        //lwr     $v1, 0x372($v0)
+        //lh      $a0, 0x376($v0)
+        //swl     $v1, 0x5D($s0)
+        //swr     $v1, 0x5A($s0)
+        //sh      $a0, 0x5E($s0)
+        
+        //...assumed the same happens
+        process[0x5A] = zonecols[0x2A];  
+        process[0x5C] = zonecols[0x2C];  
+        process[0x5E] = zonecols[0x2E];
+      }
+    }
+    
+    return 0xFFFFFF01;
+  }
+}  
+-----------
+
+sub_8001F30C(process, flag)
+{
+  //s0 = process
+  
+  if (process[0xCC] & 0x80 || *(0x618D0) == 0x100)
+  {
+    if (process[0x120] & 4)          { s2 = 0x52C24; } //not in air
+    else if (process[0xC8] & 0x2000) { s2 = 0x52C74; }
+    else                             { s2 = 0x52C34; }
+    
+    if (process[0x128] == 5)         { s2 = 0x52C64; }
+    else if (process[0x120] & 8)     { s2 = 0x52C44; } //in air
+    else if (process[0xC8] & 0x2000) { s2 = 0x52C84; }
+    
+    if (process[0x120] & 0x10)       { s2 = 0x52C54; }
+    
+    //0 = none
+    //1 = up     efff
+    //2 = right  dfff
+    //4 = down   bfff
+    //8 = left   7fff
+    //controller pressed released state...
+    val = (*(0x5E720) & 0xF000) >> 12;
+    offset = val * 12;
+    
+    //standard angle to travel based on controller U/D/L/R combination
+    //
+    
+    //mode was angY
+    //velocity was angZ
+    mode = 0x52B64[offset];
+    angXZ = 0x52B64[offset+4];  //second component is angle in the XZ plane
+                                //0 = backwards, 0x400 = right, 0x800 = forwards, 0xC00 = left
+    velocity = 0x52B64[offset+8];   //third component is value to scale by (would be velocity in
+                                //this direction)
+    
+    //EDIT: process[0x124] seems to be velocity along the path for crash to travel
+    if (angY != 8)  //8 means..?
+    {
+      //additional x add...
+      angle = *(0x57930);
+      angXZ  = (angXZ + angle) & 0xFFF;
+      
+      //how much does this differs from the current angle of approach in the 
+      //x direction
+      procangXZ = process[0xB4];  //assuming this is some additional tait-bryan vector
+      diffangX = abs(angXZ - procangXZ);
+      
+      if (diffangX > 0x801) //angles start to reverse past 0x800 (i.e. 0x799, 798..)
+      {
+        diffangX = 0x1000 - diffangX;      //else 1
+      }
+      
+      //if in air
+      if (process[0x120] & 8)
+      {
+        
+        cosine = cos(diffangX);
+        
+        scale = *(0x58404)[0x84];
+        if (scale > 0x66)
+          scale = 0x66;
+          
+        scaledVal = scale * s2[0];
+        if (scaledVal < 0) { scaledVal += 0x3FF; }
+        
+        v0 = ((cosine/64)*(scaledVal/1024))/64;
+        
+        process[0x124] += v0;
+        
+        if (v0 < 0x101)
+        {
+          process[0xB4] = angXZ;
+        }
+        else if (diffangX < 0x7C8)
+        {
+          //angX = angle between 2
+          process[0xB4] = sub_800243A0(process[0xB4], angXZ, 0xF00, 0);
+        }
+        else
+        {
+          scaledVal = scale * s2[0xC];
+          if (scaledVal < 0) { scaledVal += 0x3FF; }
+          
+          v0 -= scaledVal/1024;
+          
+          if (v0 >= 0)
+            process[0x124] = v0;
+          else
+            process[0x124] = 0;
+        }
+      }
+      else
+      {
+        //velocity should never be this much?
+        if (process[0x124] < 0x401)
+        {
+          process[0xB4] = angXZ;
+          
+          scale = *(0x58404)[0x84];
+          if (scale > 0x66)
+            scale = 0x66;
+          
+          scaledVal = scale * s2[0];
+          if (scaledVal < 0) { scaledVal += 0x3FF; }
+         
+          process[0x124] = process[0x124] + (scaledVal/1024);
+        }
+        else
+          process[0x124] = 0;
+      }
+      
+      //terminal velocity?
+      if (s2[4] < process[0x124])
+        process[0x124] = s2[4];
+    }    
+    else
+    {
+      //1f608........
+      scale = *(0x58404)[0x84];
+      if (scale > 0x66)
+        scale = 0x66;
+      
+      scaledVal = scale * s2[0xC];
+      if (scaledVal < 0) { scaledVal += 0x3FF; }
+      
+      process[0x124] = process[0x124] + (scaledVal/1024);
+      if (process[0x124] < 0)
+        process[0x124] = 0;
+    }
+
+    //then velocity for components in X/Z directions can be calculated
+    //(based on angle of approach, different from facing angle)
+    angval = (process[0x124] * velocity)/256;
+    
+    process[0xA4] = ((sin(process[0xB4])/16) * angval)/256;
+    process[0xAC] = ((cos(process[0xB4])/16) * angval)/256;
+    
+  }
+  
+  if (process[0xC8] & 1)   //toggles on and off on ground
+  {
+    //what is this check?
+    if (process[0x13C] != 0x1200)
+      process[0xC8] &= 0xFFFFDFFF; //clear bit 14
+  }      
+  
+  //clear bits 1, 8-13, 15, 17, 19, 21, and 22
+  process[0xC8] &= 0xFFCAA07E;
+  
+  
+  if (process[0xCC] & 1)   //set for crash
+  {
+    //finally rotate object in XZ based on approaching angles
+    process[0x90] = sub_800243A0(process[0x90], process[0xB4], process[0xB0], process);
+  }
+
+  if (process[0xCC] & 8)   //also set for crash
+  {
+    //process[0x90] = process[0x90] + (val*process[0xB0]); //until reach process 0xB4
+    
+    //this does it a different way?
+    process[0x90] = sub_80024528(process[0x90], process[0xB4], process[0xB0], process);
+  }
+  
+  if (process[0xCC] & 0x2000)  //also set for crash
+  {
+    //process[0x8C] = process[0x8C] + (val*process[0x144]);  //until reach process 0xB8
+    
+    //rotate object in YZ based on approach angles?
+    process[0x8C] = sub_800243A0(process[0x8C], process[0xB8], process[0x144], 0);
+  }
+  
+  //codeListIndex = object type
+  codeEntry = process[0x20];
+  codeHeader = codeEntry[0x10];
+  codeListIndex = codeHeader[0];
+  
+  //if process is not Aku Aku
+  if (codeListIndex != 5)
+    process[0x78] = 0;
+    
+  
+  if (process[0xCC] & 0x40)  //also set for crash
+  {
+    scale = *(0x58404)[0x84];
+    if (scale > 0x66)
+      scale = 0x66;
+    
+    //T = sV
+    //T = translation vector
+    //V = velocity vector 
+    //    (fixed point vector; number of units to move from current position * scale)
+    //s = scale value
+    scaleYZ = scale * process[0xA4];
+    if (scaleYZ < 0) { scaleYZ += 0x3FF; }
+    var_48 = scaleYZ/1024;
+    
+    scaleXZ = scale * process[0xA8];
+    if (scaleXZ < 0) { scaleXZ += 0x3FF; }
+    var_44 = scaleXZ/1024;
+    
+    scaleXY = scale * process[0xAC];
+    if (scaleXZ < 0) { scaleXY += 0x3FF; }
+    var_40 = scaleXY/1024;
+    
+    //var_48-var_40 = integral portion of vector result of multiplication of constant 'scale' by fixed point velocity vector
+    //var_38-var_30 = integral translation vector
+    
+    var_38 = process[0x80];
+    var_34 = process[0x84];
+    var_30 = process[0x88];
+    
+    if (process[0xCC] & 8)   //set for crash
+    {
+      process[0x13C] = 0xFF;
+      
+      sub_8002BE8C(process, &var_48, 0x5CFEC);
+    }
+    else
+    {
+      //object is finally translated from its current position by the scaled velocity vector 
+      process[0x80] += var_48;
+      process[0x84] += var_44;
+      process[0x88] += var_40;
+    }
+    
+    //flag for object travels a path?
+    if (process[0xCC] & 0x8000)  //NOT set for crash
+    {
+      sub_8001AC9C(process, 0, &var_28);
+      
+      process[0x11C] = var_24;
+      
+      //flag for: object translation is not affected by velocity
+      if (process[0xC8] & 0x200)
+      {
+        process[0x80] = var_38;
+        process[0x84] = var_34;
+        process[0x88] = var_30;        
+      }
+    }
+    
+    //unknown (does [0xB8] serve a different purpose in this case)
+    if (process[0xCC] & 0x1000)  //NOT set for crash
+    {
+      if (process[0xA4] > process[0xB8])
+        process[0xA4] = process[0xB8];
+      else if (process[0xA4] < -process[0xB8])
+        process[0xA4] = -process[0xB8];
+        
+      if (process[0xA8] > process[0xB8])
+        process[0xA8] = process[0xB8];
+      else if (process[0xA8] < -process[0xB8])
+        process[0xA8] = -process[0xB8];
+      
+      if (process[0xAC] > process[0xB8])
+        process[0xAC] = process[0xB8];
+      else if (process[0xAC] < -process[0xB8])
+        process[0xAC] = -process[0xB8];
+    }
+    
+    if (process[0xCC] & 0x4000)  //NOT set for crash
+    {
+      if (process[0x84] <= process[0x11C]) 
+      {
+        process[0x84] = process[0x11C];
+      
+        process[0xC8] |= 1;
+        
+        process[0x130] = *(0x60E04);
+        
+        if (process[0xA8] < 0)
+        {
+          process[0x134] = process[0xA8];
+          process[0xA8]  = 0;
+        }
+      }
+    }
+  }
+  
+  //falling flag??
+  if (process[0xCC] & 0x20) //set for crash
+  {
+    scale = *(0x58404)[0x84];
+    if (scale > 0x66)
+      scale = 0x66;
+       
+    process[0xA8] -= (scale*4000);      
+      
+    if (process[0xA8] < 0xFFD12000)
+      process[0xA8] = 0xFFD12000;
+  }
+
+  if (process[0xCC] & 0x10)    //has had/needs bounding box info linked to itself?
+  {
+    crash = gp[0x2B8];
+      
+    if (process[0xFC] == crash[0xFC])
+    {
+      retval = sub_80029C90(process, process+0x80, crash+0x80, 0x7D000, 0xAF000, 0x7D000);
+        
+      if (retval == 0)
+        sub_8001EEA8(process);
+    }
+  }
+}
+
+TODO: document better
+//velocity = integral portion of vector result of multiplication of constant 'scale' by fixed point velocity vector
+//array    = collision structure
+sub_8002BE8C(process, velocity, array)
+{
+
+  if (arg_a0 == 0) { gp[0x1E0] = 0; return 0; }
+
+  v0  = *(0x5C53C); //level eid stuct
+  lev =      v0[4];
+  if (lev == 0x11 || lev == 0x1E) { gp[0xC0] = 0x27AC4; }   //HOG WILD OR WHOLE HOG HAVE DIFFERENT VAL 
+  else                            { gp[0xC0] = 0x2F424; }   
+
+  v0 = pr[0x80];
+  v1 =    gp[0x1E0];
+
+  //grab process translation vector
+  var_38 = process[0x80];
+  var_34 = process[0x84];
+  var_30 = process[0x88];
+
+  //grab velocity vector
+  var_28 = velocity[0];
+  var_24 = velocity[4];
+  var_20 = velocity[8];
+
+  if (gp[0x1E0] != 0)
+  {
+    xveldiff = *(0x567F8) - velocity[0];
+    yveldiff = *(0x567FC) - velocity[4];
+    zveldiff = *(0x56800) - velocity[8];
+    
+    if (abs(xveldiff) < 0xA && abs(yveldiff) < 0xA && abs(zveldiff) < 0xA) 
+    { 
+      var_28 = 0;
+      var_24 = velocity[4];
+      var_20 = 0;
+    }  
+  }
+  
+  //now calling 3rd level procedure in relation to initial collision routine
+  sub_8002C184(process, array, &var_38, &var_28);
+  
+  if (gp[0x1E0] == 0 && (velocity[0] != 0 || velocity[8] != 0))
+  {
+    //var_38 = old translation x component before 2C184; process[0x80] = new
+    changeX = process[0x80] - var_38;
+    changeY = process[0x84] - var_34;
+    changeZ = process[0x88] - var_30;
+    
+    if (abs(changeX) <= 2 && abs(changeY) <= 2 && ans(changeZ) <= 2)
+    {
+      *(0x567F8) = velocity[0];
+      *(0x567FC) = velocity[4];
+      *(0x56800) = velocity[8];
+
+      gp[0x1E0] = 1;
+    }
+    else
+      gp[0x1E0] = 0;
+  }
+  else 
+    gp[0x1E0] = 0;
+
+  process[0x80] = var_38;
+  process[0x84] = var_34;
+  process[0x88] = var_30;
+
+  if (process[0xC8] & 0x400 != 0 && process[0xC8] & 1 != 0 && process[0x13C] != 0x900) 
+  {
+    sub_80024040(0, process, array[0x13C], 1, 0x6400);
+  }
+}
+
+sub_800243A0(angA, angB, val, proc)
+{
+  scale = *(0x58404)[0x84];
+  if (scale > 0x66)
+    scale = 0x66;
+
+  
+  scaledVal = scale*val;
+  
+  angA &= 0xFFF;
+  angB &= 0xFFF;
+  if (scaledVal < 0) { scaledVal = (scaledVal + 0x3FF)/0x400; }
+  else               { scaledVal = scaledVal/0x400; }
+  
+  
+  dist = abs(angB - angA);
+  
+  if (dist > 0x801)  //are the angs more than 180 degrees apart?
+  {
+    unabs = angB-angA;     
+    newDist = abs(unabs);  //then just use this value
+  }
+  else 
+  { 
+    if (angB - angA > 0)  //else is angB clockwise to angA?
+    {
+      unabs = angB-angA - 0x1000;
+      newDist = abs(unabs);    //grab the explement
+    }
+    else                  //else angB is counter-clockwise to angA
+    {
+      unabs = angB-angA + 0x1000;
+      newDist = abs(unabs);    //grab the explement
+    }
+  }
+  
+  if (proc)
+  {
+    if (process[0xCC] & 0x2000 && newDist < scaledVal * 4)
+    {
+      if (newDist > scaledVal * 2)
+      {
+        if (newDist > scaledVal * 3)
+        {
+          scaledVal = (scaledVal + sign(scaledVal))/2;
+        }
+        else
+        {
+          scaledVal = (scaledVal + sign(scaledVal)*3)/4;
+        }
+      }
+      else if (newDist > scaledVal)
+      {
+        scaledVal = (scaledVal + sign(scaledVal)*3)/4;
+      }
+      else
+      {
+        if (scaledVal >= 0)
+          scaledVal = scaledVal/8;
+        else
+          scaledVal = (scaledVal + sign(scaledVal)*7)/8;
+      }
+    }
+  }
+  
+  if (newDist < scaledVal)
+  {
+    if (proc)
+      proc[0xC8] |= 0x800;
+    
+    a0 = angB;
+  }
+  else
+  {
+    newDist = abs(newDist);
+     
+    if (newDist >= 0x800)
+      unabs = -unabs;
+       
+    if (unabs >= 0)
+    { 
+      v0 = angA + unabs;
+        
+      if (proc)
+        proc[0xC8] &= 0xFFFFFFF7; //clear bit 4 (was rotating counter-clockwise)
+          
+      a0 = v0 & 0xFFF;
+    }
+    else
+    {
+      v0 = angA - unabs;
+        
+      if (proc)
+        proc[0xC8] |= 8;        //set bit 4 (was rotating clockwise)
+          
+      a0 = v0 & 0xFFF;
+    }
+  }
+
+  return a0;
+}  
+     
+sub_80024528(angA, angB, val, process)
+{
+  scale = *(0x58404)[0x84];
+  if (scale > 0x66)
+    scale = 0x66;
+    
+  tot = (val * scale);
+  if (tot < 0) { tot += 0x3FF; }
+  
+  angA &= 0xFFF;
+  angB &= 0xFFF;
+  
+  diff = angB - angA;
+  absdiff = abs(angB - angA);
+  
+  totscale = tot/1024;
+  
+  if (absdiff < 0x801)
+    finaldiff = absdiff
+  else
+  {
+    if (diff > 0) { finaldiff = absdiff - 0x1000; }
+    else          { finaldiff = absdiff + 0x1000; }
+  }
+  
+  if (finaldiff == 0)
+  {
+    finalval = angB;
+    if (process)
+      process[0xC8] |= 0x800;
+  }
+  else
+  {
+    absfinaldiff = abs(finaldiff);  
+    abstotscale  = abs(totscale);
+  
+    if (absfinaldiff >= abstotscale)
+      finalval = angA + totscale;
+    else if (finaldiff ^ totscale >= 0)
+      finalval = angA + totscale;
+    else
+    {
+      finalval = angB;
+      if (process)
+        process[0xC8] |= 0x800;
+    }
+  }
+
+  return finalval;
+}  
+    
+//velocity = integral portion of vector result of multiplication of constant 'scale' by fixed point velocity vector
+//trans    = current process translation vector
+//array    = collision structure
+sub_8002C184(process, array, trans, velocity)
+{
+  //s2 = array
+  //s0 = velocity
+  //
+
+  //a3 = 0x51EB851F
+
+  array[0x104C] = 0;  
+    
+  //a1 = abs(velocity[0])
+  
+  a2 = abs(velocity[0]) / 25600;
+  a0 = abs(velocity[4]) / 153600;
+  v1 = abs(velocity[8]) / 25600;
+  
+  //min Y = 0xFFFFEE5D
+  
+  if (a0 < a2)
+  {
+    if (v1 < a2)
+      a1 = a2;
+    else
+      a1 = v1;
+  }
+  else
+  {
+    if (v1 < a2)
+      a1 = a2;
+    else
+      a1 = a0;
+  }
+  a1++;
+  
+  (vx/(vy/25600))
+  
+  var_38 = velocity[0] / a1;
+  var_34 = velocity[4] / a1;
+  var_30 = velocity[8] / a1;
+ 
+  while (velocity[0] != 0 || velocity[4] != 0 || velocity[8] != 0) 
+  {
+    if (abs(var_38[0]) < abs(velocity[0])) { var_38[0] = velocity[0]; } 
+    if (abs(var_34[0]) < abs(velocity[4])) { var_34[0] = velocity[4]; } 
+    if (abs(var_30[0]) < abs(velocity[8])) { var_30[0] = velocity[8]; } 
+    
+    //this apparently restricts/recalculates the velocity calculations
+    //according to zone; this just finally decides how to modify the 
+    //translation vector based on these velocities but restricted within the
+    //confines of the zone/issuing events accordingly when exiting or leaving zones
+    //from the bottom (i.e. death and falling through pits). 
+    //[if exiting from bottom happens, the y velocity value is cleared and after this 
+    //sub exits is the final time the translation is accumulated in the y direction]
+    
+    //
+    sub_8002D384(process, array, trans, &var_38);
+  
+    trans[0] -= var_38;
+    trans[4] -= var_34;
+    trans[8] -= var_30;
+  }
+}
+
+sub_8002D384(process, array, trans, &var_38)
+{
+  //s2 = process
+  //s3 = array
+  //s0 = trans
+  
+  //a0 = 0
+  //v1 = &var_48;
+  
+  
+  //var_38 = new computed velocity vector based on 
+  //         acceleration due to greatest component??
+  
+  //or maybe this is the largest 'unit vector' for velocity
+  //based on the greatest component
+  var_58 = var_38;
+  var_54 = var_34;
+  var_50 = var_30;
+  
+  var_48 = var_58 + trans[0];
+  var_44 = var_54 + trans[4];
+  var_40 = var_50 + trans[8];
+  
+  sub_8002C8EC(process, trans, &var_48, array, &var_28);
+  
+  sub_8002DF50(trans, process, array);
+  
+  
+  valX = (var_48 - trans[0]) * 4;
+  if (valX < 0)
+    valX += 0x1FFF;
+    
+  valZ = (var_40 - trans[8]) * 4;
+  if (valZ < 0)
+    valZ += 0x1FFF;  
+    
+  s1 = (valX >> 13) + 0x10;
+  s4 = (valZ >> 13) + 0x10;
+  
+  retval = sub_8002E3F8(trans, s1, s4, &var_24, &var_20, process, 0);
+  
+  if (retval != 0)
+  {
+    var_48 = (((var_24 - 0x10) << 13) / 4) + trans[0];
+    var_40 = (((var_20 - 0x10) << 13) / 4) + trans[8];
+  }
+  else
+  {
+    var_48 = trans[0];
+    var_40 = trans[8];
+  }
+  
+  array[0x104C]++;
+  
+  if (s1 != 0x10 || s4 != 0x10)
+  {
+    if (s1 == var_24 && s4 == var_20)
+    {
+      process[0xC8] |= 0x100;
+    }
+  }
+  
+  //average y of nodes in boundin boxes of array excluding certain objects
+  retval = sub_8002CD9C(process, &var_48, array);
+  
+  if (retval == 0xC4653601)
+    array[0x103C] = 0;
+  else
+    array[0x103C] = retval;
+    
+  if (retval != 0xC4653601)
+  {
+    if (retval - 1 >= var_48[4] + 0x29900)
+    {
+      if (var_48[4] < retval + 0xFFFD66FF)
+        var_48[4] = retval + 0xFFFD66FF;
+        
+      process[0xC8] |= 0x80;
+      
+      if (process[0xA8] > 0)
+        process[0xA8] = 0;
+            
+    }  
+  }
+  
+  sub_8002D18C(process, &var_48);
+  
+  var_38 = var_48;
+  var_34 = var_44;
+  var_30 = var_40;
+}  
+
+//.....
+sub_8002E3F8(trans, xval, zval, retA, retB, process, val)
+{
+  //s5 = trans
+  //s0 = xval
+  //s1 = zval
+  //s2 = retA
+  //s3 = arg_10
+  //s4 = arg_14    process?
+  //t3 = arg_18
+  
+  //t4 = byteList
+  
+
+  
+  //v1 = 0
+  
+  //xval = movement in x
+  //zval = movement in z
+  if (xval < 32 && zval < 32)
+  {
+    scratch = gp[0x2F8];
+	
+    bit  = 0x80000000 >> xval;
+    bits = scratch[zval*4];
+
+    zone = *(0x57914);
+    zoneHeader = zone[0x10];
+	
+    if (bits & bit == 0 || zoneHeader[0x2FC] & 0x100000 != 0)
+    {
+      retA = xval;
+      retB = zval;
+	  
+      return val+2;
+    }
+  }
+  else if (zoneHeader[0x2FC] & 0x100000 != 0)
+  {
+    retA = xval;
+    retB = yval;
+	
+    return val+2;
+  }
+  
+  //t1 = 0
+  //t0 = gp[0x2F8];
+  //t2 = 0x80000000;
+  
+  //EDIT: byteList is byte pairs of pre-calculated X,Z coordinates
+          sorted by euclidian distance from origin (0,0)
+          i.e. 
+          (1,0): sqrt(1^2+0^2)=1
+          (1,1): sqrt(1^2+1^2)=sqrt(2)
+          (2,0): sqrt(2^2+0^2)=2
+          (2,1): sqrt(2^2+1^2)=sqrt(5)
+          (2,2): sqrt(2^2+2^2)=sqrt(8)=2sqrt(2)
+          (3,0): sqrt(3^2+0^2)=3
+          ....
+  
+  //this allows the corresponding bits for points in the
+  //bitfield to be checked in order of locality; the bit
+  //corresponding to the nearest collision point that is set
+  //will return the x,z pair  
+  byteList = 0x52A34;
+  count = 0;
+  
+  do
+  {
+    byteA = byteList[0];
+    byteB = byteList[1];
+  
+	  byteList+=2;
+    
+    xvalNew = xval + byteA;  //a1
+    zvalNew = zval + byteB;  //v1
+    
+    if (xvalNew < 32 && zvalNew < 32)
+    {
+      scratch = gp[0x2F8];
+	
+      bit  = 0x80000000 >> xvalNew;
+      bits = scratch[zvalNew*4];
+	
+      if (bits & bit == 0)
+      {
+        retA = xvalNew;
+        retB = zvalNew;
+      
+        return val+2;
+      }
+    }
+    
+    
+    xvalNew = xval + byteA;
+    zvalNew = zval - byteB;
+    
+    if (xvalNew < 32 && zvalNew < 32)
+    {
+      scratch = gp[0x2F8];
+	
+      bit  = 0x80000000 >> xvalNew;
+      bits = scratch[zvalNew*4];
+	
+      if (bits & bit == 0)
+      {
+        retA = xvalNew;
+        retB = zvalNew;
+      
+        return val+2;
+      }
+    }
+    
+        
+    xvalNew = xval - byteA;
+    zvalNew = zval + byteB;
+    
+    if (xvalNew < 32 && zvalNew < 32)
+    {
+      scratch = gp[0x2F8];
+	
+      bit  = 0x80000000 >> xvalNew;
+      bits = scratch[zvalNew*4];
+	
+      if (bits & bit == 0)
+      {
+        retA = xvalNew;
+        retB = zvalNew;
+      
+        return val+2;
+      }
+    }
+    
+        
+    xvalNew = xval - byteA;
+    zvalNew = zval - byteB;
+    
+    if (xvalNew < 32 && zvalNew < 32)
+    {
+      scratch = gp[0x2F8];
+	
+      bit  = 0x80000000 >> xvalNew;
+      bits = scratch[zvalNew*4];
+	
+      if (bits & bit == 0)
+      {
+        retA = xvalNew;
+        retB = zvalNew;
+      
+        return val+2;
+      }
+    }
+    
+    if (byteA != byteB)
+    {
+      xvalNew = xval + byteB;  //a1
+      zvalNew = zval + byteA;  //v1
+      
+      if (xvalNew < 32 && zvalNew < 32)
+      {
+        scratch = gp[0x2F8];
+    
+        bit  = 0x80000000 >> xvalNew;
+        bits = scratch[zvalNew*4];
+    
+        if (bits & bit == 0)
+        {
+          retA = xvalNew;
+          retB = zvalNew;
+        
+          return val+2;
+        }
+      }
+      
+      
+      xvalNew = xval + byteB;
+      zvalNew = zval - byteA;
+      
+      if (xvalNew < 32 && zvalNew < 32)
+      {
+        scratch = gp[0x2F8];
+    
+        bit  = 0x80000000 >> xvalNew;
+        bits = scratch[zvalNew*4];
+    
+        if (bits & bit == 0)
+        {
+          retA = xvalNew;
+          retB = zvalNew;
+        
+          return val+2;
+        }
+      }
+      
+          
+      xvalNew = xval - byteB;
+      zvalNew = zval + byteA;
+      
+      if (xvalNew < 32 && zvalNew < 32)
+      {
+        scratch = gp[0x2F8];
+    
+        bit  = 0x80000000 >> xvalNew;
+        bits = scratch[zvalNew*4];
+    
+        if (bits & bit == 0)
+        {
+          retA = xvalNew;
+          retB = zvalNew;
+        
+          return val+2;
+        }
+      }
+      
+          
+      xvalNew = xval - byteB;
+      zvalNew = zval - byteA;
+      
+      if (xvalNew < 32 && zvalNew < 32)
+      {
+        scratch = gp[0x2F8];
+    
+        bit  = 0x80000000 >> xvalNew;
+        bits = scratch[zvalNew*4];
+    
+        if (bits & bit == 0)
+        {
+          retA = xvalNew;
+          retB = zvalNew;
+        
+          return val+2;
+        }
+      }
+    }
+    
+    count++;
+  } while (count < 152)
+  
+  if (xval != 0x10 || zval != 0x10)
+  {
+    linkC = process[0x78];
+    
+    if (linkC)
+    {
+      linkCCode = linkC[0x20];
+      linkCCodeHeader = linkCCode[0x10];
+      linkCCodeType = linkCCodeHeader[0];
+      
+      //if its not a box
+      if (linkCCodeType != 0x22)
+      {
+        index = 0;
+        while (index < 32)
+        {
+          if (scratch[index] != -1)
+          {
+            xval += 16;
+            zval += 16;
+            
+            break back to beginning of sub, redoing with these xval/yval;
+          }
+          
+          index++;
+        }
+      }
+    }
+  }
+
+  if (val < 0x100 && (!linkC || linkC[0x20][0x10][0] != 0x22))
+  { 
+    retval = sub_8002E0A0(0, 0, trans, process);
+    
+    if (retval != 0)
+    {
+      sub_8002E0A0(1, 1, trans, process);
+      
+      sub_8002D8B8(trans, process, 0x5CFEC, 0);
+    }
+    
+    return sub_8002E3F8(trans, xval, zval, retA, retB, 0x100);
+  }
+  else
+  {
+  
+    //bounce from box/enemy?
+    process[0xC8] |= 0x100000;
+    
+    retA = 16;
+    retB = 16;
+    
+    return 0;
+  }
+}
+
+//process  = the object  
+//trans    = its current translation vector
+//newtrans = its new translation vector due to accumulation of scaled velocity vector by greatest component
+//array    = collision information structure
+//output = ...
+
+sub_8002C8EC(process, trans, newtrans, array, output)
+{
+  //s3 = process
+  //fp = trans
+  //s4 = newtrans
+  //s1 = array
+  //v1 = 0xFFFF0000
+  
+  array[0x1020] = newtrans[0] - 0x9600;
+  array[0x102C] = newtrans[0] + 0x9600;
+  array[0x1024] = newtrans[4];
+  array[0x1030] = newtrans[4] + 0x29900;
+  array[0x1028] = newtrans[8] - 0x9600;
+  array[0x1034] = newtrans[8] + 0x9600;
+  
+  if (array[0x1000] == 0 ||
+      array[0x1020] >= array[0x1008] && 
+      array[0x1024] >= array[0x100C] &&
+      array[0x1028] >= array[0x1010] &&
+      array[0x102C] < array[0x1014] &&
+      array[0x1030] < array[0x1018] &&
+      array[0x1034] < array[0x101C])
+  {
+    //record collision information using a constant bounding box
+    //with newtrans as midpoint
+    sub_800294B0(newtrans, process, array);
+  }
+  
+  t0 = gp[0xC0] + newtrans[4];
+  v1 = trans[4] - newtrans[4];
+  
+  //if there is a positive change in y velocity... object speeding up y wise
+  if (v1 > 0)
+    t0 = v1;  //use that change
+  else
+    t0 = t0;  //else use 
+    
+  //a3 = array + 0x1020
+  
+  array[0x1020] = newtrans[0] - 0x640;
+  array[0x102C] = newtrans[0] + 0x640;
+  array[0x1024] = newtrans[4];
+  array[0x1030] = newtrans[4] + 0x29900;
+  array[0x1028] = newtrans[8] - 0x640;
+  array[0x1034] = newtrans[8] + 0x640;
+  
+  s0 = 0xC4653601;
+  //probably zone surface collision function
+  sub_80038AC4(process, array, array+0x1008, array+0x1020, t0, &var_70, s0, sub_8002C3B8);
+
+  s2 = var_68;
+  s5 = var_6C;
+  
+  if (var_68 != s0)
+    array[0x1040] = var_68;
+  else
+    array[0x1040] = 0;
+    
+  if (var_6C != 0xC4653601)
+    array[0x1044] = var_6C;
+  else
+    array[0x1044] = 0;
+    
+  //probably object surface collision function
+  retval = sub_8002C660(process, trans, newtrans, array);
+  
+  s7 = 0x40001;
+  if (retval == 0xC4653601)
+    array[0x1048] = 0;
+  else
+  {
+    s2 = retval;
+    
+    array[0x1048] = retval;
+    
+    s7 &= 0xFFFBFFFF;
+    if (process[0x78] != 0)
+    {
+      linkC = process[0x78];
+      if (linkC[0xCC] & 0x400000 != 0)
+        var_30 = 0x19000;
+        
+      if ((process[0xFC] - process[0x130]) < 4) 
+        s7 = 0x204001;
+      else
+        s7 |= 0x200000;
+    }
+    else
+      s7 |= 0x200000;
+  }
+  
+  if (s2 == 0xC4653601 && s5 == 0xC4653601 && process[0xA8] <= 0)
+  {
+    array[0x1038] = 0;
+    return 0xC4653601;
+  }
+  else if (s2 != 0xC4653601 || s5 != 0xC4653601 && process[0xA8] > 0)
+  {
+    process[0xC8] &= 0xFFDBBFFE;
+    array[0x1038] = 0;
+    return 0xC4653601
+  }
+  else
+  {
+    if     (s2 == 0xC4653601)   { val = s5; }
+    else /*(s5 == 0xC4653601)*/ { val = s2; s7 = 1;}
+    
+    array[0x1038] = val;
+    s0 = array[0x1038] + 1;
+    
+    if (s2 == 0xC4653601)
+      yval = process[0x84];
+    else
+    {
+      yval = process[0x84] + gp[0xC0] + var_30;
+    }
+    
+    output[0] = yval;
+    
+    if (yval < s0)
+      s0 = process[0x84];
+      
+    array[0x1024] = s0;  
+    array[0x1030] = s0 | 0x29900;
+    newtrans[4] = s0;
+   
+    if (array[0x1000] == 0 ||
+        array[0x1020] >= array[0x1008] &&
+        array[0x1024] >= array[0x100C] &&
+        array[0x1028] >= array[0x1010] &&
+        array[0x102C] < array[0x1014] &&
+        array[0x1030] < array[0x1018] &&
+        array[0x1034] < array[0x101C])        
+    {
+      sub_80029B40(newtrans, process, array);
+    }
+
+    velocityY = process[0xA8];
+    if (velocityY < 0 && s7 & 1)
+    {
+      process[0x134] = velocityY;
+      process[0xA8]  =         0;
+    }
+    
+    process[0xC8] |= s7;
+    
+    //timestamp of last collide with ground?
+    process[0x130] = *(0x60E04);
+    
+    return s0;
+  }       
+}
+
+sub_800294B0(newtrans, process, array)
+{
+  //s0 = array
+  array[0x1000] = 1;
+  array[0x1004] = 0;
+  
+  array[0x1008] = newtrans[0] - 0x12C00;
+  array[0x100C] = newtrans[4] - 0x10B80;
+  array[0x1010] = newtrans[8] - 0x12C00;
+  array[0x1014] = newtrans[0xC] + 0x12C00;
+  array[0x1018] = newtrans[0x10] + 0x3A480;
+  array[0x101C] = newtrans[0x14] + 0x12C00;
+  
+  zone = 0x57914;
+  zoneHeader = zone[0x10];
+  zoneNeighborCount = zoneHeader[0x210];
+  
+  count = 0; 
+  if (zoneNeighborCount > 0)
+  {
+    do
+    {
+      offset = count * 4;
+      neighborEID = zoneHeader[0x214 + offset];
+      neighbor    = EID_PROCESS(neighborEID);
+      
+      neighbDimItem = neighbor[0x14];
+      
+      neighbX = neighbDimItem[0] << 8;
+      neighbY = neighbDimItem[4] << 8;
+      neighbZ = neighbDimItem[8] << 8;
+      neighbW = neighbDimItem[0xC] << 8;
+      neighbH = neighbDimItem[0x10] << 8;
+      neighbD = neighbDimItem[0x14] << 8;
+      
+      neighbX1 = neighbX;
+      neighbY1 = neighbY;
+      neighbZ1 = neighbZ;
+      neighbX2 = neighbX + neighbW;
+      neighbY2 = neighbY + neighbH;
+      neighbZ2 = neighbZ + neighbD;
+      
+      //if the bounding box lies entirely within the zone then record collision information
+      //by traversing the octree for this zone given this bounding box 
+      if (neighbX1 < array[0x1008] && neighbY1 < array[0x100C] && neighbZ1 < array[0x1010] &&
+          neighbX2 >= array[0x1014] && neighbY2 < array[0x1018] && neighbZ2 < array[0x101C])
+      {
+        array[0x1004] = sub_80037D50(neighbDimItem, array+0x1008, array+(array[0x1004]*8), array[0x1004]);      
+      }
+      
+      count++;
+    } while (count < zoneNeighborCount)
+  }   
+
+  //0xFFFF indicates the end of collision information
+  offset        = array[0x1004] * 8;
+  array[offset] = 0xFFFF;  //sh 
+
+  return array[0x1004];  
+}  
+
+
+sub_8002DF50(trans, process, array)
+{
+  //s0 = trans
+  //s1 = process
+  //s2 = array
+  
+  curZone = *(0x57914);
+  
+  curZoneHeader = curZone[0x10];
+  
+  if (curZoneHeader & 0x100000 == 0)
+  {
+    //v0 = gp[0x2F8] + 0x7C;
+
+    scratch17C = gp[0x2F8] + 0x7C;
+    
+    for (count=0x1F; count > 0; count--)
+      scratch17C[count] = 0;
+     
+    scratch37C = gp[0x2B0] + 0x1FC;
+    
+    for (count=0x7F; count > 0; count--)
+      scratch37C[count] = 0;
+      
+    if (process[0x128] - 3 > 2)
+      val = process[0xD0] & 2;
+    else
+      val = 2;
+    
+    sub_8003864C(array, array+0x1008, val, process[0x84]+gp[0xC0], process[0x84]+0x3200, trans[4]+0x29900, trans[0], trans[8]);
+  }
+  
+  return sub_8002D8B8(trans, process, array, 1);
+}
+
+sub_8002D8B8(trans, process, array, flag)
+{
+
+  //fp = process
+  //t2 = array
+  curZone = *(0x57914); //v0
+  
+  curZoneHeader = curZone[0x10];
+  
+  bits = curZone[0x2FC] >> 20;
+  
+  bits = (bits ^ 1) & 1;
+  
+  var_38 = bits;
+  
+  var_48 = transX = trans[0]; 
+  transY = trans[4];
+  var_40 = transZ = trans[8];
+  
+  boundMapCount = *(0x61888);
+  
+  if (boundMapCount == 0) { return 0; }
+  
+  var_30 = linkC = process[0x78];
+  
+  var_B8 = procVolX1 = process[0x8]  + transX;
+  var_B4 = procVolY1 = process[0xC]  + transY;
+  var_B0 = procVolZ1 = process[0x10] + transZ;
+
+  var_AC = procVolX2 = process[0x14] + transX;
+  var_A8 = procVolY2 = process[0x18] + transY;
+  var_A4 = procVolZ2 = process[0x1C] + transZ;
+  
+  var_A0 = PX1 = procVolX1 - 0x6400;
+  var_9C = PY1 = procVolY1;
+  var_98 = PZ1 = procVolZ1 - 0x6400;
+  var_94 = PX2 = procVolX2 + 0x6400;
+  var_90 = PY2 = procVolY2;
+  var_8C = PZ2 = procVolZ2 + 0x6400;
+  
+  array[0x104C] += 0x100;
+  
+  //s7 = boundMap
+  //s2 = boundMap + 0x18
+  boundMap = 0x60E08;
+  boundMapCount -= 1;
+  if (boundMapCount < 0) { return boundMapCount; }
+    
+  count = boundMapCount;
+   
+  do
+  {
+    curField = boundMap[count*0x1C];
+
+    curProc = curField[0x18]; 
+  
+    //t3 = linkC
+
+    if (curProc == linkC && flag)
+    {
+      curY2 = curField[0x10];
+      if (PY1 >= curY2)
+        skip to end of loop 2DF04;
+    }
+    
+    curX1 = curField[0x0];   -18
+    curY1 = curField[0x4];   -14
+    curZ1 = curField[0x8];   -10
+    curX2 = curField[0xC];   -C
+    curY2 = curField[0x10];  -8
+    curZ2 = curField[0x14];  -4
+    
+    if (curY2 >= PY1 && curY1 < PY2 && 
+        curX1  < PX2 &&
+        curZ1  < PZ2 &&
+        curX2 >= PX1 &&
+        curZ2 >= PZ1)
+    {
+      var_88 = curX1 + curProc[0x148];     
+      var_84 = curY1 + curProc[0x148];
+      var_80 = curZ1 + curProc[0x148];
+      var_7C = curX2 - curProc[0x148];
+      var_78 = curY2 - curProc[0x148];
+      var_74 = curZ2 - curProc[0x148];
+      
+      codeEntry  = curProc[0x20];
+      codeHeader = codeEntry[0x10];
+      codeObject = codeHeader[0];
+      codeType   = codeHeader[4];
+          
+      if (bits && curProc[0xCC] & 0x10000)
+      {
+        if (arg_58 & 0x10 || arg_60 == 5)
+        {
+          if (codeType == 0x300)
+          {
+            if (curProc[0xD0]  & 0x1012 == 0 ||
+                curProc[0x120] & 0x10020)
+              goto 2DE50 
+          }
+   -    }
+        
+        //checks the 2 y boundaries again for some reason...
+        
+        //PoPIC, thinking maybe this is 'icons'/items in levels
+        //that don't have a parent box, they stand alone by themselves
+        //ex. aku aku, crash lives in 2d levels
+        if (codeObject == 0xB) 
+        {
+          distX = curProc[0x80] - trans[0];
+          distZ = curProc[0x88] - trans[8];
+          
+          var_70 = distX >> 8;
+          var_68 = distZ >> 8;
+          
+          dist = sqrt(pow((distX >> 8), 2) + pow((distZ >> 8), 2));
+       
+          if (0x19000 >= (dist << 8)) { goto 2DE50; }
+        }
+        
+        diffX1 = (var_88 - transX) << 2;  //s1, s6
+        if (diffX1 >= 0)
+          diffX1 >>= 13;
+        else
+          diffX1 = (diffX1 + 0x1FFF) >> 13;
+          
+        diffX2 = (var_7C - transX) << 2;  //s0, s5
+        if (diffX2 >= 0)
+          diffX2 >>= 13;
+        else
+          diffX2 = (diffX2 + 0x1FFF) >> 13;
+
+        diffZ1 = (var_80 - transZ) << 2;  //s4, 
+        if (diffZ1 >= 0)
+          diffZ1 >>= 13;
+        else
+          diffZ1 = (diffZ1 + 0x1FFF) >> 13;
+          
+        diffZ2 = (var_74 - transZ) << 2;  //s3
+        if (diffZ2 >= 0)
+          diffZ2 >>= 13;
+        else
+          diffZ2 = (diffZ2 + 0x1FFF) >> 13;  
+ 
+        //---------
+        a2    = 0xFFFFFFFF;
+        addZ1 = diffZ1 + 0x10; 
+        if (addZ1 < 0x20)
+        {
+          if (addZ1 <= 0) { jump past loop to 2DDA4; }
+          else
+          {
+            shiftVal = 32 - addZ1;
+            a2     <<= shiftVal;
+          }
+        }
+          
+        v0    = 0x80000000;
+        addX1 = diffX1 + 0xF;
+        if (addX1 < 0x20)
+        {
+          if (addX1 > 0)
+          {
+            shiftVal = addX1;
+            v0     >>= shiftVal;
+            
+            v0 = v0 nor 0;
+            a2 &= v0;
+          }          
+        }
+        
+        if (a2 != 0)
+        {
+          addX2 = diffX2 + 0x10;
+          addZ2 = diffZ2 + 0x10;
+          
+          if (addX2 < 0)
+            addX2 = 0;
+            
+          if (addZ2 >= 0x21)
+            addZ2 = 0x20;
+                        
+          if (addX2 <= 0x20 && addX2 < addZ2)
+          { 
+            scratchloc = gp[0x2F8];
+           
+            for (int lp=addX2; lp < addZ2; lp++)
+            {
+              scratchloc[lp*4] |= a2;
+            }
+          }
+        }
+        
+        //2DDA4:
+        if (flag)
+        {
+          diffX1it = diffX1;
+          diffX2it = diffX2;
+          
+          while (diffX1it < diffZ1) 
+          {
+            sub_8002D69C(diffX1it, diffX2it);
+            diffX1it+=8;
+          }
+
+          //s0,s5 = diffX2
+          //s1,s6 = diffX1
+          //s3    = diffZ2
+          //s4    = diffZ1
+          while (diffX2it < diffZ2)
+          {
+            sub_8002D69C(diffX1it, diffX2it)
+            diffX2it+=8;
+          }
+          
+          while (diffX1 < diffX1it)
+          {
+            sub_8002D69C(diffX1it, diffX2it)
+            diffX1it-=8
+          }
+          
+          while (diffX2 < diffX2it)
+          {
+            sub_8002D69C(diffX1it, diffX2it)
+            diffX2it-=8
+          }
+        }
+      }
+
+      2DE50:
+      
+      if (flag)
+      {
+        if (curY2 >= procVolY1 && curY1 < procVolY2 && 
+            curX1  < procVolX2 &&
+            curZ1  < procVolZ2 &&
+            curX2 >= procVolX1 &&
+            curZ2 >= procVolZ1)
+        {
+          sub_80024AD4(process, var_B8, curProc, curField);
+        }
+      }
+    }
+    
+    count--;
+  } while (count > 0)
+}
+
+sub_80024AD4(collidee, collideeVol, collider, colliderVol)
+{
+  //s1 = sender
+  //s5 = recVol
+  //s3 = recipient
+  //s4 = recipCol
+  
+  linkC = collidee[0x78];
+  
+  if (linkC && linkC != collider)
+  {
+    if (collider[0x120] & 0x800 != 0)
+    {
+      collider[0x78] = collidee;
+      return 0xFFFFFFE4;
+    }
+    else
+    {
+      chval  = sub_80029B90(collidee + 0x80, collidee[0x78] + 0x80);
+      rptval = sub_80029B90(collidee + 0x80, collider + 0x80);
+      
+      if (rptval >= chval)
+      {
+        child = collidee[0x78];
+        if (child[0x120] & 0x800 == 0)
+          return 0xFFFFFFE4;   
+      }
+    }
+  }
+ 
+  collider[0x78] = collidee;
+  collidee[0x78] = collider;
+  
+  if (collidee[0x148] != 0)
+  {
+    var_50 = collideeVol[0]    + collidee[0x148];
+    var_4C = collideeVol[4]    + collidee[0x148];
+    var_48 = collideeVol[8]    + collidee[0x148];
+    var_44 = collideeVol[0xC]  - collidee[0x148];
+    var_40 = collideeVol[0x10] - collidee[0x148];
+    var_3C = collideeVol[0x14] - collidee[0x148];
+   
+    retval = sub_80026CA8(var_50, colliderVol);
+    
+    if (retval != 0)
+      collidee[0xC8] |= 0x1000;
+  }
+  
+  if (collider[0x148] != 0)
+  {
+    var_38 = colliderVol[0]    + collider[0x148];
+    var_34 = colliderVol[4]    + collider[0x148];
+    var_30 = colliderVol[8]    + collider[0x148];
+    var_2C = colliderVol[0xC]  - collider[0x148];
+    var_28 = colliderVol[0x10] - collider[0x148];
+    var_24 = colliderVol[0x14] - collider[0x148];
+    
+    retval = sub_80026CA8(var_38, collideeVol);
+  
+    if (retval != 0)
+      collider[0xC8] |= 0x1000;
+  }
+  
+  return 0xFFFFFF01;
+}
+                                       
+sub_8003864C(array, bound, flag, yvalA, yvalB, ytrans, xtrans, ztrans)
+{
+  //a3 = yvalA
+  //gp = yvalB
+  //fp = xtrans
+  //t3 = ztrans
+  //sp = ytrans
+
+  boundX = bound[0]; //a1
+  boundY = bound[4]; //t4
+  boundZ = bound[8]; //t5
+  
+  offset = 0;
+  curStruct = array;
+  
+  while (true)
+  {  
+    if (curStruct[0] == 0xFFFF)
+      break;
+    else
+    {
+      //if the current structure is a header
+      if (curStruct[0] == 0)
+      {
+        zoneW = curStruct[2] << 8;  //s4
+        zoneH = curStruct[4] << 8;  //s5
+        zoneD = curStruct[6] << 8;  //s6
+        
+        depthX = curStruct[0xA];   //s7
+        depthY = curStruct[0xC];   //t8
+        depthZ = curStruct[0xE];   //t9
+        
+        curStruct+=0x10;
+      
+        continue looping;
+      }
+      
+      //otherwise its a collision point
+      else      
+      {
+        //curStruct[0] = VVVVVVVV VVVVVIII, I = node level, V = value of node
+        
+        //nodeValue = VVVVVVVV VVVVVVV1      //lowest bit forced set
+        nodeValue = (curStruct[0] >> 2) | 1; //t1 
+        nodeLevel = (curStruct[0] & 7);      //t0
+       
+        //****signed values
+        locationX1 = curStruct[2]*16;  //t6
+        locationY1 = curStruct[4]*16;  //t7
+        locationZ1 = curStruct[6]*16;  //s0
+        
+        locationX1 += boundX; //t6
+        locationY1 += boundY; //t7
+        locationZ1 += boundZ; //s0
+        
+        if (depthX < nodeLevel)
+          at = zoneW >> depthX;
+        else
+          at = zoneW >> nodeLevel;
+             
+        locationX2 = locationX1 + at; //s1
+          
+        if (depthY < nodeLevel)
+          at = zoneH >> depthY;
+        else
+          at = zoneH >> nodeLevel;
+            
+        locationY2 = locationY1 + at; //s2
+          
+        if (depthZ < nodeLevel)
+          at = zoneD >> depthZ;
+        else
+          at = zoneD >> nodeLevel;
+            
+        locationZ2 = locationZ1 + at; //s3
+         
+        nodeSubIndex = (nodeValue &   0xE) >> 1;         
+        nodeSubValue = (nodeValue & 0x3F0) >> 4;
+          
+        if (nodeSubindex != 3 && nodeSubindex != 4)
+        {
+          if (
+             nodeSubindex != 1 &&
+               (nodeSubValue == 0 || nodeSubValue > 0x27 || flag) &&
+               (yvalB < locationY2 && locationY1 < ytrans)
+          || nodeSubindex == 1 &&
+               (yvalA < locationY2 && locationY1 < ytrans)
+             )               
+          {
+            scratch[0xE0] = flag;  
+            scratch[0xE4] = yvalA;
+            
+            t6 = ((locationX1 - xtrans) << 2) >> 13;
+            s1 = ((locationX2 - xtrans) << 2) >> 13; 
+            s0 = ((locationZ1 - ztrans) << 2) >> 13;
+            s3 = ((locationZ2 - ztrans) << 2) >> 13;
+            
+            t7 = t6;
+            s2 = s0;
+            
+            a2 = 0xFFFFFFE0;
+            
+            if (a2 < s0 && s0 < 0x20)
+            {
+              while (true)
+              {
+                if (a2 < t6)
+                {
+                  if (t6 >= 0x20 || t6 >= s1)
+                    break;
+                  else
+                    //NOTE-ARGS ARE V1 AND A3 RESPECTIVELY
+                    sub_800389A8(t6, s0);
+                }
+                
+                t6 += 8;
+              }
+            }
+            
+            t6 = s1;
+            
+            if (a2 < t6 && t6 < 0x20)
+            {
+              while (true)
+              {
+                if (a2 < s0)
+                {
+                  if (s0 >= 0x20 || s0 >= s3)
+                    break;
+                  else
+                    //NOTE-ARGS ARE V1 AND A3 RESPECTIVELY
+                    sub_800389A8(t6, s0);
+                }
+                
+                s0 += 8;
+              }
+            }
+            
+            s0 = s3;
+            
+            if (a2 < s0 && s0 < 0x20)
+            {
+              while (true)
+              {
+                if (t6 < 0x20)
+                {
+                  if (a2 >= t6 || t7 >= t6)
+                    break;
+                  else
+                    //NOTE-ARGS ARE V1 AND A3 RESPECTIVELY
+                    sub_800389A8(t6, s0);
+                }
+                
+                t6 -= 8;
+              }
+            }
+            
+            t6 = t7;
+            
+            if (t6 < 0x20 && a2 < t6)
+            {
+              while (true)
+              {
+                if (s0 < 0x20)
+                {
+                  if (a2 >= s0 || s2 >= s0)
+                    break;
+                  else
+                    //NOTE-ARGS ARE V1 AND A3 RESPECTIVELY
+                    sub_800389A8(t6, s0);
+                }
+                
+                s0 -= 8;
+              }
+            }
+          }      
+        }
+      }
+    }
+  }          
+}              
+  
+//OCTREE ROUTINE
+
+//array is a structure recording collision information from traversal of the 'collision octree' located in item2 of the current zone entry..
+//in a single traversal, a number of collision points could be discovered, identified here as n
+//m refers to the number of traversals done so far
+
+//struct
+//{
+//  struct                 //[0x0000] = information from traversal of multiple zone collision octrees with the specified bounding box 
+//  {
+//    hword zero;
+//    hword zoneW;
+//    hword zoneH;
+//    hword zoneD;
+//    hword zero;
+//    hword maxDX;
+//    hword maxDY;
+//    hword maxDZ;
+      
+//    struct
+//    {
+//      hword nodeIndex:13;
+//      hword nodeLevel:3;
+//      hword locationX;
+//      hword locationY;
+//      hword locationZ;
+//    } colPoints[n];
+      
+//  } traversalInfo[m];     //max 0x1000 bytes
+    
+//  word flag;              //[0x1000] = flag determining whether or not to record collision information?
+//  word curTravIndex;      //[0x1004] = index of current traversal structure * 8, max of 0x200*8=0x10000 bytes
+    
+//  struct                  
+//  {
+//    word X1, Y1, Z1;
+//    word X2, Y2, Z2;
+//  } boundBox;             //[0x1008] = box which is checked for collision points in traversal of the octree
+//}
+    
+    
+//starting at 'arrayVal' as index of the new traversal structure and 'oldCol' as the offset (should reflect each other):
+//  finds the collision points from 'zoneDim' octree that lie within bounding box 'newBound', recording at oldCol 
+//  returns index of next free space (new arrayVal) for a future traversal
+
+sub_80037D50(zoneDim, newBound, oldCol, arrayVal)
+{
+  boundX1 = newBound[0];    //s6
+  boundY1 = newBound[4];    //t0
+  boundZ1 = newBound[8];    //t1
+  boundX2 = newBound[0xC];  //t2
+  boundY2 = newBound[0x10]; //t3
+  boundZ2 = newBound[0x14]; //t4
+
+  zoneX = zoneDim[0];   //t5
+  zoneY = zoneDim[4];   //t6
+  zoneZ = zoneDim[8];   //t7
+  zoneW = zoneDim[0xC]; //s0
+  zoneH = zoneDim[0x10];//s1
+  zoneD = zoneDim[0x14];//s2
+  
+  zoneRootNode = zoneDim[0x1C] //lh  test = 0x354C
+  zoneUVectX = zoneDim[0x1E]; //s3  test = 6
+  zoneUVectY = zoneDim[0x20]; //s4  test = 7
+  zoneUVectZ = zoneDim[0x22]; //s5  test = 5
+  
+  oldCol[0] = 0;
+  oldCol[2] = zoneW;  //sh but these are loaded as words...
+  oldCol[4] = zoneH;
+  oldCol[6] = zoneD;
+  
+  oldCol[8] = 0;
+  oldCol[0xA] = zoneUVectX;
+  oldCol[0xC] = zoneUVectY;
+  oldCol[0xE] = zoneUVectZ;
+  
+  //then we shift left for their normal coords
+  zoneX <<= 8;
+  zoneY <<= 8;
+  zoneZ <<= 8;
+  zoneW <<= 8;
+  zoneH <<= 8;
+  zoneD <<= 8;
+  
+  
+  //calculate position of the bounding box to be checked for collision
+  //relative to the zone
+  diffX1 = zoneX - boundX1;   //t5
+  diffY1 = zoneY - boundY1;   //t6
+  diffZ1 = zoneZ - boundZ1;   //t7
+  //NOTE: the values above are NEGATIVE for when the bounding box lies 'after' the start of the zone
+  //for their respective dimensions
+  
+  //calculate w/h/d of bounding box to be checked for collision
+  diffW = boundX2 - boundX1;  //t2
+  diffH = boundY2 - boundY1;  //t3
+  diffD = boundZ2 - boundZ1;  //t4
+  
+  //skip the 2*8=16 byte header
+  arrayVal += 2;
+  
+  
+  level = 0;
+  
+  zoneUnknown = zoneRootNode;
+  
+  37E88:
+  //curNode is register ra
+  
+  //curNode/register ra set to value of zoneUnknown/register v1
+  curNode = zoneUnknown;
+  
+  node = curNode & 0xFFFF; //already a halfword...
+  
+  //if the node is a leaf node....
+  if (node == 0) 
+  {
+  
+    37F0C:
+    
+    //level * 8 determines relative jump location...
+  
+    //go back up a level
+    level--;
+    
+    //use the function for what was the currentNode
+    at = curNode >> 24;
+    
+    //recall the parent node from the now current/previously previous level
+    level = 0: return arrayVal;
+    level = 1: curNode = s7;
+    level = 2: curNode = t8;
+    level = 3: curNode = t9;
+    level = 4: curNode = gp;
+    level = 5: curNode = sp;
+    level = 6: curNode = s6;
+    level = 7: curNode = t0;
+    
+    //recall its children
+    offset = curNode & 0xFFFF;
+    newCol = &zoneDim[offset];
+    
+    //then use that function
+    at = 0: 380C0;
+    at = 1: 380DC;
+    at = 2: 38108;
+    at = 3: 38124;
+    at = 4: 38150;
+    at = 5: 3816C;
+    at = 6: 381E4;
+    at = 7: 38204;
+    at = 8: 38228;
+    at = 9: 38250;
+    at = 10: 382D0;
+    at = 11: 382F0;
+    at = 12: 38314;
+    at = 13: 3833C;
+    at = 14: 383BC;
+    at = 15: 383DC;
+    at = 16: 38400;
+    at = 17: 38428;
+    at = 18: 384D0;
+    at = 19: 384F0;
+    at = 20: 38514;
+    at = 21: 3853C;
+    at = 22: 38564;
+    at = 23: 3858C;
+    at = 24: 385B8;
+    at = 25: 385E8;
+    
+    
+  }
+  
+  //if the node is a collision point
+  else if (node & 1)  
+  { 
+    if (arrayVal < 0x200) 
+    {
+      valA = ((node << 2) & 0xFFF8) | level //at | 
+           | (diffX1 >> 4) << 16;           //t5
+           
+      valB = (diffY1 >> 4) & 0xFFFF |       //t6
+             (diffZ1 >> 4) << 16;           //t7
+      
+      
+      oldCol[0x10 + (colCount*8)] = valA;
+      oldCol[0x14 + (colCount*8)] = valB;      
+      colCount++;
+      
+      arrayVal++;  
+    }
+    
+    go back to 37F0C;
+  }
+  else
+  {
+    //seems to be default case?
+    //EDIT: val is the value at 0x1C, which seems to determine the offset
+    //of the very last 'collision' structure 
+    
+    //zoneUVectX = maximum depth for X 
+    //zoneUVectY = maximum depth for Y
+    //zoneUVectZ = maximum depth for Z
+    
+    offset = (
+             ( (level < zoneUVectX) << 0) | 
+             ( (level < zoneUVectY) << 1) |
+             ( (level < zoneUVectZ) << 2) - 1) * 8;
+    
+    newCol = &zoneDim[val]
+    offset determines relative jump location...
+
+    001: 380A0  //halve and check current half only XWISE, determine new zoneUnknown 
+    010: 380E8  //halve and check current half only YWISE, determine new zoneUnknown
+    011: 38178  //halve and check current half XWISE and YWISE, determine new zoneUnknown
+    100: 38130  //halve and check current half only ZWISE, determine new zoneUnknown
+    101: 38264  //halve and check current half XWISE and ZWISE, determine new zoneUnknown
+    110: 38350  //halve and check current half YWISE and ZWISE, determine new zoneUnknown
+    111: 3843C  //halve and check current half XWISE, YWISE, and ZWISE, determine new zoneUnknown
+    
+    //38048:
+    //(the current octant can be further subdivided into 8 octants, one of which
+       has been determined to contain the (upper left/midpoint of the?) boundary being searched)
+       
+    (add loop case):
+    
+    //remember the parent node for the current level and go to the next level
+    level = 0: s7 = curNode;
+    level = 1: t8 = curNode;
+    level = 2: t9 = curNode;
+    level = 3: gp = curNode;
+    level = 4: sp = curNode;
+    level = 5: s6 = curNode;
+    level = 6: t0 = curNode;
+    
+    level++;
+    
+    
+    
+    goto 37E88;
+    
+    
+    //zoneUnknown = FFFFF000 NNNNNNNN NNNNNNNN NNNNNNNN
+    
+    // F = function
+    // 0:  only in left half xwise
+    // 1:  only in right half xwise
+    // 2:  only in top half ywise
+    // 3:  only in bottom half ywise
+    // 4:  only in front half zwise
+    // 5:  only in back half zwise
+    // 6:  in left half xwise, top half ywise
+    // 7:  in left half xwise, bottom half ywise
+    // 8:  in right half xwise, top half ywise
+    // 9:  in right half xwise, bottom half ywise
+    // 10: in left half xwise, front half zwise
+    // 11: in left half xwise, back half zwise
+    // 12: in right half xwise, front half zwise
+    // 13: in right half xwise, back half zwise
+    // 14: in top half ywise, front half zwise
+    // 15: in top half ywise, back half zwise
+    // 16: in bottom half ywise, front half zwise
+    // 17: in bottom half ywise, back half zwise
+    // 18: in left half xwise, top half ywise, front half zwise
+    // 19: in left half xwise, top half ywise, back half zwise
+    // 20: in left half xwise, bottom half ywise, front half zwise
+    // 21: in left half xwise, bottom half ywise, back half zwise
+    // 22: in right half xwise, top half ywise, front half zwise
+    // 23: in right half xwise, top half ywise, back half zwise
+    // 24: in right half xwise, bottom half ywise, front half zwise
+    // 25: in right half xwise, bottom half ywise, back half zwise
+    
+    // 0 = space for index of child node 0-7 when or'ed with curNode
+    
+    // N = offset of that node
+    
+    
+    
+    380A0:
+    
+    //consider zoneW starts as 0x17CD
+    //diffX1 of < -0x17CD or > 0 when it lies outside the zone in the x dimension
+    //(i.e from -0x17CD <-> -0xBE6: right half
+           from -0xBE6  <->      0: left half)
+    
+    //adding half will then determine whether point is in left half > 0 or right half < 0 with respect to zone in that dimension   
+    zoneW /= 2;
+    at = diffX1 + zoneW;
+
+    //point is in left half x/wise
+    //keep on the current half for next check
+    if (at > 0)
+      zoneUnknown = 0 | newCol[0]; //lhu 
+      
+    //else point is in right half x/wise
+    //switch to the right half for next check
+    else
+    {
+      //380C0
+      if (diffX1+=zoneW < diffW)
+        zoneUnknown = 0x8000000 | newCol[2];
+    
+      //otherwise further search is pointless since the point is not in the bounding box
+      //380DC:
+      else
+      {
+        diffX1-=zoneW;
+        zoneW *= 2; 
+      }
+    }
+    
+    380E8:
+    
+    zoneH /= 2;
+    at = diffY1 + zoneH;
+
+    if (at > 0)
+      zoneUnknown = 0x10000000 | newCol[0]; //lhu 
+    else
+    {
+      //38108
+      if (diffY1+=zoneH < diffH)
+        zoneUnknown = 0x18000000 | newCol[2];
+      //38124
+      else 
+      {
+        diffY1-=zoneH;
+        zoneH *= 2; 
+      }
+    }
+    
+    38130:
+    
+    zoneD /= 2;
+    at = diffZ1 + zoneD;
+    
+    if (at > 0)
+      zoneUnknown = 0x20000000 | newCol[0]; //lhu 
+    else
+    {
+      //38150
+      if (diffZ1+=zoneD < diffD)
+        zoneUnknown = 0x28000000 | newCol[2];
+      //3816C
+      else 
+      {
+        diffZ1-=zoneD;
+        zoneD *= 2; 
+      }
+    }
+    
+    //if any of the curNode tests pass, they loop back to 38048
+    //when none pass loops back to 37F08
+    38178:
+    
+    zoneW /= 2;
+    zoneH /= 2;
+    
+    at = diffX1 + zoneW;
+    if (at > 0)
+      curNode = 0x10000 | zoneUnknown;
+    if (diffW < at)
+      curNode = 0x20000 | zoneUnknown;
+     
+    at = diffY1 + zoneH;
+    if (at > 0)
+      curNode = 0x40000 | zoneUnknown;
+    if (diffH < at)
+      curNode = 0x80000 | zoneUnknown;
+      
+   
+    //if left and top
+    if (curNode & 0x50000)
+      zoneUnknown = 0x3000 | newCol[0];
+    
+    //if left and bottom
+    //381E4
+    else if (curNode & 0x90000)
+    {
+      zoneUnknown = 0x3800 | newCol[2];
+      diffY1 += zoneH;
+    }
+    
+    //these continue with following part
+    38204:
+      diffY1 -= zoneH;
+    
+    //if right and top
+    38208:
+    else if (curNode & 0x60000)
+    {
+      zoneUnknown = 0x40000000 | newCol[4];
+      diffX1 += zoneW;
+    }
+    //38228:
+      diffX1 -= zoneW;
+    
+    //if right and bottom
+    3822C:
+    else if (curNode & 0xA0000)
+    {
+      zoneUnknown = 0x48000000 | newCol[6];
+      diffX1 += zoneW;
+      diffY1 += zoneH;
+    }
+     
+    //38250:
+      diffX1 -= zoneW;
+      diffY1 -= zoneH;
+      
+    else
+    {
+      zoneW *= 2;
+      zoneH *= 2;
+      back to 37F0C;
+    }
+      
+    38264:
+    -------------------------------------
+    
+    zoneW /= 2;
+    zoneD /= 2;
+    
+    at = diffX1 + zoneW;
+    if (at > 0)
+      ra = 0x10000 | zoneUnknown;
+    if (diffW < at)
+      ra = 0x20000 | zoneUnknown;
+     
+    at = diffZ1 + zoneD;
+    if (at > 0)
+      ra = 0x100000 | zoneUnknown;
+    if (diffD < at)
+      ra = 0x200000 | zoneUnknown;
+      
+      
+    if (ra & 0x110000)
+      zoneUnknown = 0x50000000 | newCol[0];
+    //382D0
+    else if (ra & 0x210000)
+    {
+      zoneUnknown = 0x58000000 | newCol[2];
+      diffZ1 += zoneD;
+    }
+    //
+    382F0:
+      diffZ1 -= zoneD;
+    
+    382F4:
+    else if (ra & 0x120000)
+    {
+      zoneUnknown = 0x60000000 | newCol[4];
+      diffX1 += zoneW;
+    }
+    //38314:
+      diffX1 -= zoneW;
+    
+    38318:
+    else if (ra & 0x220000)
+    {
+      zoneUnknown = 0x68000000 | newCol[6];
+      diffX1 += zoneW;
+      diffZ1 += zoneD;
+    }
+     
+    //3833C:
+      diffX1 -= zoneW;
+      diffZ1 -= zoneD;
+      
+    else
+    {
+      zoneW *= 2;
+      zoneD *= 2;
+      back to 37F0C;
+    }
+    
+    ----------------------------------
+    38350:
+    
+    zoneH /= 2;
+    zoneD /= 2;
+    
+    at = diffY1 + zoneH;
+    if (at > 0)
+      ra = 0x40000 | zoneUnknown;
+    if (diffH < at)
+      ra = 0x80000 | zoneUnknown;
+     
+    at = diffZ1 + zoneD;
+    if (at > 0)
+      ra = 0x100000 | zoneUnknown;
+    if (diffD < at)
+      ra = 0x200000 | zoneUnknown;
+      
+      
+    if (ra & 0x140000)
+      zoneUnknown = 0x70000000 | newCol[0];
+    //383A4
+    else if (ra & 0x240000)
+    {
+      zoneUnknown = 0x78000000 | newCol[2];
+      diffZ1 += zoneD;
+    }
+    //
+    383DC:
+      diffZ1 -= zoneD;
+    
+    383E0:
+    else if (ra & 0x180000)
+    {
+      zoneUnknown = 0x80000000 | newCol[4];
+      diffY1 += zoneH;
+    }
+    //38400:
+      diffY1 -= zoneH;
+    
+    38318:
+    else if (ra & 0x280000)
+    {
+      zoneUnknown = 0x88000000 | newCol[6];
+      diffY1 += zoneH;
+      diffZ1 += zoneD;
+    }
+     
+    //3833C:
+      diffY1 -= zoneH;
+      diffZ1 -= zoneD;
+      
+    else
+    {
+      zoneH *= 2;
+      zoneD *= 2;
+      back to 37F0C;
+    }
+      
+    -----------------------------
+    3843C:
+    
+    zoneW /= 2;
+    zoneH /= 2;
+    zoneD /= 2;
+    
+    at = diffX1 + zoneW;
+    if (at > 0)
+      ra = 0x10000 | zoneUnknown;
+    if (diffW < at)
+      ra = 0x20000 | zoneUnknown;
+     
+    at = diffY1 + zoneH;
+    if (at > 0)
+      ra = 0x40000 | zoneUnknown;
+    if (diffH < at)
+      ra = 0x80000 | zoneUnknown;
+      
+    at = diffZ1 + zoneD;
+    if (at > 0)
+      ra = 0x100000 | zoneUnknown;
+    if (diffD < at)
+      ra = 0x200000 | zoneUnknown;
+      
+    
+    if (ra & 0x150000)
+      zoneUnknown = 0x90000000 | newCol[0];
+    //384D0
+    else if (ra & 0x250000)
+    {
+      zoneUnknown = 0x98000000 | newCol[2];
+      diffZ1 += zoneD;
+    }
+    //
+    384F0:
+      diffZ1 -= zoneD;
+    
+    383E0:
+    else if (ra & 0x190000)
+    {
+      zoneUnknown = 0xA0000000 | newCol[4];
+      diffY1 += zoneH;
+    }
+    //38514:
+      diffY1 -= zoneH;
+    
+    38518:
+    else if (ra & 0x290000)
+    {
+      zoneUnknown = 0xA8000000 | newCol[6];
+      diffY1 += zoneH;
+      diffZ1 += zoneD;
+    }
+     
+    //3853C:
+      diffY1 -= zoneH;
+      diffZ1 -= zoneD;
+      
+    else if (ra & 0x160000)
+    {
+      zoneUnknown = 0xB0000000 | newCol[8];
+      diffX1 += zoneW;
+    }
+    
+    //38564:
+      diffX1 -= zoneW;
+      
+    else if (ra & 0x260000)
+    {
+      zoneUnknown = 0xB8000000 | newCol[0xA];
+      diffX1 += zoneW;
+      diffZ1 += zoneD;
+    }
+    
+    //3858C:
+      diffX1 -= zoneW;
+      diffZ1 -= zoneD;
+      
+    else if (ra & 0x1A0000)
+    {
+      zoneUnknown = 0xC0000000 | newCol[0xC];
+      diffX1 += zoneW;
+      diffY1 += zoneH;
+    }
+        
+    //385B8:
+      diffX1 -= zoneW;
+      diffY1 -= zoneH;
+      
+    else if (ra & 0x2A0000)
+    {
+      zoneUnknown = 0xC8000000 | newCol[0xE];
+      diffX1 += zoneW;
+      diffY1 += zoneH;
+      diffZ1 += zoneD;
+    }
+
+    //385E8:
+      diffX1 -= zoneW;
+      diffY1 -= zoneH;
+      diffZ1 -= zoneD;
+      
+    else
+    {
+      zoneW *= 2;
+      zoneH *= 2;
+      zoneD *= 2;
+      back to 37F0C;
+    }
+  }
+}
+
+sub_80038AC4(process, array, bound, bound2, yval, output, magic, sub);
+{
+  scratch[0xEC] = process;
+  
+  //v1 = yval
+  //t0 = output
+  //v0 = magic
+  //t1 = sub
+  //t2 = array
+  
+  boundX = bound[0];  //sp
+  boundY = bound[4];  //fp
+  boundZ = bound[8];  //ra
+  
+  bound2X1 = bound2[0];    //t6
+  bound2Y1 = bound2[4];    //t7
+  bound2Z1 = bound2[8];    //s0
+  bound2X2 = bound2[0xC];  //s1
+  bound2Y2 = bound2[0x10]; //s2
+  bound2Z2 = bound2[0x14]; //s3
+  
+  scratch[0xE0] = magic;
+  scratch[0xE4] = sub;
+  scratch[0xE8] = output;
+  
+  //a3 = 0;
+  //a2 = 0;
+  //at = 0;
+  //t1 = 0;
+  
+  offset = 0;
+  curStruct = array;
+  
+  while (true)
+  {  
+    if (curStruct[0] == 0xFFFF)
+      break;
+    else
+    {
+      //if the current structure is a header
+      if (curStruct[0] == 0)
+      {
+        zoneW = curStruct[2] << 8;  //s4
+        zoneH = curStruct[4] << 8;  //s5
+        zoneD = curStruct[6] << 8;  //s6
+        
+        depthX = curStruct[0xA];   //s7
+        depthY = curStruct[0xC];   //t8
+        depthZ = curStruct[0xE];   //t9
+        
+        curStruct+=0x10;
+      
+        continue looping;
+      }
+      
+      //otherwise its a collision point
+      else      
+      {
+        //curStruct[0] = VVVVVVVV VVVVVIII, I = node level, V = value of node
+        
+        //nodeValue = VVVVVVVV VVVVVVV1      //lowest bit forced set
+        nodeValue = (curStruct[0] >> 2) | 1; //a1 
+        nodeLevel = (curStruct[0] & 7);      //gp
+        
+        //
+        nodeSubindex = nodeValue & 0xE;
+        
+        //signed values
+        locationX = curStruct[2]/16;  //t3
+        locationY = curStruct[4]/16;  //t4
+        locationZ = curStruct[6]/16;  //t5
+        
+        locationX += boundX;
+        locationY += boundY;
+        locationZ += boundZ;
+        
+        if (bound2X2 >= locationX
+            bound2Y2 >= locationY
+            bound2Z2 >= locationZ)            
+        {
+          if (depthX < nodeLevel)
+            a0 = zoneW >> depthX;
+          else
+            a0 = zoneW >> nodeLevel;
+            
+          locationX += a0;
+          
+          if (depthY < nodeLevel)
+            a0 = zoneH >> depthY;
+          else
+            a0 = zoneH >> nodeLevel;
+            
+          locationY += a0;
+          
+          if (depthZ < nodeLevel)
+            a0 = zoneD >> depthZ;
+          else
+            a0 = zoneD >> nodeLevel;
+            
+          locationZ += a0;
+          
+          if (locationX >= bound2X1 &&
+              locationY >= bound2Y1 &&
+              locationZ >= bound2Z1)
+          {  
+            if (nodeSubindex == 6 || nodeSubindex == 8 ||
+                nodeValue & 0x3F0 != 0 && nodeValue < 0x270)
+            {
+              scratch[0xF0] = at;
+
+              //preserving values in scratch memory rather than on the stack
+              scratch[0x70] = yval;           
+              scratch[0x74] = nodeValue;
+              scratch[0x78] = a2;
+              scratch[0x7C] = a3;
+              scratch[0x80] = output;
+              scratch[0x84] = t1;
+              scratch[0x88] = array;
+              scratch[0x8C] = locationX;
+              scratch[0x90] = locationY;
+              scratch[0x94] = locationZ;
+              scratch[0x98] = bound2X1;
+              scratch[0x9C] = bound2Y1;
+              
+              sub     = scratch[0xE4];
+              process = scratch[0xEC];              
+              
+              retval = sub(process, nodeIndex);
+              
+              //preserving values in scratch memory rather than on the stack
+              yval      = scratch[0x70];       
+              nodeValue = scratch[0x74]; 
+              a2        = scratch[0x78]; 
+              a3        = scratch[0x7C]; 
+              output    = scratch[0x80]; 
+              t1        = scratch[0x84]; 
+              array     = scratch[0x88];  
+              locationX = scratch[0x8C]; 
+              locationY = scratch[0x90];  
+              locationZ = scratch[0x94]; 
+              bound2X1  = scratch[0x98]; 
+              bound2Y1  = scratch[0x9C]; 
+              
+              at = scratch[0xF0];
+              
+              if (retval == 0)
+              {
+                if (yval >= locationY)
+                {
+                  if (output != 0)
+                  {
+                    t1++;
+                    at+=locationY;
+                  }
+                  else
+                  {
+                    a2++;
+                    a3+=locationY;
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        curStruct += 8;
+      }
+    } 
+  }    
+  
+  newMagic  = scratch[0xE0];
+  output    = scratch[0xE8];
+
+  if (a2 != 0)
+    output[4] = a3/a2;
+  else
+    output[4] = newMagic;
+    
+  if (t1 != 0)
+    output[8] = at/t1;
+  else
+    output[8] = newMagic;
+}
+            
+sub_8002C3B8(process, nodeValue)
+{
+  //a2 = process
+  //octant of the node is in the rightmost 4 bits (ignoring the first bit)
+  if (nodeValue == 0)
+    octant = 0; //a0
+  else
+    octant = ((nodeValue & 0xE) >> 1 + 1); //a0
+     
+  nodeFunction = ((nodeValue & 0x3F0) >> 4) - 1;  
+  if (nodeFunction > 0xC) { jump to default case; }
+  else
+  {
+    nodeFunction 1:
+      process[0x13C] = 0x700;
+      process[0xC8] |= 0x400;
+      goto default case;
+      
+    nodeFunction 2:
+      process[0x13C] = 0xC00;
+      process[0xC8] |= 0x400;
+      goto default case;
+      
+    nodeFunction 5:
+      process[0x13C] = 0x1E00;
+      process[0xC8] |= 0x400;
+      goto default case;
+      
+    nodeFunction 4:
+      process[0x13C] = 0x1F00;
+      process[0xC8] |= 0x400;
+      goto default case;
+      
+    nodeFunction 3:
+      process[0x13C] = 0x2100;
+      process[0xC8] |= 0x400;
+      goto default case;
+
+    nodeFunction 12:
+      process[0x13C] = 0x2300;
+      process[0xC8] |= 0x400;
+      goto default case;
+      
+    nodeFunction 6:
+      process[0x13C] = 0xD00;
+      process[0xC8] |= 0x400;
+      goto default case;
+      
+    nodeFunction 7-10:
+      process[0x13C] = 0x1200;
+      process[0xC8] |= 0x2000;
+      goto default case;
+      
+    nodeFunction 11:
+      process[0x13C] = 0x900;
+      process[0xC8] |= 0x400;
+      return 1;
+  }
+  
+  default case:
+   
+    if (octant == 4)
+    {
+      level = 0x5C53C[4];
+      if (level == 3 || level == 7)
+      {
+        process[0x13C] = 0x2100;
+        process[0xC8] |= 0x400;
+        return 0;
+      }
+      else
+      {
+        process[0x13C] = 0x900;
+        process[0xC8] |= 0x400;
+        return 1;
+      }
+    }
+    else if (octant == 3)
+      return 1;
+    else if (octant == 5)
+      return 1;
+    else
+      return 0;
+}      
+    
+            
+     
+    
+  
+    
+sub_8002CD9C(process, vector, array)
+{
+  //s5 = process
+  //s1 = vector
+  //a1 = array
+  
+  //s3 = 0xC4653601
+  //a0 = 0x1F2C0
+  //v1 = 0x29900
+  
+  array[0x1020] = vector[0] - 0x4B00;
+  array[0x102C] = vector[0] + 0x4B00;
+  
+  array[0x1024] = vector[4] + 0x1F2C0;
+  array[0x1030] = vector[4] + 0x29900;
+  
+  array[0x1028] = vector[8] - 0x4B00;
+  array[0x1034] = vector[8] + 0x4B00;
+  
+  //t0 = 0x60E08
+  
+  max = *(0x61888);
+  
+  //t6 = 0xC4653601
+  //t4 = 0x8000000
+  
+  //a0 = 0x60E08+4
+  //t2 = *(0x61888)
+  
+  level  = 0;
+  struct = 0x60E08 + (count*28);
+  magic = 0xC4653601;
+  
+  check = 0xC4653601;
+  found = 0;
+  
+  
+  if (max > 0)
+  {
+    do
+    {
+      struct = 0x60E08 + (count * 28);
+      
+      structProc = struct[0x18];
+    
+      if (structProc[0xCC] & 0x80000000)
+      {
+        yvalA = array[0x1024];
+        Y2    = struct[0x10];
+      
+        yvalB = array[0x1030];
+        Y1    = struct[0x4];
+      
+        xvalB = array[0x102C];
+        X1    = struct[0];
+      
+        zvalB = array[0x1034];
+        Z1    = struct[0x8];
+      
+        xvalA = array[0x1020];
+        X2    = struct[0xC];
+      
+        zvalA = array[0x1028];
+        Z2    = struct[0x14];
+      
+        if (Y2 >= yvalA && Y1 < yvalB &&
+                           X1 < xvalB &&
+                           Z1 < zvalB &&
+            X2 >= xvalA &&
+            Z2 >= zvalA)
+        {
+          if (magic == check)
+          {
+            check = Y1;
+            found = structProc;          
+          }
+          else
+          {
+            if (check >= Y1)
+              check = Y1;
+          }
+        }
+      }
+    
+      count++;
+    }   while (count < max)
+  }
+  
+  array[0x1020] = vector[0] - 0x2580;
+  array[0x102C] = vector[0] + 0x2580;
+  
+  array[0x1028] = vector[8] - 0x2580;
+  array[0x1034] = vector[8] + 0x2580;
+
+  //TODO: DOCUMENT
+  //seems to find the average Y of all nodes of types in the second to last 2 args (-1)
+  //that lie within the bounding box (with array+0x1008 as position, array+0x1020 as size?)
+  
+  retval = sub_80038DF8(process, array, array+0x1008, array+0x1020, 2, 1, 0xC4653601);
+  
+  zone = process[0x28];
+  zoneHeader = zone[0x10];
+  
+  if (zoneHeader[0x2FC] & 0x20000)
+  {
+    curZone = 0x57914;
+    newVector = { vector[0], array[0x1020], vector[8] };
+    nextZone = sub_80026DD4(curZone, newVector);
+    
+    if (isError(nextZone))
+    {
+      zoneDimItem = zone[0x14];
+      zoneY       = zoneDimItem[4] << 8;
+      
+      if (zoneY < newVector[4])
+        retval = zoneY;
+    }
+  }
+  
+  if (check != 0xC4653601 && (retval == 0xC4653601 || check < retval))
+  {
+    found[0xC8] |= 0x80;
+    
+    //hit from the bottom...
+    sub_80024040(process, found, 0x1700, 1, {0x6400, ..});
+    
+    return check;
+  }
+  else
+    return retval;
+}
+      
+  
+sub_8002D18C(process, vector)
+{
+  //s0 = process
+  //s1 = vector
+
+  zone = *(0x57914);
+  
+  neighbor = sub_80026DD4(zone, vector);
+  
+  //if such a vector's endpt not contained within any of the zone's neighbors...
+  //(i.e. below a zone)
+  if (neighbor > 0xFFFFFF01)
+  {
+    proczone = process[0x28];
+    
+    camItem = proczone[0x14];  //s3
+    
+    procTop = process[0xC];
+    zoneY = camItem[4] << 8;
+    vectY = vector[4];
+    
+    if (vectY < zoneY - procTop)
+    {
+     
+      alive = true;
+      if (*(0x5C53C)[4] == 0x17) //if zone is ripper roo
+      {
+        sub_80024040(0, process, 0x2100, 1, {0, ..}); 
+      }
+      proczone    = process[0x28];
+      zoneHeader = proczone[0x10];
+      flags   = zoneHeader[0x2FC];
+      
+      //fall into hole and die
+      if (flags & 2 && process[0x128] != 2)
+      {    
+        sub_80024040(0, process, 0x900, 1, {0x6400, ...});
+        alive = false;
+      }
+      
+      //alive is the default case when there is no event
+      //handler issued for falling into hole due to the zone flags
+      if (alive)
+      {
+        procTop = process[0xC];
+        zoneY = camItem[4] << 8;
+      
+        
+        vect[4] = zoneY - procTop;
+        
+        //save old y velocity
+        process[0x134] = process[0xA8];
+        
+        //clear y velocity/stop falling
+        process[0xA8] = 0;
+
+        //set flag to die?
+        process[0xC8] |= 1;        
+       
+        //timestamp
+        process[0x130] = *(0x60E04);
+      }
+    }
+  }
+  else
+    process[0x28] = neighbor;  //load that zone
+    
+  if (process[0x28] == 0) { return 0xFFFFFF01; }
+  
+  curZone = process[0x28];
+  curZoneHeader = curZone[0x10];
+  curZoneFlags = curZoneHeader[0x2FC];
+  
+  if (curZoneFlags & 4)
+  {
+    if (process[0x84] < curZoneHeader[0x300])
+    {
+      //(water deaths seem to be handled differently...)
+      //if level is upstream or up the creek
+      if (*(0x5C53C)[0x4] == 0xF || 0x18)
+      {
+        sub_80024040(0, process, 0x2100, 1, {0x27100, ...});
+      }
+    }
+  }
+  
+  return 0xFFFFFF01;
+}
+
+//find the 'zone' in the list of neighbor zones for the specified zone that
+//contains the specified vector/end pt.
+sub_80026DD4(zone, vector)
+{
+  //s4 = zone
+  //s1 = vector
+  
+  zoneHeader = zone[0x10];
+  
+  //subtracting one; we exclude itself
+  neighborCount = zoneHeader[0x210] - 1;
+  
+  do
+  {
+  
+    neighborEID = zoneHeader[0x214 + (neighborCount*4)];
+    neighbor = EID_PROCESS(neighborEID);
+    
+    neighbDimItem = neighbor[0x14];
+    neighbX1 = neighbDimItem[0] << 8;
+    neighbY1 = neighbDimItem[4] << 8;
+    neighbZ1 = neighbDimItem[8] << 8;
+    neighbX2 = (neighbDimItem[0] + neighbDimItem[0xC])  << 8;
+    neighbY2 = (neighbDimItem[4] + neighbDimItem[0x10]) << 8;
+    neighbZ2 = (neighbDimItem[8] + neighbDimItem[0x14]) << 8;
+    
+    vectX = vector[0];
+    vectY = vector[4];
+    vectZ = vector[8];
+    
+    //the conditions pass/loop ends when the zone is found that 
+    //the vector lies within 
+    if (vectX > neighbX1 && vectY > neighbY1 && vectZ > neighbZ1
+      &&vectX < neighbX2 && vectY < neighbY2 && vectZ < neighbZ2)
+    {
+      found = neighbor;    
+    }
+  } while (neighborCount-- > 0);
+  
+  if (found)
+    return found;
+  //if a neighbor was not found that contains the vector
+  else
+  {
+    //then see if it can be found in the current zone's neighbors
+    curZone = *(0x57914);
+    if (zone != curZone)
+    {
+      zoneHeader = curZone[0x10];
+  
+      //subtracting one; we exclude itself
+      neighborCount = zoneHeader[0x210] - 1;
+      
+      do
+      {
+      
+        neighborEID = zoneHeader[0x214 + (neighborCount*4)];
+        neighbor = EID_PROCESS(neighborEID);
+        
+        neighbDimItem = neighbor[0x14];
+        neighbX1 = neighbDimItem[0] << 8;
+        neighbY1 = neighbDimItem[4] << 8;
+        neighbZ1 = neighbDimItem[8] << 8;
+        neighbX2 = (neighbDimItem[0] + neighbDimItem[0xC])  << 8;
+        neighbY2 = (neighbDimItem[4] + neighbDimItem[0x10]) << 8;
+        neighbZ2 = (neighbDimItem[8] + neighbDimItem[0x14]) << 8;
+        
+        vectX = vector[0];
+        vectY = vector[4];
+        vectZ = vector[8];
+        
+        //the conditions pass/loop ends when the zone is found that 
+        //the vector lies within 
+        if (vectX > neighbX1 && vectY > neighbY1 && vectZ > neighbZ1
+          &&vectX < neighbX2 && vectY < neighbY2 && vectZ < neighbZ2)
+        {
+          found = neighbor;    
+        }
+      } while (neighborCount-- > 0);
+    
+      if (found) { return found; }
+    }
+  }
+
+  return 0xFFFFFFE9;
+}
+  
+---------------------------
+//HANDLES THE PROCESS ANIMATION STRUCT
+//(this is where the object model is displayed)
+sub_8001DE78(process)
+{
+  //s4 = process
+
+  ptr = process[0x108];  //s0
+  val = process[0x10C];
+
+  s1 = val >> 8;
+
+  byte = ptr[0];
+
+  if      (byte == 2) { jmp 1def0; }
+  else if (byte >  3)
+  {
+    if      (byte == 4) { jmp 1e168; }
+    else if (byte == 5) { jmp 1e028; }
+    else
+      return byte;
+  }
+  else if (byte == 1) { jmp 1e198; }
+  else
+    return byte;
+
+  -------------
+
+  1def0:
+  
+  //process[0x108] = 
+  {
+    byte      mode;
+    byte         ?;
+    byte         ?;
+    byte         ?;
+    word       EID;   //after EID_PROCESS refers to a value rather than an entry with: ???????? ????OOOO OOOOOOOO F??YYY??
+     
+    //for mode == 2  //           Y=texture page Y ID, F=texture flag, O=palette offset from current table (can go into other tables)       struct
+    {
+      word colorinfo;   //?SS?CCCC   S=semi-transparency mode, C=color offset into palette
+      word textureinfo;
+    } ctInfo[N];
+  }    
+ 
+  s3 = (float)abs(process[0x98])/27279;
+
+  if (process[0xCC] & 0x200000 == 0)
+  {
+    ptr    =    0x57888;  //object rotation matrix
+    var_50 = *(0x57844);  //global rotation matrix
+  }
+  else
+  {
+    ptr    =    0x57864;  //use this one instead
+    var_50 = *(0x577E4);
+  }
+  
+  gEntry =   *(0x57914);
+  gInfo  = gEntry[0x10];
+  
+  var_4C = *(0x578D0);
+  var_48 = gInfo[0x2E8]/256;
+  var_44 = ((process[0xCC] >> 18) ^ 1) & 1;  //i.e. bit 18 reversed
+
+  //pre rotation/translation function for this primitive type
+  result = sub_8003A144(&process[0x80], ptr, process[0xCC] & 0x200, s3, var_50, var_4C, var_48, var_44);    //something with additinoal rotation
+  
+  if (result == 0) { return 0; }
+        
+  structwithEID = process[0x108];
+  EID         = structwithEID[4];
+  entry       = EID_PROCESS(EID);              //WAIT, so sometimes, EIDs can refer to non-entry's?
+                                         //..seems to be the case here
+
+  transPolygons = sub_80016E18();        //i.e. *(0x5840C + 0x78);
+
+
+  val = (process[0x10C] >> 8) * 8;       //process[0x10C] left half determines which of the color/textureinfo structs to use
+  
+  v0     = (*(0x578D0) + (*(0x578D0) >> 31)) >> 1;
+  camDist =          process[0x138] + (0x800 - v0);    //process[0x138] = current Z? so this gets distance from *(0x578D0) camZ?       
+
+  return sub_8003A76C(*(0x5840C) + 0x88, &structwithEID[8 + val], entryorisit, 0xC8 << s3, camDist, transPolygons, 0x51774);  
+
+  //creates and transforms a new 'square' with size given by scalar
+  //structwithEIDloc indicates a structure that has RGB value, and texture information
+  //entryfromstruct contains texture page Y index (y indexes have 4 pages), texture coord flag, and palette offset for CLUT modes 
+  //-array is a pointer to a list of default texture page, clut values
+  //-transpolygons is a pointer to where we will store the transformed square
+  //-drawdispbufloc is a pointer to the draw/display buffer structure where we store a pointer to the new transformed square
+  // in a z-sorted list so it can be rendered
+  //-proccalc is (object distance from camera?) so polygons can be Z-sorted relative to this distance
+
+  //sub_8003A76C(drawdispbufloc, structwithEIDloc, entryfromstruct, scalar, proccalc, transpolygons, array)
+
+  //MAYBE used in this context it creates the shadows for an object, since they are all squares in this game,
+   size determined by 0xC8 << s3
+
+  ------
+
+  1e028:
+
+  //----------------
+  //val = abs(process[0x98]);  //a3
+  //integral = HIWORD(val * 0x26705EBF);  //the integral portion of the product
+  //s2 = (integral >> 12) - (val >> 31);   //val>>31 is highest bit of val
+
+  s2 = process[0x98]/27279;
+
+  gEntry =   *(0x57914);
+  gInfo  = gEntry[0x10];
+ 
+
+  ptr    =    0x57888;
+  var_50 =    0x57844; 
+  var_4C = *(0x578D0);
+  var_48 = gInfo[0x2E8]/256;
+  var_44 = ((process[0xCC] >> 18) ^ 1) & 1;  //i.e. bit 18 reversed
+
+  //pre rotation/translation function for this primitive type
+  result = sub_8003A144(&process[0x80], ptr, process[0xCC] & 0x200, s2);
+  
+  if (result == 0) { return 0; }
+
+  //process[0x108] = 
+  {
+    byte      mode;
+    byte         ?;
+    byte         ?;
+    byte         ?;
+    word       EID;   //after EID_PROCESS refers to a value rather than an entry with: ???????? ????OOOO OOOOOOOO F??YYY??
+     
+    //for mode == 5  //           Y=texture page Y ID, F=texture flag, O=palette offset from current table (can go into other tables)     word groupSize;
+
+    struct
+    {
+      word colorinfo;   //?SS?CCCC   S=semi-transparency mode, C=color offset into palette
+      word textureinfo;
+      
+      struct rect
+      {
+        hword y2;
+        hword x2;
+        hword y1;
+        hword x1;
+      }
+    } rectInfo[G][groupSize];  //where G=any group
+  }    
+
+  structwithEID =   process[0x108];
+
+  EID           = structwithEID[4];  
+  entry         = EID_PROCESS(EID);  //s6
+
+  numRects      = structwithEID[8];  //number of rects in one group
+  val  =     (process[0x10C] >> 8);
+
+  //left half of process[0x10C] refers to a certain group of rectInfos
+  offset        =  (numRects * val) * 16;  //last*val is HIWORD result
+
+  rectInfo = &structwithEID[0xC + offset];
+
+  if (numRects <= 0) { return entry; }  //is this right?
+
+  count = 0;
+  do
+  {
+    var_40 = rectInfo[8]   << s2;   //re
+    var_3C = rectInfo[0xA] << s2;
+    var_34 = rectInfo[0xC] << s2;
+    var_30 = rectInfo[0xE] << s2;
+
+    var_50 = *(0x5840C) + 0x88;
+
+    //creates/transforms a rectangle with coords specified by var_40 (stack ptr)
+    //with texture and color info specified by entry
+    sub_80018B98(&rectInfo, process[0x138], entry, &var_40, var_50);    //cop2
+    rectInfo += 0x10;
+
+    count++;
+  } while (count < numRects)    //for all 16 byte structures in this group
+  
+  return 0;
+
+  ------------------------
+
+  1e168:
+
+  var_50 = process[0xCC] & 0x400;
+
+  return sub_8001E7D8(process, process[0x108], process[0x10C]>>8, *(0x5840C) + 0x88);
+
+  ----
+
+  1e198:
+
+    
+  structwithEID = process[0x108];
+  EID = structwithEID[4];
+
+  entry = EID_PROCESS(EID);
+
+  itemIndex = ((process[0x10C]>>8) * 4);
+  itemN     =   entry[0x10 + itemIndex];
+
+  //below is where call to the 'big' function
+  --
+  if (entry.type == 0x14)                              //T20, variation of animation?
+  {
+    sub_80018A40(itemN, *(0x5840C) + 0x88, process);
+  }
+  else                                                 //T1
+  {
+    sub_80018964(itemN, *(0x5840C) + 0x88, process);   
+  }
+  ---
+
+  
+  //object shading flag
+  if (process[0xCC] & 0x100000 == 0) { return 0; }
+
+  if (gp[0x2B8] == process)
+  {
+    graphicsEntry = process[0x28];
+    item1   = graphicsEntry[0x10];
+
+    processOffset = process +  0x30;
+    itemOffset    = item1   + 0x348;
+   
+    if (((a2 | a3) & 3) != 0)
+      copyInterleave(processOffset, itemOffset, 12, sizeof(word), 3); //copy 12 words, but dont copy the3rdbyt 
+    else
+      copy(processOffset, itemOffset, 12, sizeof(word));
+  }
+  else
+  {
+    graphicsEntry = process[0x28];
+    if (!graphicsEntry)
+      graphicsEntry = *(0x57914);
+
+    item1   = graphicsEntry[0x10];
+
+    processOffset = process +  0x30;
+    itemOffset    = item1   + 0x318;
+   
+    if (((a2 | a3) & 3) != 0)
+      copyInterleave(processOffset, itemOffset, 12, sizeof(word), 3); //copy 12 words, but dont copy the3rdbyt 
+    else
+      copy(processOffset, itemOffset, 12, sizeof(word));
+
+  }
+  
+  return;
+}
+  
+sub_80018964(svtxFrame, polygonBufferB, process)
+{
+  //load the entry for the TGEO model in this SVTX frame
+  tgeoEID = svtxFrame[0x4];              
+  entry   = EID_PROCESS(tgeoEID); 
+  item1   = entry[0x10];      
+
+  //set new translation, rotation, light and color matrices before rendering
+  result  = sub_800180CC(item, item1, process, 1, 0);  //last arg is var_30 = 0, arg_10 in sub
+ 
+  //if we could not translate then return error
+  if (result == 0) { return 0; }
+  
+  //determine where to place the new model that will be rendered and 
+  //its respective link in the z-buffer
+  polygonBuffer = sub_80016E18();
+  projval       = (process[0x138] + 0x800) - (((*(0x578D0) >> 31) + *(0x578D0)) >> 1);
+
+  //now render the object model
+  item1 = entry[0x10];
+  item2 = entry[0x14];
+  return sub_8003460C(svtxFrame, polygonBufferB, item2, item1, process[0x98], projval, polygonBuffer, 0x51774, 0);
+}
+    
+        

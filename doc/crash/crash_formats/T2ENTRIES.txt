@@ -1,0 +1,64 @@
+-----------------
+-   T2 ENTRIES  - 
+-----------------
+
+  2 item entries containing model data for a game object
+
+-----------
+
+ITEM 1:
+-------
+
+0x0: number of polygons
+0x4: X scale
+0x8: Y scale
+0xC: Z scale
+0x10: size of texture/color information for polygons
+0x14 - 0x14+(count*4): texture/color information for polygons: 
+
+when the highest bit is set, indicating texture information, a structure is of this form:
+
+1PPN0000 RRRRRRRR GGGGGGGG BBBBBBBB ________ ____OOOO OOOOOOOO F__III__ DDDDDDDD DDMMCCXX XXXTTTTT TT_YYYYY
+============================================================================================================
+  //PP           = primitive type tag
+  //N            = flag for allow normal clipping
+  //RRRRRRRR     = global red
+  //GGGGGGGG     = global green
+  //BBBBBBBB     = global blue
+  //OOOOOOOOOOOO = color lookup table offset
+  //F            = texture coordinates flag
+  //DDDDDDDDDD   = index into an array of default values
+  //MM           = texture color mode
+  //CC           = texture page x ID
+  //III          = texture page y ID
+  //XXXXX        = texture x coordinates
+  //YYYYY        = texture y coordinates
+  //TTTTTTT      = color lookup table ID (for modes 0 & 1)  [1 table = 4 palettes]  
+
+when the highest bit is not set, (indicating no texture information), a structure is of this form:
+
+000N0000 RRRRRRRR GGGGGGGG BBBBBBBB
+======================================
+  //N            = flag for allow normal clipping
+  //RRRRRRRR     = global red
+  //GGGGGGGG     = global green
+  //BBBBBBBB     = global blue
+
+
+ITEM 2:
+--------
+2 word structures, each describing a polygon in the model. have the form:
+
+FTTTTTTT TTTTTTTT CCCCCCCC CCCCCCCC BBBBBBBB BBBBBBBB AAAAAAAA AAAAAAAA
+=============================
+AAAAAAAAAAAAAAAA = VERTEX A
+BBBBBBBBBBBBBBBB = VERTEX B
+CCCCCCCCCCCCCCCC = VERTEX C
+TTTTTTTTTTTTTTT  = TEXTURE/COLOR INFORMATION
+F                = DISPLAY FLAG (if cleared, the vertex wont get sent to the gte after perspective transform?)
+
+-vertex a, b, and c each refer to an offset into this entry's corresponding T1 entry from index 0x38:
+-texture color information refers to an offset into this entry's ITEM 1 from index 0x14
+-F flag determines what type of primitive will be dedicated to the polygon when sending it to the GPU
+(textured or non-textured)
+

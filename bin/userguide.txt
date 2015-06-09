@@ -1,0 +1,274 @@
+   ____               _     _   _ _   _ _     
+  / ___|_ __ __ _ ___| |__ | | | | |_(_) |___ 
+ | |   | '__/ _` / __| '_ \| | | | __| | / __|
+ | |___| | | (_| \__ \ | | | |_| | |_| | \__ \
+  \____|_|  \__,_|___/_| |_|\___/ \__|_|_|___/
+                                              
+         __      __               __  
+        /  )      _/     -/      /  ) 
+       (__/  .   /   .   /  .   (__/  
+       
+               = User Guide =
+              
+CONTENTS
+========
+1) Start Here
+2) Preliminary Information
+3) Model/Zone View
+4) Code View
+5) Controls
+             
+1) START HERE
+==============
+
+Each .NSD file on the Crash disc corresponds to a level in the game. 
+
+Use File->Open to select the desired .NSD file on the Crash disc. Expand the 'chunk' categories and select the 
+level data to view by right clicking on an 'entry'. Currently supported entry types are those that end with the 
+following characters:
+
+  C - GOOL executable (code and data for object behavior)
+  W - WGEO model      (model for a portion of the level)
+  T - TGEO model      (model for an object in the level)
+  Z - ZDAT zone       (camera path 'sections', collision data, and objects in a smaller 'zone' of a larger 
+                       collection of up to 8 visible, usually adjacent WGEO models present in the level)
+
+Right clicking on a GOOL executable brings up a menu with the option to 'Open in Code View'.
+Right clicking on a ZDAT zone, WGEO model, or TGEO model brings up a menu with the option to 'Open in 
+Model/Zone View'. 
+
+- Opening a model (WGEO/TGEO) in Model/Zone view allows for the viewing of its geometric content. 
+
+- Opening a zone (ZDAT) in Model/Zone view allows for the viewing of the 8 or less WGEO models, or worlds, visible 
+  to the player from within the confines of that zone [in an instance of the game], at their respective positions 
+  [within the chosen level (NSD/NSF)]. From this view, the remaining zones in the level can be selected to occupy
+  the scene with geometry for the entire level. 
+  *Objects can also be spawned within the currently selected zone, including the Crash object if the appropriate 
+   zone is selected.
+  
+- Opening an executable (GOOL) in Code view allows for the viewing of its disassembled byte code.
+
+Sections 3 and 4, respectively, explain how to use Model/Zone View and Code View. Before reading these sections,
+however, it is necessary to understand specifics of the content that is accessed with these views. The following
+section lists several preliminary definitions.
+
+2) PRELIMINARY INFORMATION
+===========================
+
+- Worlds
+
+  Most visible content in the level consists of 'worlds', or WGEO models. Each WGEO model entry in the NSD/NSF file chosen
+  (name ending with 'W') contains the geometric content for, and the location/position of, a single world within 
+  the level. Worlds within a level are typically responsible for the following visual aspects: ground/terrain, ceilings, 
+  walls, stationary entities (inanimate platforms, blocks, pillars, etc.), stationary scenery, backdrops, and etc.
+
+- Zones
+
+  The actual 'level' itself is composed of invisible 'zones'. Each zone is a cubic region of 3 dimensional space, 
+  with dimensions (width, height, depth) and unique location/position, within its containing level. The space 
+  occupied by a zone approximately encompasses the [evidently] interactive regions of one or more worlds. All 
+  together as a whole, a level's zones encompass all of the apparently interactive space occupied by its worlds
+  and any additional surrounding 'atmosphere'; this complete enclosure defines the approximate boundaries for 
+  the entire level. Each ZDAT entry in the NSD/NSF file chosen (name ending with 'Z') contains the location/
+  position and dimensions of, and various other information for, a single zone within the level.
+    
+  - Octrees
+  
+    In an instance of the game, when a initially entering a level, the player character (Crash/Willie) is spawned 
+    at a specific location within the level's 'first zone'; at this point, the worlds encompassed by the zone, and 
+    possibly other nearby worlds, are visible for the player to see, and typically the player character is in a 
+    location where it appears to be supported by some aspect of one of the worlds-usually terrain. At this point, 
+    the game's central operation is in allowing the player to move. The player's movement is, of course, dependent 
+    on 'gravity', and they will continue to fall unless there is presence of a solid surface beneath them. As the 
+    geometric content of worlds serves no other purpose than for appearance, the game does not use it to determine
+    /compute solidity of the player's underlying content. Instead, the -zone- specifies that various smaller cubic 
+    regions or subdivisions within itself, are 'ground regions'; these regions correspond to smaller regions of the 
+    zone's encompassed worlds [' geometry] that, together, encompass [approximately] the space occupied by only the 
+    appropriate aspects of the worlds' geometry (i.e. ground/terrain). Other types of regions also exist: 'wall 
+    regions' (encompass walls), 'pit regions' (encompass the bottom of a pit), 'water regions' (encompass water),
+    and etc. The game stores this information for a zone in the form of an 'octree' to conserve space. 
+
+  - Camera paths
+  
+    As the player character moves forward (or backward) to 'make progress' within a zone, it appears as though 
+    the game's camera travels a fixed path in following behind them. Each zone within a level also specifies several
+    (typically all-encompassed) 'sections' of a path in which the camera is to travel as the player character makes
+    progress within that zone.
+  
+  - Visible worlds
+   
+    As determined by all possible locations/orientations of the camera as it travels throughout a zone, when the
+    player character arrives at any location within the zone, the worlds encompassed by the zone, and possibly other 
+    nearby worlds, will be visible for the player to see. In an instance of the PSX game, the camera is always fixed 
+    to the camera path of the current zone occupied by the player; as it turns out, from any location within that
+    zone, a maximum of 8 worlds will only ever be visible for the player to see. It is, of course, unnecessary for 
+    the PSX GPU to render all of the worlds within the level [given the location/orientation of the camera] if only 
+    a select 8 of them at any time will be visible. Thus, each zone specifies at most 8 worlds that shall be rendered
+    [and will appear to the player] when the player character is within its confines.
+  
+  - Entities
+   
+    In an instance of the PSX game, from any zone of any level, when the player character enters the boundaries of 
+    a new zone, a number of independent objects appear to spawn within the confines of nearby/neighbouring zones 
+    (granted these particular objects have not yet been spawned) at seemingly fixed spawn points, with potentially
+    distinct characteristics. Each zone within a level may also specify a number of 'entities' [representing distinct
+    existences that hold various specified attributes at a given point in time-i.e spawn time in the game's case].
+    A zone specifies, for each of its contained entities, the spawn point or initial location (typically within
+    the boundaries of the zone itself), executable type, initial state, and various other initial attributes for 
+    an object that shall spawn when the player character enters the boundaries of a neighbouring zone.
+        
+3) MODEL/ZONE VIEW
+==================
+
+1) Opening a model (WGEO/TGEO) in Model/Zone view allows for the viewing of its geometric content. 
+
+2) Opening a zone (ZDAT) in Model/Zone view allows for the viewing of the 8 or less WGEO models, or worlds, visible 
+   to the player from within the confines of that zone [in an instance of the game], at their respective positions 
+   [within the chosen level (NSD/NSF)].
+ 
+  - A thick white outline shows the 3 dimensional space occupied by the zone; this outline indicates that the 
+    zone is currently selected.
+  - When a new zone is opened, the scene is accumulated with the zone's associated worlds, and the zone is 
+    selected. 
+  - Ex. if all zones from the NSD/NSF are opened in sequence, the scene will contain all world geometry for the
+    entire level.
+  - When hovering the mouse within the boundaries of a nearby or distant zone, by clicking in response to the 
+    lighter white outline that appears around its boundaries, the zone will be selected.
+    
+3) Selecting 'View' from the menu bar presents a number options
+
+  - Selecting 'Wireframe' toggles wireframe mode
+  - Selecting 'Model Mode' under the Camera menu allows the currently viewing model(s) to be rotated as a whole
+    and zoomed in and out from when *controlling the camera.
+  - Selecting 'Flight Mode' under the Camera menu allows the currently viewing model(s) to be 'moved through' when 
+    *controlling the camera, as if it were being viewed from an aircraft.
+  - Selecting 'Crash Mode' under the Camera menu forces the camera to follow the Crash Object if it has been 
+    spawned.
+  - Selecting 'Show Zone Collision Octrees' outlines the various collidable cubic regions/subdivisions of the 
+    currently selected zone in colors representing purpose/type:
+    - solid scenery/wall  = white
+    - floor/terrain       = light green
+    - level boundary wall = light blue
+    - pit                 = red
+    - other               = other
+    (Note: When enabled this feature causes a dramatic decrease in performance. Future releases will fix this issue.)
+  - Selecting 'Show Section Camera Paths' outlines the camera path within the currently selected zone and displays
+    arrow-heads pointing in the direction of the path at each point.
+    (Note: This feature is also somewhat slow. Future releases will fix this issue.)
+
+  * For controlling the camera, refer to section 5) Controls.
+  
+4) A tree of items to the right of the main display lists the various aspects attributed to the currently
+   selected zone:
+
+    a) Models - the 8 or less WGEO models visible to the player from within the confines of that zone in an
+                actual instance of the game  
+                
+    b) Entities - correspond to objects spawned within the zone 
+      
+      - click on an entity to view its corresponding object's initial attributes (GOOL executable entry name, 
+        subtype, and object group)
+        
+      - ** right click on an entity to bring up the entity menu and select 'Spawn Object' to spawn its corresponding
+        object.  
+        
+    c) Sections - define a section of the camera path within the zone
+    
+      i.) Camera - specifies various attributes of this path section and the behavior of the camera when travelling
+                   through this section
+      
+        - click on a section's camera to move the model view camera to the beginning of that section 
+          and to view various attributes
+        
+      ii) Neighbor Sections - (not implemented) specifies the proceeding and preceding sections; if there is a divergence
+                              at either the first (entrance) point or the last (exit) point for this section of the path, 
+                              then 2 proceeding sections and/or 2 preceding sections, corresponding to the 2 optional 
+                              branches that can be taken in the path at either point, will be specified here. 
+                                  
+    d) Neighbor Zones - lists the zone itself and all other zones adjacent to it
+  
+    e) Lighting Properties - (not implemented) specifies light and color matrices used for lighting the worlds and 
+                             objects within the zone
+                            
+    f) Shading/Rendering Properties - specifies the shading effect used when rendering the zone's worlds, and various 
+                                      other GPU parameters used when the player character is within the confines of 
+                                      the zone 
+                                     
+      - click on the corresponding item in the tree to view the zone's shading/rendering properties
+      
+    g) Collision Octree - (not implemented)
+  
+5) After spawning the player character object (i.e. with GOOL executable name WillC-Willie [Wombat] Code), it can
+   be controlled by selecting 'GOOL' from the menu bar and toggling the 'Control' option.
+   
+   - An instance of Crash Bandicoot [ported to run on PC platforms] runs in the background of CrashUtils. This
+     is how the objects, when spawned, behave as if they were in an instance of the actual game.
+   - With the Control option toggled on, keystrokes are sent to the Crash instance. If the player character 
+     object has been spawned, it will respond to these keystrokes. 
+   - When toggling the Control option off, CrashUtils returns to Camera control mode.
+   - Refer to the 'CrashPC control mode' section of section 5) 'Controls' for controlling the player character
+     object (Crash) with the keyboard
+   - Refer to 4) for spawning objects
+   - Occasionally you will need to search to find the ZDAT corresponding to the level's 'first zone'-i.e. the
+     zone that contains the WillC entity; it is not always the first listed.
+  
+
+4) CODE VIEW
+============
+
+This section is TBD. Code view is incomplete at the moment.
+
+- For a GOOL instruction list* and [incomplete] GOOL instruction descriptions, refer to the section titled
+  'GOOL byte code interpreter-interpret(): 0x201DC' in my Crash Bandicoot Disassembly Guide, provided elsewhere. 
+      
+  * note: proposed mnemonic names for these instructions have been devised after careful analysis by choosing 
+          4 [or less] character abbreviations that seem to appropriately describe their underlying operations.
+          They are not official names.           
+
+5) CONTROLS
+===========
+
+Camera control mode
+-------------------
+A        - camera zoom/move forward
+Z        - camera zoom/move backward
+K        - camera rotate left
+;        - camera rotate right
+O        - camera rotate up
+L        - camera rotate down
+
+All modes
+---------
+Numpad 7 - camera roll left
+Numpad 9 - camera roll right
++        - camera increase movement and rotation rate
+-        - camera decrease movement and rotation rate
+P        - camera reset to (0, 0, 0)
+
+Model view mode only
+--------------------
+Numpad 4 - pan left
+Numpad 6 - pan right
+Numpad 8 - pan DOWN
+Numpad 2 - pan UP
+
+CrashPC control mode
+--------------------
+(corresponding to PSX controller buttons)
+K        - pad left
+;        - pad right
+O        - pad up
+L        - pad down
+Z        - ><
+X        - []
+C        - ()
+V        - /\
+A        - L1
+S        - R1
+Q        - L2
+W        - R2
+Enter    - start
+B        - select
+
+Shift    - while holding shift, press any of the keys from camera control mode to adjust the camera
+           in relation to the player

@@ -1,0 +1,131 @@
+GOOL SUBSYSTEM OPCODE 0x84 (loc_80023128):  [shorter variant of 0x83]
+
+10000100 CCBBBBBB 0000SSSS SSSSSSSS
+
+//CHANGES AN OBJECTS ANIMATION FRAME, (including change x, y, z bounding coordinates)
+  S = source gool address referring to value=(sets process[0x10C] to this) high 4 bits: animation frame (1-16), lower 8 bits: ? 
+  C = 0: FORCE FLIPPED LEFT, 1: FORCE FLIPPED RIGHT, 2: FLIPPED OPPOSITE OF PREVIOUS DIRECTION, 3: NO CHANGE IN FLIP DIRECTION
+      (accomplished by changing x scale values with various abs functions)
+  B = pushed to stack as high byte and low 3 bytes as 0x60E04 value
+
+(initializes a processes vectors with animation information from the corresponding t1 entry in its [0x108] struct?)
+
+loc_80023170:
+{
+  process[0x10C] = *(src);               //set animation frame?
+
+  process.push(bbits<<24 | *(0x60E04));
+
+  if (cbits == 0) 
+  {
+    process[0x98] = -abs(process[0x98]);  //if this is scale X coordinate, then this should force object to face left
+  }
+  if (cbits == 1) 
+  { 
+    process[0x98] = abs(process[0x98]);   //if this is scale X coordinate, then this should force object to face right
+  }
+  if (cbits == 2) 
+  {
+    process[0x98] = -process[0x98];       //if this is scale X coordinate, then this should make the object face the opposite direction
+  }
+  if (cbits == 3) {}
+
+  sub_8001D33C(process, process+0x98);
+
+  if (arg_a1 & 4 == 0) { next instruction; }                 //so then gool interpreter arg_a1 is execution flags?
+  else                 { end process, return 0xFFFFFF01; }
+}
+  
+-------------------------
+
+//uses a scale vector and the processes current animation frame (which determines the item in the current svtx entry)/current svtx item to
+//determine the bounding volume for the process (whose x1,y1,z1-x2,y2,z2 coordinates are set accordingly)
+sub_8001D33C(process, scaleVector)
+{
+  struct = process[0x108];
+
+  if (!struct) { return; }
+
+  //s1 = pmem
+
+  if (struct[0] == 4) //lbu
+  {
+    struct += 4;
+    
+    if (struct & 0xFF800003 != 0x80000000) { return 0; }  //checks validity of struct address?
+
+    entry = EID_PROCESS(struct);   //EIDorlistEntry at struct[4]
+
+    if (entry >= 0xFFFFFF01) { return; }
+
+    struct = process[0x108];
+  }
+
+  if (struct[0] == 1) //lbu
+  {
+    struct += 4;         
+    entry = EID_PROCESS(struct);           //T1 entry
+
+    offset = (process[0x10C] >> 8) * 4;    
+
+    itemN = entry[0x10 + offset];
+
+    oldXScale = scaleVector[0];
+    scaleVector[0] = abs(scaleVector[0]);   //dont flip in the x direction for negative scale values
+    
+    if (process != gp[0x2B8])  //if not crash
+    {
+      var_28 = itemN[0x2C] + itemN[0x14];  //get object bounding volume    
+      var_24 = itemN[0x30] + itemN[0x18];
+      var_20 = itemN[0x34] + itemN[0x1C];
+
+      var_1C = itemN[0x2C] + itemN[0x20];
+      var_18 = itemN[0x30] + itemN[0x24];
+      var_14 = itemN[0x34] + itemN[0x28];
+
+      a0 = &var_28
+    }
+    else
+    {
+      a0 = itemN + 0x14;
+    }
+
+    valA1         = (a0[0]>>8) * scaleVector[0];   //convert to gte coordinates then multiply by scale
+    process[0x8] = valA1 >> 4;                     //set object coordinates/bounding volume (additionally scaled by 1/16th)
+
+    valA2         = (a0[4]>>8) * scaleVector[4];   //for each coordinate...
+    process[0xC] = valA2 >> 4;      
+    
+    valA3         = (a0[8]>>8) * scaleVector[8];
+    process[0x10] = valA3 >> 4;  
+
+    valB1         = (a0[0xC]>>8) * scaleVector[0];
+    process[0x14] = valB1 >> 4;
+
+    valB2         = (a0[0x10]>>8) * scaleVector[4];
+    process[0x18] = valB2 >> 4;      
+    
+    valB3         = (a0[0x14]>>8) * scaleVector[8];
+    process[0x1C] = valB3 >> 4;  
+              
+    scaleVector[0] = oldXScale;                      //remember the old negative x scale value (if it were)
+  }
+  else                                               //bounding volume is a 25x25x25 box, so...
+  {
+    scaleX = abs(scaleVector[0]);
+    process[0x14] = scaleX * 12.5;                   //set x2 = 12.5scaleX    
+    process[0x8] = -process[0x14];                   //set x1 = -12.5scaleX
+
+    scaleY = abs(scaleVector[4]);                    
+    process[0x18] = scaleY * 12.5                    //set y2 = 12.5scaleY
+    process[0xC]  = -process[0x18];                  //set y1 = -12.5scaleY
+
+    scaleZ = abs(scaleVector[8]);                      
+    process[0x1C] = scaleZ * 12.5;                   //set z2 = 12.5scaleZ
+    process[0x10] = -process[0x1C];                  //set z1 = -12.5scaleZ
+
+    process[0x98] = scaleVector[0];                  //set scale vector
+    process[0x9C] = scaleVector[4];
+    process[0xA0] = scaleVector[8];
+  }
+}

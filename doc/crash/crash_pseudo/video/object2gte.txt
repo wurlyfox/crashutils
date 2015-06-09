@@ -1,0 +1,2580 @@
+sub_8001DE78(process)
+{
+  //s4 = process
+
+  ptr = process[0x108];  //s0
+  val = process[0x10C];
+
+  s1 = val >> 8;
+
+  byte = ptr[0];
+
+  if      (byte == 2) { jmp 1def0; }
+  else if (byte >  3)
+  {
+    if      (byte == 4) { jmp 1e168; }
+    else if (byte == 5) { jmp 1e028; }
+    else
+      return byte;
+  }
+  else if (byte == 1) { jmp 1e198; }
+  else
+    return byte;
+
+  -------------
+
+  1def0:
+ 
+  //the following code divides abs(process[0x98]) by 27279, storing result in s3
+  -------
+  //v0 = 0x26705EBF;    //important magic number, appears to be 27279
+  //val = abs(process[0x98]);  
+  //integral = HIWORD(val * 0x26705EBF);  //the integral portion of the product
+  //s3 = (integral >> 12) - (val >> 31);   //val>>31 is highest bit of val
+  -----------   
+
+  s3 = (float)abs(process[0x98])/27279;
+
+  if (process[0xCC] & 0x200000 == 0)
+  {
+    ptr    =    0x57888;      //object rotation matrix
+    var_50 = *(0x57844);      //global rotation matrix
+  }
+  else
+  {
+    ptr    =    0x57864;
+    var_50 = *(0x577E4);
+  }
+
+  a2 = process[0xCC] & 0x200;
+  
+
+
+  gEntry =   *(0x57914);
+  gInfo  = gEntry[0x10];
+  
+  var_4C = *(0x578D0);
+  var_48 = gInfo[0x2E8]/256;
+  var_44 = ((process[0xCC] >> 18) ^ 1) & 1;  //i.e. bit 18 reversed
+
+  result = sub_8003A144(&process[0x80], ptr, process[0xCC] & 0x200, s3, var_50, var_4C, var_48, var_44);    //something with additinoal rotation
+  
+  if (result == 0) { return 0; }
+  -------
+  
+  //process[0x108] = 
+    {
+      byte      mode;
+      byte         ?;
+      byte         ?;
+      byte         ?;
+      word       EID;   //after EID_PROCESS refers to a value rather than an entry with: ???????? ????OOOO OOOOOOOO F??YYY??
+     
+      //for mode == 2  //           Y=texture page Y ID, F=texture flag, O=palette offset from current table (can go into other tables)       struct
+      {
+        word colorinfo;   //?SS?CCCC   S=semi-transparency mode, C=color offset into palette
+        word textureinfo;
+      } ctInfo[N];
+    }      
+      
+  structwithEID = process[0x108];
+  EID         = structwithEID[4];
+  entry       = EID_PROCESS(EID);              //WAIT, so sometimes, EIDs can refer to non-entry's?
+                                         //..seems to be the case here
+
+  transPolygons = sub_80016E18();        //i.e. *(0x5840C + 0x78);
+
+
+  val = (process[0x10C] >> 8) * 8;       //process[0x10C] left half determines which of the color/textureinfo structs to use
+  
+  v0     = (*(0x578D0) + (*(0x578D0) >> 31)) >> 1;
+  camDist =          process[0x138] + (0x800 - v0);    //process[0x138] = current Z? so this gets distance from *(0x578D0) camZ?       
+
+  return sub_8003A76C(*(0x5840C) + 0x88, &structwithEID[8 + val], entryorisit, 0xC8 << s3, camDist, transPolygons, 0x51774);  
+
+  //creates and transforms a new 'square' with size given by scalar
+  //structwithEIDloc indicates a structure that has RGB value, and texture information
+  //entryfromstruct contains texture page Y index (y indexes have 4 pages), texture coord flag, and palette offset for CLUT modes 
+  //-array is a pointer to a list of default texture page, clut values
+  //-transpolygons is a pointer to where we will store the transformed square
+  //-drawdispbufloc is a pointer to the draw/display buffer structure where we store a pointer to the new transformed square
+  // in a z-sorted list so it can be rendered
+  //-proccalc is (object distance from camera?) so polygons can be Z-sorted relative to this distance
+
+  //sub_8003A76C(drawdispbufloc, structwithEIDloc, entryfromstruct, scalar, proccalc, transpolygons, array)
+
+  //MAYBE used in this context it creates the shadows for an object, since they are all squares in this game,
+   size determined by 0xC8 << s3
+
+  ------
+
+  1e028:
+
+  //----------------
+  //val = abs(process[0x98]);  //a3
+  //integral = HIWORD(val * 0x26705EBF);  //the integral portion of the product
+  //s2 = (integral >> 12) - (val >> 31);   //val>>31 is highest bit of val
+
+  s2 = process[0x98]/27279;
+
+  gEntry =   *(0x57914);
+  gInfo  = gEntry[0x10];
+ 
+
+  ptr    =    0x57888;
+  var_50 =    0x57844; 
+  var_4C = *(0x578D0);
+  var_48 = gInfo[0x2E8]/256;
+  var_44 = ((process[0xCC] >> 18) ^ 1) & 1;  //i.e. bit 18 reversed
+
+  result = sub_8003A144(&process[0x80], ptr, process[0xCC] & 0x200, s2);
+  
+  if (result == 0) { return 0; }
+
+  //process[0x108] = 
+  {
+    byte      mode;
+    byte         ?;
+    byte         ?;
+    byte         ?;
+    word       EID;   //after EID_PROCESS refers to a value rather than an entry with: ???????? ????OOOO OOOOOOOO F??YYY??
+     
+    //for mode == 5  //           Y=texture page Y ID, F=texture flag, O=palette offset from current table (can go into other tables)     word groupSize;
+
+    struct
+    {
+      word colorinfo;   //?SS?CCCC   S=semi-transparency mode, C=color offset into palette
+      word textureinfo;
+      
+      struct rect
+      {
+        hword y2;
+        hword x2;
+        hword y1;
+        hword x1;
+      }
+    } rectInfo[G][groupSize];  //where G=any group
+  }    
+
+  structwithEID =   process[0x108];
+
+  EID           = structwithEID[4];  
+  entry         = EID_PROCESS(EID);  //s6
+
+  numRects      = structwithEID[8];  //number of rects in one group
+  val  =     (process[0x10C] >> 8);
+
+  //left half of process[0x10C] refers to a certain group of rectInfos
+  offset        =  (numRects * val) * 16;  //last*val is HIWORD result
+
+  rectInfo = &structwithEID[0xC + offset];
+
+  if (numRects <= 0) { return entry; }  //is this right?
+
+  count = 0;
+  do
+  {
+    var_40 = rectInfo[8]   << s2;   //re
+    var_3C = rectInfo[0xA] << s2;
+    var_34 = rectInfo[0xC] << s2;
+    var_30 = rectInfo[0xE] << s2;
+
+    var_50 = *(0x5840C) + 0x88;
+
+    //creates/transforms a rectangle with coords specified by var_40 (stack ptr)
+    //with texture and color info specified by entry
+    sub_80018B98(&rectInfo, process[0x138], entry, &var_40, var_50);    //cop2
+    rectInfo += 0x10;
+
+    count++;
+  } while (count < numRects)    //for all 16 byte structures in this group
+  
+  return 0;
+
+  ------------------------
+
+  1e168:
+
+  var_50 = process[0xCC] & 0x400;
+
+  return sub_8001E7D8(process, process[0x108], process[0x10C]>>8, *(0x5840C) + 0x88);
+
+  ----
+
+  1e198:
+
+    
+  structwithEID = process[0x108];
+  EID = structwithEID[4];
+
+  entry = EID_PROCESS(EID);
+
+  itemIndex = ((process[0x10C]>>8) * 4);
+  itemN     =   entry[0x10 + itemIndex];
+
+  //below is where call to the 'big' function
+  --
+  if (entry.type == 0x14)                              //T20, variation of animation?
+  {
+    sub_80018A40(itemN, *(0x5840C) + 0x88, process);
+  }
+  else                                                 //T1
+  {
+    sub_80018964(itemN, *(0x5840C) + 0x88, process);   
+  }
+  ---
+
+  
+
+  if (process[0xCC] & 0x100000 == 0) { return 0; }
+
+  if (gp[0x2B8] == process)
+  {
+    graphicsEntry = process[0x28];
+    item1   = graphicsEntry[0x10];
+
+    processOffset = process +  0x30;
+    itemOffset    = item1   + 0x348;
+   
+    if (((a2 | a3) & 3) != 0)
+      copyInterleave(processOffset, itemOffset, 12, sizeof(word), 3); //copy 12 words, but dont copy the3rdbyt 
+    else
+      copy(processOffset, itemOffset, 12, sizeof(word));
+  }
+  else
+  {
+    graphicsEntry = process[0x28];
+    if (!graphicsEntry)
+      graphicsEntry = *(0x57914);
+
+    item1   = graphicsEntry[0x10];
+
+    processOffset = process +  0x30;
+    itemOffset    = item1   + 0x318;
+   
+    if (((a2 | a3) & 3) != 0)
+      copyInterleave(processOffset, itemOffset, 12, sizeof(word), 3); //copy 12 words, but dont copy the3rdbyt 
+    else
+      copy(processOffset, itemOffset, 12, sizeof(word));
+
+  }
+  
+  return;
+}
+  
+------------------------------------------------
+
+
+sub_80018964(item, polygonBufferB, process)
+{
+  //s0 = item
+  //s4 = polygonBufferB
+  //s1 = process
+
+  EID = item[4];              
+  entry = EID_PROCESS(EID);  //T1 entry items (animation frame?) each have an additional item at index 4
+                             //EDIT: NO this is a TGEO entry! 
+  item1 = entry[0x10];      
+
+  result = sub_800180CC(item, item1, process, 1, 0);  //last arg is var_30 = 0, arg_10 in sub
+
+  if (result == 0) { return 0; }
+
+  polygonBuffer = sub_80016E18();
+
+  var_30 = process[0x98];
+  var_2C = (process[0x138] + 0x800) - (((*(0x578D0) >> 31) + *(0x578D0)) >> 1);
+  var_28 = polygonBuffer;
+  var_24 =       0x51774;
+  var_20 =             0;
+
+  projval = var_2C;
+
+  //then this is how we draw the object models
+  item2 = entry[0x14];
+  return sub_8003460C(item, polygonBufferB, item2, item1, process[0x98], projval, polygonBuffer, 0x51774, 0);
+}
+
+------------------------------
+
+sub_800180CC(parentItem, childItem, process, flag, unknown)
+{
+  //s4 = process
+  //s1 = parentItem
+  //s2 = parentItem
+  //s0 = unknown
+  //fp = process + 0x80
+
+  if (unknown != 0)
+  {
+    unknown[0] = 0;
+  }
+
+  SetRotMatrix(*(0x57844));
+  SetTransMatrix(*(0x5726C));
+
+  var_38 = childItem
+  var_30 = flag
+
+  var_B8 = (process[0x80] - *(0x57888)) >> 8;  //sh  //transform process vectorA relative to camera (last time ginfo[0x2FC] bit 13 not set)
+  var_B6 = (process[0x84] - *(0x5788C)) >> 8;  //sh
+  var_B4 = (process[0x88] - *(0x57890)) >> 8;  //sh
+  
+  //       invector outvector mode
+  RotTrans(&var_B8, &var_9C, var_40);
+
+  if (*(0x618B0) & 1 != 0) { goto 188AC; }     //TODO: document bitfield
+  //--
+
+  gInfo = *(0x57914)[0x10];
+  var_40 = gInfo[0x2E8] >> 8;
+
+  //is this right?
+  if (var_40 != 0)
+  {
+    if (var_40 < var_94) { goto 18434; }  //if z value from ginfo < transformed vector z
+  }
+  else
+  {
+    if (var_94 >= 0x2EE1) { return 0; }   //if z value from ginfo >= 0x2EE1
+  }
+
+
+  if (process[0xCC] & 0x40000 != 0) { goto 1838C; }  //*TODO: document process bitfield
+
+  if (*(0x578D0) >= var_94) { goto 18434; }  //if projection distance >= zvalue from ginfo
+
+  if (process[0xCC] < 0)                             //check highest bit (TODO: document)
+  {  
+
+    a0 = process + 8;
+    if (var_30 == 0)          //why does the jump here do the exact same thing
+    {
+      a1 = parentItem + 0x2C;
+    }
+    else
+    {
+      a1 = parentItem + 0x2C;
+    } 
+
+    //find the 2d onscreen display range of an object given:
+    //2 points describing 3 dimensional range of space the object occupies
+    //2 vectors that would first translate the object (animation frame initial location, object movement vector)
+    sub_800351C8(process+8, parentItem+0x2C, process+0x80, 0x57888);
+
+    //a0 = scratch[0x48];
+    //a1 = scratch[0x4C];
+    //v1 = scratch[0x50];
+    //a2 = scratch[0x54];
+
+    if ((scratch[0x48] < -0x100 && scratch[0x50] < -0x100)
+    {
+      return 0;
+    }
+  
+    if (scratch[0x48] > 0x100 && scratch[0x50] > 0x100)
+    {
+      return 0;
+    }
+
+    if (scratch[0x4C] < -0x6C && scratch[0x54] < -0x6C)
+    {
+      return 0;
+    }
+
+    if (scratch[0x4C] > 0x6C && scratch[0x54] > 0x6C)
+    {
+      return 0;
+    }
+     
+    goto 1838c;
+  }
+  
+  182E0:
+
+  //var_9C = new rotated & translated vector X
+  //var_98 = new rotated & translated vector Y
+  //var_94 = new rotated & translated vector Z
+
+  screenX = abs( (*(0x578D0) * var_9C) / var_94 );  //PROJ * X/Z    (calculates projected onscreen X)
+  screenY =      (*(0x578D0) * var_98) / var_94;    //PROJ * Y/Z    (calculates projected onscreen Y)
+ 
+  if (screenX        >= 0x13D) { return 0; }
+  if (screenY + 0x8A >= 0x147) { return 0; }
+
+
+  1838C:
+
+  if (*(0x566B4) == process)      { goto 188AC; }
+  if (process[0xCC] & 0x400 != 0) { goto 188AC; }      
+
+  
+  t0    =   process + 0x30;   //hopefully then we can learn whats at process[0x30]
+  gInfo = *(0x57914)[0x10];
+
+  if (gInfo[0x2E4] == 3) { goto 187D8; }
+  if (gInfo[0x2E4] == 4) { goto 184C4; }
+  if (gInfo[0x2E4]  > 4) { goto 188AC; }
+  if (gInfo[0x2E4] == 2) { goto 18404; }
+  else                   { goto 188AC; }
+
+  -------
+
+  18404:
+  //copies monochromatic color data to process colors based on process Z
+  v1 = (var_94 - *(0x618B8));
+  if (v1 > 0)
+  {
+    if (v1*8 >= 0x7FFF)
+    {
+      return 0;
+    }
+    else
+    {
+      v1 = v1 * 8;
+    }
+  }
+  else
+  {
+    v1 = 0; 
+  }
+
+  //t2 = 0x7FFF
+  processData = process + 0x30;
+  gInfoData = gInfo  + 0x318;
+
+  //first half of process color data
+  count = 0;  //a1
+  do
+  {
+    data = gInfoData[count*2];        //lh
+  
+    totalData = data + v1;
+ 
+    if (totalData > 0x7FFF)
+      totalData = 0x7FFF;
+
+    processData[count*2] = totalData; //sh 
+  } while (count < 0xC)
+
+  //second half of process color data
+  count = 0;
+  do
+  {
+    data = gInfoData[0x18 + (count*2)];        //lh
+  
+    totalData = data + v1;
+ 
+    if (totalData > 0x1000)
+      totalData = 0x1000;
+
+    processData[0x18 + (count*2)] = totalData; //sh 
+  } while (count < 0xC)
+ 
+  goto 188AC;
+
+  ----------------------------
+
+  184C4:
+
+  if (*(0x618CC) != 0)
+  {
+    refX = *(0x618CC)[0x80];
+    refY = *(0x618CC)[0x84];
+    refZ = *(0x618CC)[0x88];
+  }
+  else
+  {
+    refX = *(0x566B4)[0x80];
+    refY = *(0x566B4)[0x84];
+    refZ = *(0x566B4)[0x88];
+  }
+
+  //clears first half of process colors
+  processData = process + 0x30;
+  processData[0x0]  = 0;
+  processData[0x2]  = 0;
+  processData[0x4]  = 0;
+  processData[0x6]  = 0;
+  processData[0x8]  = 0;
+  processData[0xA]  = 0;
+  processData[0xC]  = 0;
+  processData[0xE]  = 0;
+  processData[0x10] = 0;
+  processData[0x12] = 0;
+  processData[0x14] = 0;
+  processData[0x16] = 0;
+  
+  //find euclidian distance (Y is modified?) from subroutine process to the other the specified process
+  distX = pow(((process[0x80] - refX)/256), 2);
+  procY = process[0x84] + 0xFFFCE000;
+  distY = pow(((procY         - refY)/256), 2);
+  distZ = pow(((process[0x88] - refZ)/256), 2);
+  sum = valA + valB + valC;
+  dist = sub_80042B9C(sum); //a0
+
+  if (gp[0x74] <= 0)
+  {
+    gp[0x74] = 1;
+  }
+
+  //no negative distances (how could this possibly be the case)
+  if (dist < 0)   { dist = 1; }
+  else            { dist = dist; }
+
+  //this is then a unit vector in the direction from process to process 
+  UX = ((refX - process[0x80]) * 256) / dist;
+  UY = ((refY - process[0x84]) * 256) / dist;
+  UZ = ((refZ - process[0x88]) * 256) / dist; 
+  
+  //larger distances will scale the unit vector less
+  //smaller distances will scale the unit vector more
+  oppDist = 0x1770 - dist;
+
+  if (oppDist < 0)
+    oppDist = 0;
+
+  //scale the unit vector by 
+  UXS1 = UX * oppDist;
+  UYS1 = UY * oppDist;
+  UZS1 = UZ * oppDist;
+  UXS2 = (UXS1/256) / gp[0x74];
+  UYS2 = (UYS1/256) / gp[0x74];
+  UZS2 = (UZS1/256) / gp[0x74];
+
+  if      (UXS2 > 0x1770)  { UXS2 = 0x1770; }
+  else if (UXS2 < -0x1770) { UXS2 = -0x1770; }
+  if      (UYS2 > 0x1770)  { UYS2 = 0x1770; }
+  else if (UYS2 < -0x1770) { UYS2 = -0x1770; }
+  if      (UZS2 > 0x1770)  { UZS2 = 0x1770; }
+  else if (UZS2 < -0x1770) { UZS2 = -0x1770; }
+
+  count = 0;  //a0
+
+  //color vectors then dependent on this new scaled vector  
+  processData[0]   = UXS2;
+  processData[2]   = UXY2;
+  processData[4]   = UXZ2;
+
+  processData[6]   = UXS2;
+  processData[8]   = UYS2;
+  processData[0xA] = UZS2;
+
+  processData[0xC]  = UXS2;
+  processData[0xE]  = UYS2;
+  processData[0x10] = UZS2;
+
+  //and brightness dependent on their distance
+  distUXS2 = pow(UXS2, 2);
+  distUYS2 = pow(UYS2, 2);
+  distUZS2 = pow(UZS2, 2);
+  sumDist = distUXS2 + distUYX2 + distUZX2;
+  distU   = sub_80042B9C(sum);
+
+  brightVal = distU / 32;
+
+  processData[0x12] = brightVal;
+  processData[0x14] = brightVal;
+  processData[0x16] = brightVal;
+
+  goto 188AC;
+  ---
+
+  187D8:
+
+
+  if (var_30 != 0)   //else goto 1885C;
+  {  
+   
+    v1 = var_94 - *(0x618B8);
+
+
+    if (v1     <=      0) { v1 = 0; }
+    if ((v1/4) >= 0x6D61) { return 0; }
+
+    processData = process +  0x30;
+    ginfoData   = gInfo   + 0x318;
+
+    count = 0;
+  
+    do
+    {
+      v0 = processData[0 + (count*2)] - v1;  
+    
+      if (v0 < 0)
+        v0 = 0;
+
+      ginfoData[0 + (count*2)] = v0;
+  
+      count++;
+    } while (count < 0x18)
+
+    //goto 188AC;
+  }
+  else
+  {  ------
+    //1885C:
+
+    /*TEXT:8001885C                 lui     $a0, 0x51EB
+    TEXT:80018860                 lw      $v1, 0xC8+var_94($sp)
+    TEXT:80018864                 lw      $v0, dword_800618B8
+    TEXT:8001886C                 li      $a0, 0x51EB851F  # divide by 25?
+    TEXT:80018870                 subu    $v1, $v0
+    TEXT:80018874                 mult    $v1, $a0
+    TEXT:80018878                 sra     $v1, 31
+    TEXT:8001887C                 mfhi    $v0
+    TEXT:80018880                 sra     $v0, 6
+    TEXT:80018884                 subu    $v0, $v1*/
+
+    v0 = (var_94 - *(0x618B8)) / 200;  ?
+
+    if (v0 < 0)
+      v0 = 0;
+    if (v0 > 8)
+      v0 = 8;
+
+    //old  = unknown[0];
+    unknown[0] = v0;
+  }
+
+  ---------
+
+  188ac:
+
+  if (var_30 != 0)
+  {
+    sub_8003913C(*(0x57824), var_38, process + 0x80, process + 0x30);    //cop2
+  }
+  else
+  {
+    sub_80039BD4(*(0x57824), var_38, process + 0x80, process + 0x30);    //cop2
+  }
+
+  SetTransMatrix(&var_B0);
+
+  return 1;
+}
+
+------------------------------------------------------------
+
+
+///Rotate a polygon??
+sub_8003A144(procMemPtr, objRotMatrix, bitA, quotient, globalRotMatrix, zval, ginfoVal, bitB)
+{
+  //ra = globalRotMatrix
+  //v0 = val
+  //t9 = ginfoVal
+  //gp = bitB
+
+  //matrix broken into 5 words, 1 word = 2 entrys, so last word is only halfword
+  //[<---,--->,<---]
+    [--->,<---,--->]
+    [<---,--->,<-->]
+
+  GTE.R11R12 = globalRotMatrix[0];        //sets 'matrix' as the rotation matrix
+  GTE.R13R21 = globalRotMatrix[4];
+  GTE.R22R23 = globalRotMatrix[8];
+  GTE.R31R32 = globalRotMatrix[0xC]; 
+  GTE.R33    = globalRotMatrix[0x10];
+
+
+  if (bitA)                        //procMemPtr refers to a translation matrix
+  {
+    GTE.TRX =  procMemPtr[0]/256;
+    GTE.TRY = -procMemPtr[4]/256; 
+    GTE.TRZ =               zval;
+  } 
+  else                             //procMemPtr refers to a rotation matrix about the X & Y axes?        
+  {
+    s0 = procMemPtr[0];
+    s1 = procMemPtr[4];
+    s2 = procMemPtr[8];
+
+    val1112 = (procMemPtr[0] - objRotMatrix[0]);
+    val1321=  (procMemPtr[4] - objRotMatrix[4]); 
+    val2223 = (procMemPtr[8] - objRotMatrix[8]);
+
+    GTE.IR1 = val1112;
+    GTE.IR2 = val1321;
+    GTE.IR3 = val2223;
+
+    GTE::rtir12();       //rotates this matrix relative the current rotation matrix \
+    
+    GTE.TRX = GTE.IR1;   //result of rotation to gte translation matrix, (revolve?)
+    GTE.TRY = GTE.IR2;
+    GTE.TRZ = GTE.IR3;
+
+    if (zval   < GTE.IR3) { return 0; }    //if we were to display before the new calculated z, then dont                                                 //bother with any additional processing
+    if (GTE.IR3 >= 0x2EE0){ return 0; }    //or if a rotation would rotate it too far away
+
+    if (ginfoVal < GTE.IR3) { return 0; }  //maybe a clipping value/camera value
+  }
+
+  sp = procMemPtr[0xC]
+  fp = procMemPtr[0x10]
+  gp = procMemPtr[0x14]
+
+  if (bitA)
+  {
+    s0 = (objRotMatrix[0xC] << 21) >> 21;   //get only lower 11 bits
+    s1 = (objRotMatrix[0x10]<< 21) >> 21;
+    s2 = (objRotMatrix[0x14]<< 20) >> 20;
+    
+    if (s0 < -170)  { at =  170; }            
+    if (-s0 < -170) { at = -170; }
+    else            { at =  -s0; }
+
+    sp = procMemPtr[0xC] + at;
+
+    if (s1 < -170)  { at =  170; }
+    if (-s1 < -170) { at = -170; }
+    else            { at =  -s1; }
+
+    fp = procMemPtr[0x10] + at;
+
+    gp = procMemPtr[0x14] - s2;
+  }
+  
+ 
+  
+  fp = fp & 0xFFF;
+  sp = sp & 0xFFF;
+  gp = gp & 0xFFF;
+
+
+   //4096 count of hword values containing sin/cosine values
+  v1 = 0x5306C;
+
+  //FOLLOWING CODE USES SINE/COSINE TABLE TO LOOK UP VALUES FOR
+  //  t6 = sin(gp)
+  //  t5 = sin(sp)
+  //  t7 = sin(fp)
+
+  if (gp < 0x800)
+  {
+    if (gp < 0x400)
+    {
+      t6 = 0x5306C[gp*2];                
+    }
+    else
+    {
+      t6 = 0x5306C[0x1000 - (gp*2)];  
+    }
+  }
+  else
+  {
+    if (gp < 0xC00)
+    {
+      t6 = -0x5306C[(gp*2) - 0x1000];
+    }
+    else
+    {
+      t6 = -0x5306C[0x2000 - (gp*2)];
+    }
+  }
+
+  if (sp < 0x800)
+  {
+    if (sp < 0x400)
+    {
+      t5 = 0x5306C[sp*2];
+    }
+    else
+    {
+      t5 = 0x5306C[0x1000 - (sp*2)];  
+    }
+  }
+  else
+  {
+    if (sp < 0xC00)
+    {
+      t5 = -0x5306C[(sp*2) - 0x1000];
+    }
+    else
+    {
+      t5 = -0x5306C[0x2000 - (sp*2)];
+    }
+  } 
+    
+  if (fp < 0x800)
+  {
+    if (fp < 0x400)
+    {
+      t7 = 0x5306C[fp*2];
+    }
+    else
+    {
+      t7 = 0x5306C[0x1000 - (fp*2)];  
+    }
+  }
+  else
+  {
+    if (fp < 0xC00)
+    {
+      t7 = -0x5306C[(fp*2) - 0x1000];
+    }
+    else
+    {
+      t7 = -0x5306C[0x2000 - (fp*2)];
+    }
+  }   
+       
+  //FOLLOWING CODE USES SINE/COSINE TABLE TO LOOK UP VALUES FOR
+  //  t0 = cos(gp)
+  //  t1 = cos(sp)
+  //  t3 = cos(fp)
+  if (gp < 0x800)
+  {
+    if (gp < 0x400)
+    {
+      t0 = 0x5306C[0x800 - gp*2];
+    }
+    else
+    {
+      t0 = -0x5306C[(gp*2) - 0x800];  
+    }
+  }
+  else
+  {
+    if (gp < 0xC00)
+    {
+      t0 = -0x5306C[0x1800 - (gp*2)];
+    }
+    else
+    {
+      t0 = 0x5306C[(gp*2) - 0x1800];
+    }
+  }
+
+  
+  if (sp < 0x800)
+  {
+    if (sp < 0x400)
+    {
+      t1 = 0x5306C[0x800 - sp*2];
+    }
+    else
+    {
+      t1 = -0x5306C[(sp*2) - 0x800];  
+    }
+  }
+  else
+  {
+    if (sp < 0xC00)
+    {
+      t1 = -0x5306C[0x1800 - (sp*2)];
+    }
+    else
+    {
+      t1 = 0x5306C[(sp*2) - 0x1800];
+    }
+  }
+
+  if (fp < 0x800)
+  {
+    if (fp < 0x400)
+    {
+      t3 = 0x5306C[0x800 - fp*2];
+    }
+    else
+    {
+      t3 = -0x5306C[(fp*2) - 0x800];  
+    }
+  }
+  else
+  {
+    if (sp < 0xC00)
+    {
+      t3 = -0x5306C[0x1800 - (fp*2)];
+    }
+    else
+    {
+      t3 = 0x5306C[(fp*2) - 0x1800];
+    }
+  }  
+
+  -----------------------------------------------
+
+  //  t6 = sin(gp)
+  //  t5 = sin(sp)
+  //  t7 = sin(fp)
+  //  t0 = cos(gp)
+  //  t1 = cos(sp)
+  //  t3 = cos(fp)
+
+  t4 = t6 & 0xFFFF;
+  t5 = t5 & 0xFFFF;
+  t7 = t7 & 0xFFFF;
+  t0 = t0 & 0xFFFF;
+  t2 = t1 & 0xFFFF;
+  t3 = t3 & 0xFFFF;
+
+  GTE.R11R12 =  0;
+  GTE.R13R21 =  0;
+  GTE.R22R23 = t5;
+  GTE.R31R32 =  0;
+  GTE.R33    = t2;
+
+  [0,  0,       0]
+  [0,  0, sin(sp)]
+  [0,  0, cos(sp)]
+
+
+  GTE.VZ0    =              t0;   
+  GTE.VXY0   = (t3 << 16) | t7;   
+
+  [cos(fp)] //normal vector
+  [sin(fp)]
+  [sin(gp)] //so gp is z angle...                                    
+  GTE::rtv0();    //rotate vector 0
+
+
+  sp = GTE.IR2;     //sin(sp) * sin(fp)
+  s0 = GTE.IR3;     //cos(sp) * sin(gp)
+  
+  gp = (t5 * t7)>>12;  //(sin(sp) * sin(gp)) (sr 12 for fixed point products)
+
+  GTE.R11R12 = t0;          
+  GTE.R13R21 =  0;
+  GTE.R22R23 = t0;
+  GTE.R31R32 =  0;
+  GTE.R33    =  gp & 0xFFFF;
+  
+  [0,  cos(gp),              0]
+  [0,        0,        cos(gp)]
+  [0,        0, sin(sp)sin(gp)]
+
+  GTE::rtv0();
+  s1 = GTE.IR1;
+  s2 = GTE.IR2;
+  s3 = GTE.IR3;
+
+  [0,  cos(gp),              0][cos(fp)]      [cos(fp)sin(fp)]
+  [0,        0,        cos(gp)][sin(fp)]   =  [cos(gp)sin(gp)]
+  [0,        0, sin(sp)sin(gp)][sin(gp)]      [sin(gp)sin(gp)sin(sp)]
+
+  GTE.R11R12 = t4;
+  GTE.R13R21 =  0;
+  GTE.R22R23 = t4;
+  GTE.R31R32 =  0;
+  GTE.R33    = sp & 0xFFFF;  //sp = intermediate value from previous gte operation
+
+  [0,  sin(gp),             0]
+  [0,        0,       sin(gp)]
+  [0,        0,sin(sp)sin(fp)]
+
+  GTE::rtv0();
+
+  [0,  sin(gp),             0][    cos(fp)sin(fp)   ]    [cos(gp)sin(gp)sin(gp)]
+  [0,        0,       sin(gp)][    cos(gp)sin(gp)   ]  = [sin(gp)sin(gp)sin(gp)sin(sp)]
+  [0,        0,sin(sp)sin(fp)][sin(gp)sin(gp)sin(sp)]    [sin(gp)sin(gp)sin(sp)sin(sp)sin(fp)]
+ 
+  [sin( 
+
+  s4 = GTE.IR1;
+  s5 = GTE.IR2;
+  s6 = GTE.IR3;
+
+  
+  
+
+  s7 = -(t6 * t1)/4096;
+  t8 = (t6 * gp)/4096;
+  at = (t4 * sp)/4096;  
+  
+  
+  s2 = s2 - t8;    //ir2 2 - val3
+  s1 = s1 + at;    //ir1 2 + val4
+  s3 = s5 + s3;    //ir3 2 + ir2 3
+  s4 = s4 - s6;    //ir3 3 - ir1 3
+    
+     
+  t2 = procMemPtr[0x18] >> quotient;
+  t3 = procMemPtr[0x1C] >> quotient;
+  t4 = procMemPtr[0x20] >> quotient;
+
+  GTE.R11R12 = t2;
+  GTE.R13R21 =  0;
+  GTE.R22R23 = t3;
+  GTE.R31R32 =  0;
+  GTE.R33    = t4;
+
+  GTE.IR1   =  s3;
+  GTE.IR2   =  s0;
+  GTE.IR3   =  s4;
+  
+  GTE::rtir12();   //ir * rotmatrix
+
+  s3 = GTE.IR1;
+  s0 = GTE.IR2;
+  s4 = GTE.IR3;
+  
+  GTE.IR1   =  s2;
+  GTE.IR2   =  s7;
+  GTE.IR3   =  s1;
+  
+  GTE::rtir12();   //ir * rotmatrix
+
+
+  s2 = GTE.IR1;
+  s7 = GTE.IR2;
+  s1 = GTE.IR3;    
+
+  s3 = s3 * -(5/8);
+  s0 = s0 * -(5/8);
+  s4 = s4 * -(5/8);
+
+  t0 = (s7 << 16) | (s2 & 0xFFFF);
+  t1 = (s3 << 16) | (s1 & 0xFFFF);
+  t2 = (s4 << 16) | (s0 & 0xFFFF);
+
+  GTE.R11R12 = t0;
+  GTE.R13R21 = t1;
+  GTE.R22R23 = t2;
+  GTE.R31R32 =  0;
+  GTE.R33    =  0;
+
+  return;
+------------------------------------------------------
+
+  var_4C = transPolygons;
+  var_48 =       0x51774;
+  
+  v0     = (*(0x578D0) + (*(0x578D0) >> 31)) >> 1;
+  var_50 = process[0x138] + (0x800 - v0);
+
+  return sub_8003A76C(*(0x5840C) + 0x88, &structwithEID[8 + val], entryorisit, 0xC8 << s3, var_50, var_4C,   var_48);  
+
+
+//creates and transforms a new filled (non-gourad shaded) 'square' with size given by scalar
+//structwithEIDloc indicates a structure that has RGB value, and texture information
+//entryfromstruct contains texture page Y index (y indexes have 4 pages), texture coord flag, and palette offset for CLUT modes 
+//-array is a pointer to a list of default texture page, clut values
+//-transpolygons is a pointer to where we will store the transformed square
+//-drawdispbufloc is a pointer to the draw/display buffer structure where we store a pointer to the new transformed square
+// in a z-sorted list so it can be rendered
+//-proccalc is (camera Z value?) so polygons can be Z-sorted relative to this distance
+
+sub_8003A76C(drawdispbufloc, structwithEIDloc, entryfromstruct, scalar, proccalc, transpolygons, array)
+{
+  //t0 = proccalc * 4
+  //t1 = transpolygons
+  //t2 = array, has texture info
+
+  t6 = scalar & 0xFFFF;  
+  t5 =-scalar & 0xFFFF;
+
+  t4 = t6 << 16;
+  t7 = t5 << 16;
+
+  at = t5 | t4;   //AAAABBBB, A=+scalar, B=-scalar
+  v0 = t6 | t4;   //AAAABBBB, A=+scalar, B=+scalar
+  v1 = t5 | t7;   //AAAABBBB, A=-scalar, B=-scalar
+  t7 = t6 | t7;   //AAAABBBB, A=-scalar, B=+scalar
+
+  newPolygon = *(transpolygons);  //first polygon referred to will be the new transformed one...
+ 
+  GTE.VXY0 = at;
+  GTE.VZ0  =  0;
+  GTE.VXY1 = v0;
+  GTE.VZ1  =  0;
+  GTE.VXY2 = v1;
+  GTE.VZ2  =  0;
+
+  //efs<-1, 1>, efs<1, 1>, efs<-1, -1>
+  //
+  //      |
+  //      |
+  //      |   X 
+  //      | / |
+  //------/---|----
+  //    / |   |
+  // X/-------|
+  //      |
+
+  //90deg CCW right triangle
+
+
+  GTE::PerspectiveTransform();
+
+  if (GTE.FLAG < 0) { return 0; }  //checks for any calculation errors
+ 
+  newPolygon[8]   = GTE.SXY0;  //store resulting transform
+  newPolygon[0x10]= GTE.SXY1;
+  newPolygon[0x18]= GTE.SXY2;
+  
+
+  ---
+
+  GTE.VXY0 = t7;
+  GTE.VZ0  =  0;
+
+  //efs<-1, 1>, efs<1, 1>, efs<-1, -1>
+  //
+  //      |
+  //      |
+  // X--------X 
+  // |    | /
+  //-|----/--------
+  // |  / |
+  // X/   |
+  //      |
+
+  //90deg CW right triangle
+
+
+  averageZ = ((GTE.SZ1 + GTE.SZ2 + GTE.SZ3)/32);
+
+  GTE::PerspectiveTransformSingle();  //in this case since only one point of the triangle/polygon was changed
+                                      //we only have to call perspective transform on that one point, since we
+                                      //already know the locations of the other two
+
+  if (GTE.FLAG < 0) { return 0; }     //checks for any calculation errors
+
+  newPolygon[0x20] = GTE.SXY2;  //resultant transformed single pt
+
+  //at this point transpolygons[0] has the entire transformed 'square'
+
+  //t4 = strucctwithEIDloc[0];
+
+  cinfoByte     = (structwithEIDloc[0] >> 24);
+  semiTransMode = (cinfoByte & 0x60);
+  colOffset     = (cinfoByte &  0xF);    
+
+  if (semiTransMode != 0x60)  //if not semi-transparency mode 2
+  {
+    at = (structwithEIDloc[0] & 0xFFFFFF) | 0x2E000000;   
+  }
+  else
+  {
+    at = (structwithEIDloc[0] & 0xFFFFFF) | 0x2C000000;
+  }
+
+  newPolygon[4] = at;  //store primitive ID with a single color value, so this square all the same color
+
+  --
+
+  textureinfo = structwithEIDloc[4];
+
+  //DDDDDDDD DDMMCCCXX XXXTTTTT TT_YYYYY
+  //--------
+  //DDDDDDDDDD = index into an array of default values
+  //MM         = texture color mode
+  //CC         = texture page x ID
+  //XXXXX      = texture x coordinates
+  //YYYYY      = texture y coordinates
+  //TTTTTTT    = color lookup table ID (for modes 0 & 1)  [1 table = 4 palettes]  
+  
+  tColorMode = textureinfo.mbits;
+
+  defaults = &array[textureinfo.dbits * 8];
+ 
+  defaultTCoordsCLUT = defaults[0];
+  defaultRsrvdRsrvd  = defaults[4];
+
+  tpageXID = textureinfo.cbits;
+  tpageYID = entryfromstruct & 0x1C;
+
+  tpage = (tColorMode << 7) | semiTransMode | tpageYID | tpageXID;
+  
+  tcoordFlag  = (entryfromstruct & 0x80);
+  tcoordX     = (textureinfo.xbits << 3) >> tColorMode;  //multiples of 8 for color mode 0, 4 for mode 1, 2 for mode 2                     tcoordY     = textureinfo.ybits;
+  
+  tcoord      =  ((tcoordFlag | tcoordY) << 16) | tcoordX;
+  tcoord     +=  (defaultTCoordsCLUT >> 16);               //left hword is default tcoord value
+
+  tpageTCoord = (tpage << 16) | tcoord;
+  
+  tableIndex  = (textureinfo.tbits; 
+  tableOffset = ((entryfromstruct & 0xFFF00)>>8) << 4; //a number of palettes into or even away from the current table into another
+  
+  clut        = tableIndex | tableOffset | colOffset;
+  clut       += (defaultTCoordsCLUT & 0xFFFF);        //right hword is default clut value
+
+  clutTCoord  = (clut << 16)  | tcoord;
+  
+  rsrvdTCoordA = (defaultRsrvdRsrvd & 0xFFFF) | tcoord;
+  rsrvdTCoordB = (defaultRsrvdRsrvd >> 16)    | tcoord;
+
+  newPolygon[0xC]  =   clutTCoord;
+  newPolygon[0x14] =  tpageTCoord;
+  newPolygon[0x1C] = rsrvdTCoordA;
+  newPolygon[0x24] = rsrvdTCoordB;
+
+  --
+  
+
+
+  t7 = (proccalc - averageZ) * 4;     //oldZ - newZ
+
+  if (t7 & 0x1FFC >= t7)
+  {
+    newPolyPtr = &drawdispbufloc[t7];          //points to a position in a list of primitives to draw, sorted by Z for painters                                                //algorithm
+  }
+  else
+  {
+    newPolyPtr = &drawdispbufloc[t7 + 0x1FFC];   
+  }
+ 
+  oldPolyPtr    =         *(newPolyPtr);       //remember the previous polygon at this location in the list  
+  *(newPolyPtr) = newPolygon & 0xFFFFFF;       //write it with the uncached pointer to the new polygon since the gpu will be handling it
+  
+  newPolygon[0] = oldPolyPtr | 0x09000000;     //point to the previous primitive at this location (has upper byte as 0x9)
+
+  transpolygons += 0x28;                       //so that next call to a graphics function will store a new polygon at the consecutive                                                   //memory location rather than over the current one because we need it so the gpu can draw
+}                                              //it
+   
+--------------------------------------
+
+    var_40 = s1[8]   << s2;  //s2 = scalar value
+    var_3C = s1[0xA] << s2;
+    var_34 = s1[0xC] << s2;
+    var_30 = s1[0xE] << s2;
+
+    var_50 = *(0x5840C) + 0x88;
+
+    sub_80018B98(&s1, process[0x138], entry, &var_40, var_50);    //cop2
+
+//does the same as the sub above but instead creates a new non-gourad filled -rectangle- with
+//rect structure at coordsPtr (stored in reverse i.e. y2, x2, 0, y1, x1, 0)
+sub_80018B98(structwithEIDloc, objectZ, entry, coordsPtr, drawdispbufloc)
+{
+  //t3 = objectZ
+  //t2 = entry
+  //t4 = struct
+  //t5 = drawdispbufloc
+
+  //s2 = scalar value
+  //coordsPtr = 
+  {    
+    var_40 = s1[8]   << s2;    //y2
+    var_3C = s1[0xA] << s2;    //x2
+    var_38 = unused...;      
+    var_34 = s1[0xC] << s2;    //y1
+    var_30 = s1[0xE] << s2;    //x1
+  } 
+
+  //what if coordsPtr is: y2, x2,  ?, y1, x1
+
+  x1 = coordsPtr[0x10];  //
+ 
+  a1 =    coordsPtr[0];        //lhu
+  a2 = x1 << 16 | a1;          //pt at x1, y2      
+
+  GTE.VXY0 = a2;
+  GTE.VZ0  =  0;
+
+  v0 = coordsPtr[0xC];         //lhu
+  a2 = x1 << 16 | v0;          //pt at x1, y1
+
+  GTE.VXY1 = a2;
+  GTE.VZ1  =  0;
+
+  a2 = coordsPtr[4]<<16 | coordsPtr[0];  //pt at x2, y2
+
+  GTE.VXY2 = a2;
+  GTE.VZ2  =  0;
+  
+          |
+          |
+    V1    |
+     |\   |
+  ---|--\-|--------
+     |    \ 
+    V0------\-V2
+          |
+          |
+
+  GTE::PerspectiveTransform()
+  
+  if (GTE.FLAG < 0) { return 0; }
+
+  *(0x5840C)[0x78] += 0x28;
+  newPolygon = *(0x5840C)[0x78];
+
+  newPolygon[0x8]  = GTE.SXY0;
+  newPolygon[0x10] = GTE.SXY1;
+  newPolygon[0x18] = GTE.SXY2;
+ 
+  -----
+
+  v0 = coordsPtr[4];     //x2
+  v1 = coordsPtr[0xC];   //y1
+
+  a2 = coordsPtr[4] << 16 | coordsPtr[0xC];   //pt at x2, y1
+
+          |
+          |
+    V1------V0
+      \   |  |
+  ------\-|--|-----
+          \  |
+          | \|V2
+          |
+          |
+
+
+  GTE.VXY0 = a2;
+  GTE.VZ0  =  0;
+
+  GTE::PerspectiveTransformSingle();  //transform the last pt...
+
+  newPolygon[0x20] = GTE.SXY2;
+
+  -----------------------
+
+
+
+
+  IRGB = structwithEIDloc[0];
+  newPolygon[4] = IRGB;
+
+  if (((IRGB>>24) & 0x60) == 0)
+  {
+    t0[7] = 0x2C;
+  }
+  else
+  {
+    t0[7] = 0x2E;
+  }
+
+  sum = GTE.SZ1 + GTE.SZ2 + GTE.SZ3;
+
+  camZ      = (*(0x578D0) + (*(0x578D0) >> 31)) >> 1;
+  camDist =                 objectZ + (0x800 - camZ); 
+
+  newZDist  = (sum/32) - camDist;
+
+  if (newZDist < 0x7FF)
+  {
+    dist = newZDist;
+
+    if (newZDist < 0)
+      dist = 0;
+
+    newPolygonPtr = &drawdispbufloc[dist*4];
+  }
+  else
+  {
+    newPolygonPtr = &drawdispbufloc[0x1FFC];
+  }
+
+  a0 = 0xFFFFFF;
+
+  oldPolygonPtr = *(newPolygonPtr);
+
+  t0[0] = oldPolygonPtr;  //this is how the link to the old poly is stored
+  
+  *(newPolygonPtr) = 0x09000000 | (t0 & 0xFFFFFF);
+  ------
+
+
+
+  ------
+  
+  //DDDDDDDD DDMMCCXX XXXTTTTT TT_YYYYY
+  //--------
+  //DDDDDDDDDD = index into an array of default values
+  //MM         = texture color mode
+  //CC         = texture page x ID
+  //XXXXX      = texture x coordinates
+  //YYYYY      = texture y coordinates
+  //TTTTTTT    = color lookup table ID (for modes 0 & 1)  [1 table = 4 palettes]  
+  
+  textureinfo = structwithEIDloc[4];
+
+  tColorMode  = textureinfo.mbits;
+
+  defaults = 0x51774[textureinfo.dbits * 8];
+ 
+  defaultTCoordsCLUT = defaults[0];
+  defaultRsrvdRsrvd  = defaults[4];
+
+  tpageXID = textureinfo.cbits;
+  tpageYID = entryfromstruct & 0x1C;
+
+  tpage = (tColorMode << 7) | semiTransMode | tpageYID | tpageXID;
+
+  tcoordFlag  = (entry & 0x80);
+
+  
+  tcoordX     = (textureinfo.xbits << 3) >> tColorMode;  //multiples of 8 for color mode 0, 4 for mode 1, 2 for mode 2                     tcoordY     = textureinfo.ybits << 2;
+  
+  tcoord      =  ((tcoordFlag | tcoordY) << 16) | tcoordX;
+  tcoord     +=  (defaultTCoordsCLUT >> 16);               //left hword is default tcoord value
+  
+  //a1 = MM<<7
+  //FYYYYY-- ------00
+
+  tpageTCoord = (tpage << 16) | tcoord;
+  
+  tableIndex  = (textureinfo.tbits; 
+  tableOffset = ((entryfromstruct & 0xFFF00)>>8) << 4; //a number of palettes into or even away from the current table into another
+  
+  clut        = tableIndex | tableOffset | colOffset;
+  clut       += (defaultTCoordsCLUT & 0xFFFF);        //right hword is default clut value
+
+  clutTCoord  = (clut << 16)  | tcoord;
+  
+  rsrvdTCoordA = (defaultRsrvdRsrvd & 0xFFFF) | tcoord;
+  rsrvdTCoordB = (defaultRsrvdRsrvd >> 16)    | tcoord;
+
+  newPolygon[0xC]  =   clutTCoord;
+  newPolygon[0x14] =  tpageTCoord;
+  newPolygon[0x1C] = rsrvdTCoordA;
+  newPolygon[0x24] = rsrvdTCoordB;
+}
+  
+  
+-------------------------------------------
+
+//animationData = offset 0x2C in a T1 entry animation frame item
+
+//finds the approximate 2d display range of an object on screen
+sub_800351C8(processCoords, animationData, processVectors, camLocation)
+{
+  //t1 = camLocation.X
+  //t0 = camLocation.Y
+  //a3 = camLocation.Z
+
+  newX1 = processCoords.X1 + processVectors[0].X;  //at
+  newY1 = processCoords.Y1 + processVectors[0].Y;  //v0
+  newZ1 = processCoords.Z1 + processVectors[0].Z;  //v1
+
+  newX2 = processCoords.X2 + processVectors[0].X;  //a2
+  newY2 = processCoords.Y2 + processVectors[0].Y;  //a1
+  newZ2 = processCoords.Z2 + processVectors[0].Z;  //a0
+
+  animX = animationData[0] - camLocation.X;  //t5
+  animY = animationData[4] - camLocation.Y;  //t6
+  animZ = animationData[8] - camLocation.Z;  //t7
+
+  newanimX1 = (animX + newX1) >> 8;  //>>8 converts to GTE point coords
+  newanimY1 = (animY + newY1) >> 8;
+  newanimZ1 = (animZ + newZ1) >> 8;
+
+  newanimX2 = (animX + newX2) >> 8;   
+  newanimY2 = (animY + newY2) >> 8;
+  newanimZ2 = (animZ + newZ2) >> 8;
+
+  //t2 = newanimX1 & 0xFFFF;
+  //t3 = newanimY1 << 16;
+  //t4 = newanimZ1 & 0xFFFF;
+  //t5 = newanimX2 & 0xFFFF;
+  //t6 = newanimY2 << 16;
+  //t7 = newanimZ2 & 0xFFFF;
+  
+                        //t3                    //t2
+  gte_newanimX1Y1 = (newanimY1 << 16) | (newanimX1 & 0xFFFF);
+  gte_newanimX1Y2 = (newanimY2 << 16) | (newanimX1 & 0xFFFF);     
+                        //t6
+
+  gte_newanimZ1 = newanimZ1 & 0xFFFF;
+  gte_newanimZ2 = newanimZ2 & 0xFFFF;
+
+  GTE.VXY0 = gte_newanimX1Y1;
+  GTE.VXY1 = gte_newanimX1Y1;
+  GTE.VXY2 = gte_newanimX1Y2;
+
+  GTE.VZ0 =  gte_newanimZ1;
+  GTE.VZ1 =  gte_newanimZ2;
+  GTE.VZ2 =  gte_newanimZ1;
+
+  GTE::PerspectiveTransform();
+
+  trans_newanimXY0 = GTE.SXY0;  //at
+  trans_newanimXY1 = GTE.SXY1;  //v0
+  trans_newanimXY2 = GTE.SXY2;  //v1
+
+  rangeXPos = 0x7FFFFFF;
+  rangeXNeg = 0x8000000;
+  rangeYPos = 0x7FFFFFF;
+  rangeYNeg = 0x8000000;
+
+  sub_80035370(trans_newanimXY0, trans_newanimXY1, trans_newanimXY2, rangeXPos, rangeXNeg, rangeYPos, rangeYNeg);
+
+  -----
+
+  gte_newanimX1Y2 = (newanimY2 << 16) | (newanimX1 & 0xFFFF);
+  gte_newanimX2Y1 = (newanimY1 << 16) | (newanimX2 & 0xFFFF);
+
+  GTE.VXY0 = gte_newanimX1Y1;
+  GTE.VXY1 = gte_newanimX2Y1;
+  GTE.VXY2 = gte_newanimX2Y1;
+
+  GTE.VZ0 =  gte_newanimZ2;
+  GTE.VZ1 =  gte_newanimZ1;
+  GTE.VZ2 =  gte_newanimZ2;
+
+  GTE::PerspectiveTransform();
+
+  trans_newanimXY0 = GTE.SXY0;  //at
+  trans_newanimXY1 = GTE.SXY1;  //v0
+  trans_newanimXY2 = GTE.SXY2;  //v1
+
+  sub_80035370(trans_newanimXY0, trans_newanimXY1, trans_newanimXY2, rangeXPos, rangeXNeg, rangeYPos, rangeYNeg);
+  --------
+
+  gte_newanimX1Y2 = (newanimY2 << 16) | (newanimX1 & 0xFFFF);
+  gte_newanimX2Y2 = (newanimY2 << 16) | (newanimX2 & 0xFFFF);
+
+  GTE.VXY0 = gte_newanimX1Y1;
+  GTE.VXY1 = gte_newanimX2Y2;
+  GTE.VXY2 = gte_newanimX2Y2;
+
+  GTE.VZ0 =  gte_newanimZ2;
+  GTE.VZ1 =  gte_newanimZ1;
+  GTE.VZ2 =  gte_newanimZ2;
+
+  GTE::PerspectiveTransform();
+
+  trans_newanimXY0 = GTE.SXY0;  //at
+  trans_newanimXY1 = GTE.SXY1;  //v0
+  trans_newanimXY2 = GTE.SXY2;  //v1
+
+  sub_800353B0(trans_newanimXY1, trans_newanimXY2, rangeXPos, rangeXNeg, rangeYPos, rangeYNeg);
+   
+  //essentially what this sub does is: 
+  //an object has an x1,y1,z1 AND x2,y2,z2
+  //(x1,y1,z1) represents the objects position in 3 dimensional space
+  //(x2,y2,z2) represents the opposing vertex of an invisible cube that would bound the object
+  //so (x2-x1) is approximate width, (y2-y1) is approximate height, and (z2-z1) is approximate length
+
+  //after translating both points by the objects direction vector 
+  //and by animation vector values (given from the T1 entry)
+  //a new bounding cube exists  
+
+  //do a perspective transform on all 8 points of the bounding cube and find:
+  //  smallest positive x value of all 8 points
+  //  smallest negative x value of all 8 points
+  //  smallest positive y value of all 8 points
+  //  smallest negative y value of all 8 points
+  
+  //in summary: finds the approximate 2d display range of the object on screen
+
+  scratch[0x48] = rangeXPos;
+  scratch[0x4C] = rangeYPos;
+  scratch[0x50] = rangeXNeg;
+  scratch[0x54] = rangeYNeg;
+
+  return 0;
+}
+
+//given 3 2d points and 2 ranges (neg to pos):
+  -shorten the positive bound of the x range for the points that fall xwise within the positive portion
+  -shorten the negative bound of the x range for the points that fall xwise within the negative portion
+  -shorten the positive bound of the y range for the points that fall ywise within the positive portion
+  -shorten the negative bound of the y range for the points that fall ywise within the negative portion
+  -if the first point falls within any of the ranges then dont do the check with the second 2
+
+sub_80035370(pointXY1, pointXY2, pointXY3, &val1, &val2, &val3, &val4)
+{
+  if (pointXY1.X < val1)
+  {
+    val1 = pointXY1.X;
+  }
+  else if (pointXY1.X <= val2)
+  { 
+    val2 = pointXY1.X;
+  }
+  else if (pointXY1.Y < val3)
+  {
+    val3 = pointXY1.Y;
+  }
+  else if (pointXY1.Y <= val4)
+  {
+    val4 = pointXY1.Y;
+  }
+  else
+  {
+    sub_800353B0(pointXY2, pointXY3, &val1, &val2, &val3, &val4);
+  }
+}
+
+//given 2 2d points and 2 ranges (neg to pos):
+  -shorten the positive bound of the x range for the points that fall xwise within the positive portion
+  -shorten the negative bound of the x range for the points that fall xwise within the negative portion
+  -shorten the positive bound of the y range for the points that fall ywise within the positive portion
+  -shorten the negative bound of the y range for the points that fall ywise within the negative portion
+
+sub_800353B0(pointXY1, pointXY2, &val1, &val2, &val3, &val4)
+{
+  if (pointXY1.X < val1)
+  {
+    val1 = pointXY1.X;
+  }
+  else if (pointXY1.X <= val2)
+  { 
+    val2 = pointXY1.X;
+  }
+  else if (pointXY1.Y < val3)
+  {
+    val3 = pointXY1.Y;
+  }
+  else if (pointXY1.Y <= val4)
+  {
+    val4 = pointXY1.Y;
+  }
+
+  if (pointXY2.X < val1)
+  {
+    val1 = pointXY2.X;
+  }
+  else if (pointXY2.X <= val2)
+  { 
+    val2 = pointXY2.X;
+  }
+  else if (pointXY2.Y < val3)
+  {
+    val3 = pointXY1.Y;
+  }
+  else if (pointXY2.Y <= val4)
+  {
+    val4 = pointXY1.Y;
+  }
+}
+
+--------------------------
+
+inline hword sin (angle)
+{
+  if (angle < 0x800)
+  {
+    if (angle < 0x400)
+    {
+      rval = 0x5306C[zval*2]; 
+    } 
+    else
+    {
+      rval = 0x5306C[0x1000 - zval*2];
+    }
+  }
+  else
+  {
+    if (angle < 0xC00)
+    {
+      rval = -0x5306C[zval*2 - 0x1000];
+    }
+    else
+    {
+      rval = -0x5306C[0x2000 - zval*2];
+    }
+  }
+
+  return rval;
+}
+
+inline hword cos(angle)
+{
+  if (angle < 0x800)
+  {
+    if (angle < 0x400)
+    {
+      rval = 0x5306C[0x800 - zval*2]; 
+    } 
+    else
+    {
+      rval = -0x5306C[zval*2 - 0x800];
+    }
+  }
+  else
+  {
+    if (angle < 0xC00)
+    {
+      rval = -0x5306C[0x1800 - zval*2];
+    } 
+    else
+    {
+      rval = 0x5306C[zval*2 - 0x1800];
+    }
+  }
+
+  return rval;
+}
+
+
+//calculates light and color matrices for gte due to object translation, 
+//object's color and light matrices, and object center of illumination
+
+//matrices and vectors
+//matrix       = the initial rotation matrix
+//processVM    = a pointer to the processes: direction vector, orientation vector (euler angles?), stretch/scale vector
+//colorVM      = a pointer to the processes light/color vectors/matrix
+//childAnimPtr = a pointer to an T2 entry's item 1 (containing the model scale values)
+
+sub_8003913C(matrix, objModelEntry, processVM, colorVM)
+{
+  //is an angle vector
+  yzang = processVectors[1][8] - processVectors[1][4] & 0xFFF; //sp
+  zang  = processVectors[1][4] & 0xFFF; //gp
+  xang  = processVectors[1][0] & 0xFFF;
+
+  
+  cosXang  = cos(xang);    //t5
+  cosZang = cos(yzang);  //t6
+  cosYZang  = cos(yang);   //t7
+
+  sinXang  = sin(xang);    //t1
+  sinZang =  sin(zang);  //t2
+  sinYZang  = sin(yzang);   //t4
+ 
+  //t6 = z
+  //t4 = y
+  //t5 = x
+ 
+     x  z           y
+   //t5 t6 t7 t1 t2 t4
+
+ //sin1 s2 s3 c1 c2 c3
+
+  //gp sp fp
+  //t5 = cos
+  s0 = sinYang & 0xFFFF;
+  t1 = cosXang & 0xFFFF;
+  t5 = sinXang & 0xFFFF;
+  t6 = sinZang & 0xFFFF;
+  t3 = cosZang & 0xFFFF;
+  t4 = cosYang & 0xFFFF;
+
+  GTE.R13R21 = 0;
+  GTE.R31R32 = 0;
+
+  GTE.VZ0 = (sinZang & 0xFFFF);
+
+  GTE.VXY0 = ((cosYang & 0xFFFF) << 16) | (sinXang & 0xFFFF);
+
+  ****yang = yang - zang;
+
+
+
+  GTE.R11R12 = cosZang & 0xFFFF;
+  GTE.R22R23 = cosXang & 0xFFFF;
+  GTE.R33    = sinXang & 0xFFFF;
+
+  //understand that the result of these mults return 1EEEEEEEEEEEFFFFFFFFFFFFFFFFFFFF
+  //we want to shift it right so that we have        0000000000001EEEEEEEEEEEFFFFFFFF
+  //(8 bit fractional precision each time)
+
+  GTE::rtv0();  //rotate vector zero given the rotation matrix
+
+  resultAX = GTE.IR1;  //sp
+  resultAY = GTE.IR2;  //gp
+  resultAZ = GTE.IR3;  //s1
+
+  [cos(zang),         0,        0][sin(xang)]
+  [0        , cos(xang),        0][cos(yang)]
+  [0        ,         0,sin(xang)][sin(zang)]
+
+  = [sin(xang)cos(zang)]
+    [cos(yang)cos(xang)]
+    [sin(zang)sin(xang)]
+
+
+  GTE.R11R12 = sinXang & 0xFFFF;
+  GTE.R22R23 = cosYZang & 0xFFFF;
+  GTE.R33    = cosXang & 0xFFFF;
+
+  GTE::rtv0();  
+  
+  resultBX = GTE.IR1;  //at
+  resultBY = GTE.IR2;  //s2
+  resultBZ = GTE.IR3;  //s3
+
+  [sin(xang),         0,        0][cos(zang)]
+  [0        , cos(zang),        0][sin(xang)]
+  [0        ,         0,cos(xang)][cos(yang)]
+
+  = [sin(xang)cos(zang)]
+    [cos(zang)sin(xang)]
+    [cos(xang)cos(yang)]
+
+
+  GTE.R11R12 = cosXang & 0xFFFF;
+  GTE.R22R23 = resultAX & 0xFFFF;
+  GTE.R33    = sinZang & 0xFFFF;
+
+  GTE::rtv0();
+
+  resultCX = GTE.IR1;
+  resultCY = GTE.IR2;
+  resultCZ = GTE.IR3;
+  
+  [cos(xang),                  0,        0][cos(zang)]
+  [0        , sin(yang)cos(zang),        0][sin(xang)]
+  [0        ,                  0,sin(zang)][cos(yang)]
+
+  = [cos(xang)cos(zang)]
+    [sin(yang)cos(zang)sin(xang)]
+    [sin(zang)cos(yang)]
+
+  s7 = (resultAX * cosXang) >> 12;
+ 
+
+  resultBY = -resultBY
+  fp = ((cosXang * sinZang) >> 12);
+  
+  //
+  s7 = resultAY - ((resultAX * cosXang) >> 12);
+  //s7 = sin(zang)sin(xang) - cos(zang)sin(yang)cos(xang)  
+
+  //
+  s5 = ((((cosXang * sinZang) >> 12) * sinYZang) >> 12) - resultBY;
+  //s5 = cos(xang)sin(zang)sin(yang) + cos(zang)sin(xang)  
+
+  //
+  t8 = -(resultBX + (((cosXang * sinZang) >> 12) * sinYZang) >> 12));
+  //t8 =  cos(zang)sin(xang) - cos(xang)sin(zang)sin(yang)
+
+  t9 = ((resultAY * sinYZang) >> 12) - resultCX;
+  //t9 =  sin(zang)sin(xang)sin(yang) - sin(zang)cos(yang)
+
+------------
+
+  t1,t3,t4,t5,t6 = matrix;
+  GTE.R11R12 = t1;
+  GTE.R13R21 = t3;
+  GTE.R22R23 = t4;
+  GTE.R31R32 = t5;
+  GTE.R33    = t6;
+
+  t4=(((processVectors[2].X) * objModelEntry[4])>>12) & 0xFFFF;
+  t5=(((processVectors[2].Y) * objModelEntry[8])>>12) & 0xFFFF;
+  t6=(((processVectors[2].Z) * objModelEntry[0xC])>>12) & 0xFFFF;
+  
+  GTE.IR1 = s7;
+  GTE.IR2 = processVectors[2].X;
+  GTE.IR3 = t8;
+
+  GTE::rtir12();  //ir*rotmatrix
+
+  resultDX = GTE.IR1;
+  resultDY = GTE.IR2;
+  resultDZ = GTE.IR3;
+
+  GTE.IR1 = resultAY
+  GTE.IR2 = cosYZang;
+  GTE.IR3 = resultCZ;
+
+  GTE::rtir12();
+
+  resultEX = GTE.IR1;   //s1
+  resultEY = GTE.IR2;   //t2
+  resultEZ = GTE.IR3;   //s6
+
+  GTE.IR1 = s5;
+  GTE.IR2 = resultBX;
+  GTE.IR3 = t9;
+   
+  GTE::rtir12();
+
+  resultFX = GTE.IR1;
+  resultFY = GTE.IR2;
+  resultFZ = GTE.IR3;
+
+  GTE.R11R12 = t4 & 0xFFFF;
+  GTE.R13R21 = 0;
+  GTE.R22R23 = t5 & 0xFFFF;
+  GTE.R31R32 = 0;
+  GTE.R33    = t6 & 0xFFFF;
+
+  GTE.IR1 = resultDY;
+  GTE.IR2 = resultEY;
+  GTE.IR3 = resultFY;
+
+  GTE::rtir12();
+
+  resultDY = GTE.IR1 * (-5/8);
+  resultEY = GTE.IR2 * (-5/8);
+  resultFY = GTE.IR3 * (-5/8);
+
+  GTE.IR1 = resultDZ;
+  GTE.IR2 = resultEZ;
+  GTE.IR3 = resultFZ;
+
+  GTE::rtir12();
+
+  resultDZ = GTE.IR1;
+  resultEZ = GTE.IR2;
+  resultFZ = GTE.IR3;  
+  
+
+  GTE.IR1 = resultDX;
+  GTE.IR2 = resultEX;
+  GTE.IR3 = resultFX;
+
+  GTE::rtir12();
+
+  resultDX = GTE.IR1;
+  resultEX = GTE.IR2;
+  resultFX = GTE.IR3;    
+
+  GTE.R11R12 = (resultDX << 16) | resultEX;
+  GTE.R13R21 = (resultFX << 16) | resultDY;
+  GTE.R22R23 = (resultEY << 16) | resultFY;
+  GTE.R31R32 = (resultDZ << 16) | resultEZ;
+  GTE.R33    = resultFZ;
+
+  if (processVectors[3].X >= 0)
+  {
+    gp = processVectors[2].Z - processVectors[2].Y
+  }
+  else
+  {
+    gp = processVectors[2].Z + processVectors[2].Y
+  }
+
+  //fp = -z
+  //sp = -x
+  t5 = sin(gp)
+  t6 = sin(-processVectors[2].X)
+  t7 = sin(-processVectors[2].Z)
+  t1 = cos(gp)
+  t2 = cos(-processVectors[2].X)
+  t4 = cos(-processVectors[2].Z)
+
+  //..............
+  
+  fp = ((t1 * t7) >> 12);  cos(yLang)sin(zLang)
+  t8 = (fp * t2) >> 12;    cos(yLang)sin(zLang) * cos(xLang)
+
+  s0 = t7 & 0xFFFF;  //sin(zLang)
+  t1 = t1 & 0xFFFF;  //cos(yLang)
+  t5 = t5 & 0xFFFF;  //sin(yLang)
+  t6 = t6 & 0xFFFF;  //sin(xLang)
+  t3 = t2 & 0xFFFF;  //cos(xLang)
+  t4 = t4 & 0xFFFF;  //cos(zLang)
+  
+  GTE.L13L21 = 0;
+  GTE.L31L32 = 0;
+
+  GTE.VZ0  = t6;     //sin(xLang)  = Z
+  
+  at = (t4 << 16) | t5;
+  GTE.VXY0 = at;     //cos(zLang), sin(yLang)  == Y, X
+
+  GTE.L11L12 = t3;   //cos(xLang)
+  GTE.L22L23 = t1;   //cos(yLang)
+  GTE.L33    = t5;   //sin(yLang)
+
+  [cos(xLang),         0,          0][sin(yLang)]  [sin(yLang)cos(xLang)]
+  [0         ,cos(yLang),          0][cos(zLang)] =[cos(zLang)cos(yLang)]
+  [0         ,         0, sin(yLang)][cos(xLang)]  [cos(xLang)sin(yLang)]
+
+
+  GTE::llv0();  //v0 * lightmatrix
+
+  GTE.L11L12 = t4;  //cos(zLang)
+  GTE.L22L23 = t6;  //sin(xLang)
+  GTE.L33    = s0;  //sin(zLang)
+
+  sp = GTE.IR1;  //results
+  gp = GTE.IR2;
+  s1 = GTE.IR3;
+
+  s7 = (sp * t7) >> 12;   sin(yLang)cos(xLang) * sin(zLang)  
+
+  [cos(zLang),         0,          0][sin(yLang)]  [sin(yLang)cos(zLang)]
+  [0         ,sin(xLang),          0][cos(zLang)] =[cos(zLang)sin(xLang)]
+  [0         ,         0, sin(zLang)][cos(xLang)]  [cos(xLang)sin(zLang)]
+ 
+  GTE:llv0();
+
+  //sp, gp, s1 = results
+
+  GTE.L11L12 = s0;         //sin(zLang)
+  GTE.L22L23 = at & 0xFFFF;//sin(yLang)
+  GTE.L33    = t1;         //cos(yLang)
+
+  at = GTE.IR1;
+  s2 = GTE.IR2;
+  s3 = GTE.IR3;
+
+  t9 = (gp * t2) >> 12;    cos(zLang)cos(yLang) * cos(xLang)
+
+  [sin(zLang),         0,          0][sin(yLang)]  [sin(yLang)sin(zLang)]
+  [0         ,sin(yLang),          0][cos(zLang)] =[cos(zLang)sin(yLang)]
+  [0         ,         0, cos(yLang)][cos(xLang)]  [cos(xLang)cos(yLang)]
+
+  GTE::llv0();
+
+  s4 = GTE.IR1;
+  s5 = GTE.IR2;
+  s6 = GTE.IR3;
+ 
+  //---------------------------------------
+
+  //results = sp, gp, s1, at, s2, s3, s4, s5, s6
+  [cos(xLang),         0,          0][sin(yLang)]  [sin(yLang)cos(xLang)]
+  [0         ,cos(yLang),          0][cos(zLang)] =[cos(zLang)cos(yLang)]
+  [0         ,         0, sin(yLang)][cos(xLang)]  [cos(xLang)sin(yLang)]
+
+  [cos(zLang),         0,          0][sin(yLang)]  [sin(yLang)cos(zLang)]
+  [0         ,sin(xLang),          0][cos(zLang)] =[cos(zLang)sin(xLang)]
+  [0         ,         0, sin(zLang)][cos(xLang)]  [cos(xLang)sin(zLang)]
+ 
+  [sin(zLang),         0,          0][sin(yLang)]  [sin(yLang)sin(zLang)]
+  [0         ,sin(yLang),          0][cos(zLang)] =[cos(zLang)sin(yLang)]
+  [0         ,         0, cos(yLang)][cos(xLang)]  [cos(xLang)cos(yLang)]
+
+  //-------------------------
+
+  s2 = -s2;     //cos(zLang)sin(xLang) = -cos(zLang)sin(xLang)
+
+  //t8 = (fp * t2) >> 12;    cos(yLang)sin(zLang)cos(xLang)
+  //s7 = (sp * t7) >> 12;    sin(yLang)cos(xLang)sin(zLang)  
+  //t9 = (gp * t2) >> 12;    cos(zLang)cos(yLang)cos(xLang)
+
+ 
+  s7 = gp - s7;       //cos(zLang)cos(yLang) - sin(yLang)cos(xLang)sin(zLang)
+  s5 = fp - s5;       //cos(yLang)sin(zLang) - cos(zLang)sin(yLang)
+  t8 = at + t8;       //
+  t8 = -t8;           //-sin(yLang)cos(zLang) - cos(yLang)sin(zLang)cos(xLang)
+  t9 = t9 - s4;       //-sin(yLang)sin(zLang) + cos(zLang)cos(yLang)cos(xLang) 
+  ----------
+
+  at = s7 & 0xFFFF;
+
+  t1 = (s1 << 16) | at;   //[cos(xLang)sin(yLang), cos(zLang)cos(yLang) - sin(yLang)cos(xLang)sin(zLang)]
+
+  at = s5 & 0xFFFF;
+  
+  t3 = (s3 << 16) | at;   //[cos(xLang)sin(zLang), cos(yLang)sin(zLang) - cos(zLang)sin(yLang)]
+
+  at = t2 & 0xFFFF;
+  
+  t4 = (s2 << 16) | at;   //[cos(xLang), -cos(zLang)sin(xLang)]
+
+  at = t8 & 0xFFFF;
+
+  t5 = (s6 << 16) | at;   //[-sin(yLang)cos(zLang) - cos(yLang)sin(zLang)cos(xLang), cos(xLang)cos(yLang)]
+
+  GTE.L11L12 = t1;
+  GTE.L13L21 = t3;
+  GTE.L22L23 = t4;
+  GTE.L31L32 = t5;
+  GTE.L33    = t9;        //[-sin(yLang)sin(zLang) + cos(zLang)cos(yLang)cos(xLang)]
+
+                      = [                                  cos(xLang)sin(yLang), cos(zLang)cos(yLang) - sin(yLang)cos(xLang)sin(zLang),                                   cos(xLang)sin(zLang)]
+                        [           cos(yLang)sin(zLang) - cos(zLang)sin(yLang),                                            cos(xLang),                                  -cos(zLang)sin(xLang)]
+                        [-sin(yLang)cos(zLang) - cos(yLang)sin(zLang)cos(xLang),                                  cos(xLang)cos(yLang), -sin(yLang)sin(zLang) + cos(zLang)cos(yLang)cos(xLang)]
+
+  //i think this is just doing the rotation matrix with quarternions to avoid gimbal lock or something
+
+  //------------------
+  
+
+  t1 = processIndex[0];     //left half red x component?
+  t3 = processIndex[4];     //right half has x component?
+  t4 = processIndex[8];     //left half has z component?, right has y component?
+  t5 = processIndex[0xC];   //left half has y component?, right half has x component? 
+  t6 = processIndex[0x10];  //right half has background color RED
+  t7 = processIndex[0x14];  //left half has background color GREEN, right half has background color BLUE
+  s0 = processIndex[0x18];  //left half has color matrix R2, right half has color matrix R3
+  s4 = processIndex[0x1C];  //left half has color matrix R1, right half has color matrix B2
+  gp = processIndex[0x20];  //left half has color matrix B1, right half has color matrix G3
+  sp = processIndex[0x24];  //left half has color matrix G2, right half has color matrix G1
+  fp = processIndex[0x28];  //right half has background color RED intensity, right half has color matrix B3
+  v1 = processIndex[0x2C];  //left half has background color GREEN intensity, right half has background color BLUE intensity
+
+  //s1L s7R s3L  = 
+    s5R s2L t2R
+    s6L t8R t9L
+
+  t5
+  s6 = t5 >> 16;
+  t9 = (t7 << 16) >> 16;
+
+  if (matrix != 0)
+  {
+    s7 = -((t1 << 16) >> 16);       //negated left half of process[0x30]
+  }
+  else
+  {
+    s7 = ((t1 << 16) >> 16);        //left half of process[0x30]
+  }
+
+  GTE.IR1 = s7;     //left half of process[0x30];
+  GTE.IR2 = s1;          
+  GTE.IR3 = s5;    
+
+  [           process[0x30].right             ] //negative if initial rotation matrix existed
+  [           cos(xLang)sin(yLang)            ]
+  [cos(yLang)sin(zLang) - cos(zLang)sin(yLang)]
+
+  v0 = (fp >> 16);
+  t0 = (t6 >> 16);
+  ra = (v0 * t0) >> 8;   //((0-255) color * (0-255) intensity)/256 = total
+
+  GTE::llvir();  //IR * light matrix
+
+  v0 = (v1 << 16) >> 16;       
+  t0 = (t7 << 16) >> 16;
+
+  s7 = GTE.IR1;
+  s1 = GTE.IR2;
+  s5 = GTE.IR3;
+
+  GTE.RBK = ra;  //background color red component
+
+  if (matrix != 0)
+  {
+    s3 = -((t3 << 16) >> 16);
+  }
+  else
+  {
+    s3 = ((t3 << 16) >> 16);
+  }
+
+  t2 = (t4 << 16) >> 16;
+  s2 = (t4 >> 16);
+  
+  GTE.IR1 = s3;
+  GTE.IR2 = t2;
+  GTE.IR3 = s2;
+
+  [             process[0x34].left            ]
+  [cos(yLang)sin(zLang) - cos(zLang)sin(yLang)]
+  [                cos(xLang)                 ]
+
+  ra = (v0 * t0) >> 8;
+
+  GTE::llvir();
+
+  v0 = v1 >> 16;
+  t0 = t7 >> 16;
+
+  s3 = GTE.IR1;
+  t2 = GTE.IR2;
+  s2 = GTE.IR3;
+
+  GTE.BBK = ra;     //background color blue component
+
+  if (matrix != 0)
+  {
+    t8 = -((t5 << 16) >> 16);
+  }
+  else
+  {
+    t8 = ((t5 << 16) >> 16);
+  }
+
+  s6 = t5 >> 16;
+  t9 = (t7 << 16) >> 16;
+
+  GTE.IR1 = t8;
+  GTE.IR2 = s6;
+  GTE.IR3 = t9;
+
+  [             process[0x3C].left            ]
+  [cos(yLang)sin(zLang) - cos(zLang)sin(yLang)]
+  [                cos(xLang)                 ]
+
+  ra = (v0 * t0) >> 8;
+
+  GTE::llvir();
+
+  t8 = GTE.IR1;
+  s6 = GTE.IR2;
+  t9 = GTE.IR3;
+
+  GTE.GBK = ra;
+
+  --------------
+
+
+
+  at = s7 & 0xFFFF;
+  t1 = (s1 << 16) | at;
+  GTE.L11L12 = t1;
+
+  at = s5 & 0xFFFF;
+  t1 = (s3 << 16) | at;
+  GTE.L13L21 = t1;
+
+  at = t2 & 0xFFFF;
+  t1 = (s2 << 16) | at;
+  GTE.L22L23 = t1;
+nBuffer
+
+  at = t8 & 0xFFFF;
+  t1 = (s6 << 16) | at;
+  GTE.L31L32 = t1;
+
+  GTE.L33 = t9;
+
+  //--------------
+
+  t1 = s4 & 0xFFFF0000;
+  t3 = s0 & 0x0000FFFF;
+  t1 = t1 | t3;
+
+  GTE.LR1LR2 = t1;
+
+  t1 = s0 & 0xFFFF0000;
+  t3 = sp & 0x0000FFFF;
+  t1 = t1 | t3;
+
+  GTE.LR3LG1 = t1;
+   
+  t1 = sp & 0xFFFF0000;
+  t3 = gp & 0x0000FFFF;
+  t1 = t1 | t3;
+
+  GTE.LG2LG3 = t1;
+
+  t1 = gp & 0xFFFF0000;
+  t3 = s4 & 0x0000FFFF;
+  t1 = t1 | t3;
+
+  GTE.LB1LB2 = t1;  
+
+  GTE.LB3 = fp;
+}
+
+//----------------------------------------------------------
+
+//FOR TGEO MODELS
+sub_8003460C(item, zBuffer, item2, item1, proc98, projval, polygonBuffer, array, flag)      //transforms a tgeo model and sends it to the gpu
+{
+
+  //item is an item of a T1 entry (animation frame?)
+  //item1 is item 1 of a T2 entry (TGEO model)
+  //item2 is item 2 of a T2 entry (TGEO model)
+
+  //t0 = proc98
+  //t1 = projval * 4
+  //t2 = polygonBuffer
+  //t3 = item + 0x38
+  //t4 = item1 + 0x14
+  //t5 = item1[0x14];
+  //t7 = flag
+  //t8 = 0x60
+  //t9 = 0xFFFFFF
+  //gp = 0x6000000
+  //s7 = rotMatrix
+
+  proj = projVal * 4;  //t1
+
+  animX = item[8]    - 0x80;  //at
+  animY = item[0xC]  - 0x80;  //v0
+  animZ = item[0x10] - 0x80;  //v1
+
+  numPolygons = item1[0x14];  //t5  ?? item1[0] should be??
+  
+  newPolygon  = *(polygonBuffer);  //points to next polygon
+
+  count = 0;
+  
+  do
+  {
+    curVertex = item2[count*8];
+
+    VTXA = item[0x38 + (curVertex[0] & 0xFFFF)];  
+    VTXB = item[0x38 + (curVertex[0] >> 16)];     
+    VTXC = item[0x38 + (curVertex[4] & 0xFFFF)];  
+  
+    ra = (item2[4] >> 16); 
+    flag   = ra & 0x8000;       //t2 = hi bit of left half
+    offset = (ra & 0x7FFF) * 4; //ra = offset     
+    t6 = &item1[0x14 + offset];
+
+    YX0 = VTXA[0]; 
+    UZ0 = VTXA[2];  
+
+    Y0 = (YX0 >> 8);           //left half
+    Y0 = ((Y0 + animY)*4) << 16;
+    X0 = (YX0 & 0xFF);         //right half
+    X0 = ((X0 + animX)*4) & 0xFFFF;
+
+    XY0 = Y0 | X0;
+    GTE.VXY0 = XY0;
+    Z0 = (UZ0 & 0xFF)
+    Z0 = (Z0 + animZ) * 4;
+    GTE.VZ0 = Z0;
+
+    YX1 = VTXB[0]; 
+    UZ1 = VTXB[2];  
+
+    Y1 = (YX1 >> 8);           //left half
+    Y1 = ((Y1 + animY)*4) << 16;
+    X1 = (YX1 & 0xFF);         //right half
+    X1 = ((X1 + animX)*4) & 0xFFFF;
+
+    XY1 = Y1 | X1;
+    GTE.VXY1 = XY1;
+    Z1 = (UZ1 & 0xFF)
+    Z1 = (Z1 + animZ) * 4;
+    GTE.VZ1 = Z1;
+
+    YX2 = VTXB[0]; 
+    UZ2 = VTXB[2];  
+
+    Y2 = (YX2 >> 8);           //left half
+    Y2 = ((Y2 + animY)*4) << 16;
+    X2 = (YX2 & 0xFF);         //right half
+    X2 = ((X2 + animX)*4) & 0xFFFF;
+
+    XY2 = Y2 | X2;
+    GTE.VXY2 = XY2;
+    Z2 = (UZ2 & 0xFF)
+    Z2 = (Z2 + animZ) * 4;
+    GTE.VZ2 = Z1;
+    
+    GTE::PerspectiveTransform();
+
+    if (GTE.FLAG < 0) { end of loop; }
+
+    GTE.RGB = t6[0];
+
+    code = t6[0] >> 24;  //primitive id
+    
+    if (code & 0x10 == 0)
+    {
+      GTE::NCLIP()  //normal clipping
+      //[1,31,0] MAC0 = F[SX0*SY1+SX1*SY2+SX2*SY0-SX0*SY2-SX1*SY0-SX2*SY1] [1,43,0]
+
+      if (GTE.MAC0 == 0 || (GTE.MAC0 ^ proc98) < 0) { end of loop; (i.e. skip polygon)
+    }
+
+    if (polygonBuffer)
+    {
+      GTE.RGB0 = t6[0];
+      GTE.RGB1 = t6[0];
+      GTE.RGB2 = t6[0]; //characteristic color FIFO
+      
+      goto 34844;
+    }
+    else
+    {
+      //sp = VTXA[2] & 0xFF00;  
+
+      YXVECTA = (VTXA[4] << 24) | (VTXA[2] & 0xFF00); //mults of 256
+      GTE.VXY0 = YXVECTA;
+
+      ZVECTA = (VTXA[4] & 0xFF00);
+      GTE.VZ0 = ZVECTA;
+
+      YXVECTB = (VTXB[4] << 24) | (VTXB[2] & 0xFF00); //mults of 256
+      GTE.VXY1 = YXVECTB;
+
+      ZVECTB = (VTXB[4] & 0xFF00);
+      GTE.VZ1 = ZVECTB;
+   
+      YXVECTC = (VTXC[4] << 24) | (VTXC[2] & 0xFF00); //mults of 256
+      GTE.VXY2 = YXVECTC;
+
+      ZVECTC = (VTXC[4] & 0xFF00);
+      GTE.VZ2 = ZVECTC;
+
+      GTE::NCCT(); //uses the 3 normal vectors to get the 3 separate colors using the RGB value
+                   //sends to the characterstic color FIFO
+    }
+
+    if (code & 0x80 != 0)  //else go to 349D8
+    { 
+      newPolygon[8]    = GTE.SXY0;
+      newPolygon[0x14] = GTE.SXY1;
+      newPolygon[0x20] = GTE.SXY2;
+
+      RGB0C = GTE.RGB0;
+      RGB0 = RGB0C & 0x00FFFFFF;
+
+      if (code & 0x60 == 0x60)
+        RGB0 |= 0x34000000;
+      else
+        RGB0 |= 0x36000000;
+      
+      newPolygon[0x4]  =     RGB0;
+      newPolygon[0x10] = GTE.RGB1;
+      newPolygon[0x1C] = GTE.RGB2;
+
+      //sp = t6[4];
+      //s0 = t6[8];
+
+      //DDDDDDDD DDMMCCXX XXXTTTTT TT_YYYYY
+      //--------
+      //DDDDDDDDDD = index into an array of default values
+      //MM         = texture color mode
+      //CC         = texture page x ID
+      //XXXXX      = texture x coordinates
+      //YYYYY      = texture y coordinates
+      //TTTTTTT    = color lookup table ID (for modes 0 & 1)  [1 table = 4 palettes]  
+
+      tableSection =   t6[4];
+      textureinfo  =   t6[8];                
+
+      defaults  = &array[textureinfo.dbits * 8]; 
+
+      defaultTCoordsCLUT = defaults[0];
+      defaultRsrvd       = defaults[4];
+
+      tColorMode = textureinfo.mbits;
+
+      tpageXID = textureinfo.cbits;
+      tpageYID = tableSection & 0x1C;
+
+      tpage = (tColorMode << 7) | semiTransMode | tpageYID | tpageXID;
+  
+      tcoordFlag  = (tableSection & 0x80);
+      tcoordX     = (textureinfo.xbits << 3) >> tColorMode;  //multiples of 8 for color mode 0, 4 for mode 1, 2 for mode 2                     tcoordY     = textureinfo.ybits;
+  
+      tcoord      =  ((tcoordFlag | tcoordY) << 16) | tcoordX;
+      tcoord     +=  (defaultTCoordsCLUT >> 16);               //left hword is default tcoord value
+
+      tpageTCoord = (tpage << 16) | tcoord;
+  
+      tableIndex  = textureinfo.tbits; 
+      tableOffset = ((tableSection & 0xFFF00)>>8) << 4; //a number of palettes into or even away from the current table into another
+  
+      clut        = tableIndex | tableOffset | colOffset;
+      clut       += (defaultTCoordsCLUT & 0xFFFF);        //right hword is default clut value
+
+      clutTCoord  = (clut << 16)  | tcoord;
+  
+      rsrvdTCoordA = (defaultRsrvd & 0xFFFF) | tcoord;
+
+      newPolygon[0xC]  =   clutTCoord;
+      newPolygon[0x18] =  tpageTCoord;
+      newPolygon[0x24] =  rsrvdTCoord;      
+
+      NEWZ0 = GTE.SZ0;  //sp
+      NEWZ1 = GTE.SZ1;  //fp
+      NEWZ2 = GTE.SZ2;  //ra
+
+      if (flag)
+      {
+        if (NEWZ1 > NEWZ0)
+          bgZ = NEWZ1;
+        else
+          bgZ = NEWZ0;
+        if (NEWZ2 > bgZ)
+          bgZ = NEWZ2;
+        
+        if (NEWZ1 < NEWZ0)
+          smZ = NEWZ1;
+        else
+          smZ = NEWZ0;
+        if (NEWZ2 < smZ)
+          smZ = NEWZ2;
+            
+        tot = (smZ + bgZ) * (3/2);
+      }
+      else
+      {
+        tot = (NEWZ0 + NEWZ1 + NEWZ2);
+      }
+
+      projDist = ((projval - (tot/32))*4) & 0x1FFC;
+
+      prevPoly          =       zBuffer[projDist];
+      newtag            =   newPolygon & 0xFFFFFF;
+      zBuffer[projDist] =                  newtag;
+      prevtag           =         0x9000000 | tag;
+      newPolygon[0]     =                 prevtag;
+
+      newPolygon += 0x28;
+    } 
+    else
+    {
+      newPolygon[8]    = GTE.SXY0;
+      newPolygon[0x10] = GTE.SXY1;
+      newPolygon[0x18] = GTE.SXY2;
+
+      RGB0C = GTE.RGB0;
+      RGB0  = RGB0C & 0x00FFFFFF;
+      RGB0 |= 0x30000000;
+     
+      newPolygon[4]   =    RGB0C;
+      newPolygon[0xC] = GTE.RGB1;
+      newPolygon[0x14]= GTE.RGB2;
+
+      NEWZ0 = GTE.SZ1;
+      NEWZ1 = GTE.SZ2;
+      NEWZ2 = GTE.SZ3;
+
+      if (flag)
+      {
+        if (NEWZ1 > NEWZ0)
+          bgZ = NEWZ1;
+        else
+          bgZ = NEWZ0;
+        if (NEWZ2 > bgZ)
+          bgZ = NEWZ2;
+        
+        if (NEWZ1 < NEWZ0)
+          smZ = NEWZ1;
+        else
+          smZ = NEWZ0;
+        if (NEWZ2 < smZ)
+          smZ = NEWZ2;
+            
+        tot = (smZ + bgZ) * (3/2);
+      }
+      else
+      {
+        tot = (NEWZ0 + NEWZ1 + NEWZ2);
+      }
+
+      projDist = ((projval - (tot/8))) & 0x1FFC;
+
+      prevPoly          =       zBuffer[projDist];
+      newtag            =   newPolygon & 0xFFFFFF;
+      zBuffer[projDist] =                  newtag;
+      prevtag           =         0x6000000 | tag;
+      newPolygon[0]     =                 prevtag;
+
+      newPolygon += 0x1C;
+
+    }
+   
+    count++;
+  } while (count < numPolygons)
+
+  *(polygonBuffer) = newPolygon;    //last polygon left off on
+}
+
+sub_800248A0():
+
+var_28 = arg_a0[0];
+var_24 = arg_a0[4];
+var_20 = arg_a0[8];
+
+s0 = arg_a1;
+s1 = arg_a2;
+
+a0 = 0x577E4;
+
+if (arg_a2 != 0)
+{
+  a0 = 0x57844;
+}
+
+SetRotMatrix();
+
+a0 = 0x5762C();
+SetTransMatrix();
+
+if (arg_a2 != 0)
+{
+  var_30 = (var_28 - *(0x57888)) >> 8;  //sh
+  var_2E = (var_24 - *(0x5788C)) >> 8;
+  var_2C = (var_20 - *(0x57890)) >> 8;  //sh
+}
+else
+{
+  var_30 = (var_28 - *(0x57864)) >> 8;  //sh
+  var_2E = (var_24 - *(0x57868)) >> 8;
+  var_2C = (var_20 - *(0x5786C)) >> 8;  //sh
+}
+
+a0 = &var_30
+a1 = arg_a1;
+a2 = &var_18;
+
+RotTrans();
+
+arg_a1[0] =     arg_a1[0] >> 8;
+arg_a1[4] =   -(arg_a1[4] >> 8);
+arg_a1[8] =     arg_a1[8] >> 8;
+  
+return 0xFFFFFF01;

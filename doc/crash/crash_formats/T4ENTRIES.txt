@@ -1,0 +1,483 @@
+-----------------
+-  T4 ENTRIES   - 
+-----------------
+
+The format [of encoding] isn't exactly clear here; this will be revised with future guides as we approach the need to appropriately render world geometry from all possible locations/orientations/scales and perspectives.
+
+SLST entries essentially consist of delta encoded display lists-one display list for each item in the entry. Each distinct section from a zone (T7 entry) in a level (NSF) refers 
+to its own T4 entry.
+
+Each distinct zone also refers to 8 invididual WGEO/world geometry models (T3 entries), which together compose its/[the zones] geometry; the representative geometry for that 
+zone shall, naturally, be observed as the camera travels through the 3-dimensional space occupied by the sections in that zone. Each distinct section of a zone describes a 
+specific path that the camera is to travel as the player 'progresses' through that section. The camera at any instant is positioned (i.e. translated) to the particular point 
+as described by the section's 'camera path' with index given by the player's current 'progress' within that section; each point in the section's camera path is indexed by 
+progress. Each point in the section's camera path is also paired with an 'orientation angle' for the camera to be additionally 'rotated' to as the player reaches that progress.
+The player's progress at any instant is calculated based on how far along the camera's path it is, and including how much it deviates; in one case this is as simple as (calculating 
+the dot product of the player's trans vector with the nearest path point?). 
+
+Since each of a zone's section's camera path points are indexed by [each possible] progress [that can be attained within that section], each subsequent point describes a 'further' 
+location and orientation for the camera to reach as the player makes a single, +1 = positive change in progress. Thus, for each change in progress, there is a change to a new 
+pre-defined/fixed orientation and location for the camera, wherein some polygons that compose the geometry within that zone shall also change to appear -in front- of some other 
+polygons that, at the camera's previous location, they were previously observed to be behind; at this new location and orientation, there may also be some polygons that compose 
+the geometry within that zone that were previously off screen and should now be visible-and some polygons that were previously visible that should now be off screen.  
+
+The first and last items in a T4 entry are important: they are the only purely RAW, non-delta encoded display lists in the entry. The first item/display list in a T4 entry 
+lists each -visible- polygon belonging to the WGEO models in the zone that contains the corresponding section in their ordering from 'front to back' when viewed from the 
+camera position and orientation described by its FIRST/initial camera path point; conversely, the last item/display list in a T4 entry lists each polygon that belongs to 
+the WGEO models in the zone that contains the corresponding section in their ordering from 'front to back' when viewed from the camera position and orientation described 
+by its LAST/final camera path point. Then, the items/display lists between the first and last lists/items -encode- only the -progressive changes- in the polygon ordering 
+from the first to the last lists-hence the term 'delta' encoding. The encoding must also describe any new onscreen polygons not previously observed and any old polygons no
+longer observed from one progress/list to the next.
+
+The first and last items (display lists) in a T4 entry have the following format:
+
+ITEM 1/ITEM N: SOURCE/TARGET LIST
+---------------------------------
+0x0: V = number of polygon ids (hword)
+0x2: 0 = list type [for source/target list]
+0x4 - end: V x 'polygon ids' (hwords)
+
+1) Each polygon id in a source/target display list has the following format:
+
+PPPPPPPP PPPPWWWW
+
+W = index of WGEO model
+P = index of polygon [in WGEO model]
+
+Thus, a polygon id refers to the Pth polygon from the Wth WGEO model in the zone with a section that shall refer to this T4 entry.
+
+---------------------------------
+
+The non-first and non-last items in a T4 entry are delta-encoded 'difference' display lists. 
+
+-Polygon reordering is encoded in these items for processing as 'swap' operations between polygons [polygon ids] in the source/target list. 
+-Changes from onscreen to offscreen are encoded in these items for processing as the operation of removing polygons from the source/target list.
+-Changes from offscreen to onscreen are encoded in these items for processing as the operation of   adding polygons   to the source/target list.
+
+Each operation is encoded in the list as a 'node', where each node can be 1 of 3 types: a swapping node, an adding node, or a removing node.
+All nodes of one type are stored contiguously, in a region separate from that of nodes of other types; thus, a difference list has a swapping 
+node region, an adding node region, and a removing node region.
+
+
+ITEM 2/ITEM N-1: DIFFERENCE LIST/ENCODED LIST
+---------------------------------------------
+0x0: V = number of hwords in list - 2
+0x2: 1 = list type [for difference list]
+0x4: A = (offset of end of adding   node region - 4)/2 = (offset of start of removing node region - 4)/2
+0x6: R = (offset of end of removing node region - 4)/2 = (offset of start of swapping node region - 4)/2
+0x8       to (4+(A*2)):   adding node region
+(4+(A*2)) to (4+(R*2)): removing node region
+(4+(R*2)) to (4+(V*2)): swapping node region
+
+
+When a progress of 0 is attained in a section (i.e. the section is 'entered'), the corresponding source/target list (first item in the
+corresponding T4 entry) is copied in its entirety to overwrite the game's 'current display list'. Similarly, when a progress of N is reached,
+where N is the maximum progress that can be attained in a section, the corresponding section's source/target list (last item in the
+corresponding T4 entry) is copied in its entirety to overwrite the game's 'current display list'.
+
+Assuming progress is being made throughout a section and that the player does not leave the section, the next possible progress that can be 
+attained in the section after it is entered at its entry point/after progress 0 is progress 1. However, the corresponding list/item in the T4 
+entry (progress 1 = item 2 = second item) is not in the format of a source/target list: it is -encoded- as a difference list. Then that 
+difference list determines how the current display list (which, after progress 0, contains the content of the first list=a source/target 
+list in the entry) shall be -modified- to yield the source/target list that the difference list encoded. When progress 2 is attained, 
+the corresponding difference list then works on the modified list in further *modification; this continues in the same trend for further 
+progresses, such that when progress N-1 is attained, the current display list has been modified to be almost identical to the source/target 
+list corresponding to progress N=last list.
+
+The modification process consists of 2 stages: the first stage is a swapping stage, and the second stage is a rebuilding stage.
+
+1) Swapping stage
+
+The swapping stage begins by calculating the range of the swapping node region in the difference list; the beginning of the range is
+computed with (4+(R*2)), and the last node in the list-which is also the last node in the region-is computed with (4+(V-1)*2). Working
+backwards through the region, starting with the last swapping node and ending with the first, each node is processed. We consider that 
+each node is not necessarily 2 bytes = 1 hword in length; depending on format, some nodes can consist of more than 2 bytes-we count 
+these 'larger nodes' to include the potentially smaller (or the leftmost portion of the larger) node(s) that follow.
+
+The following describes the format of a swapping node based on the specifics and type of operation that is performed in its 
+processing:
+
+Swapping node formats
+---------------------
+FMT A: 1OOOONNN NNNNNNNN
+
+N = source vertex for swap (* 2 + 4 [bytes] for actual vertex address)
+O = destination vertex for swap (relative to source vertex + 1  [+1 vertex = +2 bytes])
+
+ex N = 1EB, (1EB * 2) + 4 = 3DA
+ex O = 9,   3DA + ((9+1)*2) = 3FA
+
+FMT B: 1????NNN NNNNNNNN 01MMMMMM MMMOOOOO
+
+N + M = source  vertex for swap (* 2 + 4 [bytes] for actual vertex address)
+O = destination vertex for swap (relative to source vertex + 17 [+17 vertices = +34 bytes])
+
+FMT C: ????NNNN NNNNNNNN 0??????? ???????? 01MMMMMM MMMOOOOO
+
+N + M = source  vertex for swap (* 2 + 4 [bytes] for actual vertex address)
+O = destination vertex for swap (relative to source vertex + 17)
+
+FMT D: ????OOOO OOOOOOOO 00??NNNN NNNNNNNN
+
+N = source vertex for swap (* 2 + 4 [bytes] for actual vertex address)
+O = destination vertex for swap (relative to source vertex + 1)
+
+Note that these sources and destinations refer to indices of vertex IDs WITHIN THE -CURRENT- DISPLAY LIST that are to be swapped-NOT the
+indices of nodes within the difference list.
+
+2) Rebuilding stage
+
+The rebuilding stage begins with calculating the ranges of the adding and removing node regions, respectively, in the difference list. 
+Adding nodes are sorted in ascending order by the offsets within the current display list that they refer to; each encodes the operation
+of adding a specific vertex by ID [or a specific sequence of vertex IDs] to a location at a specific offset within the current display list. 
+Likewise, removing nodes are sorted in ascending order by the offsets within the current display list that they refer to; each encodes the 
+operation of removing a single vertex ID (or a specific number of vertex IDs) from the location at a specific offset within the current 
+display list. 
+
+The current display list is double-buffered: the game allocates 2 separate regions of memory for holding 2 separate display lists;
+at any given time, one of these lists-the active display list-is the current display list, and the other list is the inactive display list.
+
+At the start of the rebuilding stage, the current adding node and the current removing node are defined, respectively, as the first adding 
+node and the first removing node in the difference list; the current 'source' point is then defined to be at the beginning of 
+[the list of vertices in] the active/current display list, and the current insertion point is defined to be at the beginning of 
+[the list of vertices in] the inactive display list. 
+
+If neither the current adding node nor the current removing node refer to an relative offset that equates to that of the source point, 
+all vertices from that at the source point to the vertex at the closest offset-either that referred to by the current adding node or 
+the current removing node-are copied to the inactive display list at the current insertion point; the current insertion point is then 
+moved to the end of those vertices that were copied -to- the inactive display list, and the current source point is moved to the end 
+of the corresponding vertices that were copied -from- in the active display list. If the current adding node refers to the closer offset 
+(that of the current source point), then that node is processed, effectively appending additional vertices to the inactive display list
+at the current insertion point which is moved to the end of the appended vertices, and the current adding node is updated to the next 
+adding node in the difference list. If the current removing node refers to the closer offset (that of the current source point), then 
+-that- node is processed, effectively 'skipping' a number of source vertices by moving the source point ahead, and the current removing
+node is updated to the next removing node in the difference list. (If the current removing node and the current adding node both refer
+to the same offset-then both are processed as described above and updated to the next nodes in their respective regions.) The entire 
+process described in this paragraph is then repeated until the source point reaches the end of the current display list.
+
+Adding and removing nodes are specified with the same format:
+
+Adding/removing node format
+---------------------------
+ISSSSNNN NNNNNNNN (VVVVVVVV VVVVVVVV x (S+1))
+
+S = skip/add count (number of vertices to add/skip)
+N = skip/add index (offset relative to source point)
+V = value of vertex to add when inserting
+I = interleave flag
+
+*Last adding/removing node in a region is indicated with: 0xFFFF
+
+---
+The above processes will have accomplished creating a modified version of the current display list in the inactive display list, the
+modification of which was described by the encoded difference list. The inactive display list is finally swapped with the active/current
+display list, thus redefining the current display list as the modified list.
+
+Notice that, in the above process, we assumed that the player 'made' progress throughout a section-that is, there was a single +1-positive
+change in progress. We did not account for the cases where the player might be backtracking throughout the section-that is, there was a
+single -1-negative change in progress; then, to rephrase the above:
+
+Assuming the player is backtracking through a section and that the player does not leave the section, the next possible progress that can be 
+attained in the section after it is entered at its EXIT point/after progress N is progress N-1. However, the corresponding list/item in the T4 
+entry (progress N-1 = item N-1 = second-to-last item) is not in the format of a source/target list: it is -encoded- as a difference list. Then that 
+difference list determines how the current display list (which, after progress N, contains the content of the last list=a source/target 
+list in the entry) shall be -modified- to yield the source/target list that the difference list encoded. When progress N-2 is attained, 
+the corresponding difference list then works on the modified list in further *modification; this continues in the same trend for progresses
+'further back', such that when progress 1 is attained, the current display list has been modified to be almost identical to the source/target 
+list corresponding to progress 0=first list.
+
+Upon observation of a T4 entry, removing nodes (as originally defined) appear to still include a number of hwords for S+1 count vertices; why
+are these seemingly irrelevant vertices present if the operation for the node is to simply remove S+1 vertices at offset N, regardless of any 
+additional specification? This is precisely because, when the player backtracks through the section [as opposed to makes progress], those
+removing nodes are interpreted as adding nodes-and the adding nodes are interpreted as removing nodes. The difference lists are then said to
+encode the changes from the first source/target display list to the last source/target display list progressively -and- digressively. 
+Equivalently stated: assume the player starts at some initial progress in a section; when proceeding through the section to a new progress, 
+some vertices at the initial progress that were not visible/off screen become visible/on screen at the new progress (and vice versa)-after 
+reaching the new progress, if the player then backtracks through the section to the initial progress, the SAME vertices that were -added-/
+previously became visible should be removed/returned to their initial state of visibility, and the SAME vertices that were -removed-/
+previously became unobservable should be added/returned to their initial visible/on screen state.
+
+The term 'source/target list' indicates that, neither the first nor the last list in a T4 entry are strictly the source or target list. When 
+entering a section at its start point (progress 0), if the player continues to progress through the section, the source list = the first list 
+(copied as the active display list) should ultimately reach the form of the target list = the last list, lists being the lists in the 
+corresponding T4 entry. When entering a section at its exit point (progress N), if the player continues to digress to the start of the section,
+the source list = the last list (copied as the active display list) should ultimately reach the form of the target list = the first list.
+
+-------------------------------------
+
+OLD - incomplete example to show steps of list processing
+
+
+EX. ITEM 1
+
+1E 00 00 00 12 34 56 78 22 34 56 78 32 34 56 78 
+42 34 56 78 52 34 56 78 62 34 56 78 72 34 56 78 
+12 34 56 78 22 34 56 78 32 34 56 78 42 34 56 78 
+52 34 56 78 62 34 56 78 72 34 56 78 12 34 56 78 
+
+EX. ITEM 2
+
+10 00 01 00 07 00 0E 00|06 10 42 34 56 78 52 34
+0C A0|04 10 13 37 73 31 13 A0 13 37 13 37 13 37|
+00 98 
+
+EX. ITEM 3
+
+19 00 00 00 56 78 56 78 22 34 12 34 13 37 73 31 
+32 34 56 78 56 78 62 34 56 78 72 34 12 34 22 34 
+32 34 13 37 56 78 13 37 42 34 13 37 56 78 42 34
+52 34 56 78 62 34
+
+
+ITEM 1 -> ITEM 2 (item 3)
+
+
+step 1) swap
+
+00 98 = 10011000 00000000
+        ^|--||----------| 
+    fmt a 3 nodes ahead at node 0
+
+              V-----------------V
+1E 00 00 00 12 34 56 78 22 34 56 78 32 34 56 78 
+42 34 56 78 52 34 56 78 62 34 56 78 72 34 56 78 
+12 34 56 78 22 34 56 78 32 34 56 78 42 34 56 78 
+52 34 56 78 62 34 56 78 72 34 56 78 12 34 56 78 
+
+=
+
+1E 00 00 00 56 78 56 78 22 34 12 34 32 34 56 78 
+42 34 56 78 52 34 56 78 62 34 56 78 72 34 56 78 
+12 34 56 78 22 34 56 78 32 34 56 78 42 34 56 78 
+52 34 56 78 62 34 56 78 72 34 56 78 12 34 56 78 
+
+
+step 2) build list
+
+|06 10 42 34 56 78 52 34 0C A0|               = skips
+|04 01 13 37 73 31 13 A0 13 37 13 37 13 37|   = adds
+
+06 10 = 00010000 00000110
+         |--||----------|
+        skip 3 at node 6 
+
+42 34, 56 78, 52 34 (3 that would be added if building in opposite direction)
+
+0C A0 = 10100000 00001100
+        ^|--||----------|
+interleave skip 5 at node 12
+
+..
+
+-------------------------------------
+
+OLD - format guide that [incomplete] attempts to provide example 
+
+
+example slst = 
+
+62 00 01 00 2C 00 5E 00|1F 00 B0 37 3B 00 9D 33 
+45 20 CF 35 D0 B5 B1 A6 49 00 A0 27 50 00 86 22 
+57 00 16 25 5A 10 18 25 17 A5 5E 00 6A 26 62 00 
+65 26 6E 00 67 23 79 00 D0 22 85 00 7D 23 98 00 
+B4 21 9A 00 0D 21 DB 00 BD 16 DE 00 7E 11 13 01 
+A6 12 42 01 6A 18 A2 01 AC 14 FF FF|05 00 7D 37 
+16 00 9C 37 1E 10 2F 37 B1 37 32 00 6D 37 42 70 
+82 34 FC 36 C4 26 A1 A7 9F 27 AC A7 96 27 03 27 
+53 00 69 26 5F 20 8B 22 58 A6 8D A2 68 00 A6 22 
+6A 00 6A 23 7B 30 6B 22 A7 A1 A3 21 78 A2 84 00 
+BA 21 8E 00 79 22 91 10 07 21 11 21 95 00 1C 21 
+9B 10 15 11 3C 22 B6 00 C3 16 5B 01 8F 17 FF FF| 
+89 01 14 00 8E F9 EB C9
+
+
+STEP A) swap nodes in main node list
+
+- the swapping is done according to the format of the hwords
+working backwards from the last node (slst[0] - 1) to the node
+with index given by slst[6]
+
+
+5E to 62:  FF FF 89 01 14 00 8E F9 EB C9
+
+C9EB = bit 16 set:  (C9EB &  0x7FF)       = 111101011  (lower 11 bits)
+                    (C9EB & 0x7800) >> 11 = 1001       (next upper 4 bits)
+
+FMT A: 1OOOONNN NNNNNNNN
+
+N = source node for swap (* 2 + 4 for actual node address)
+O = destination node for swap (relative to source node + 1)
+
+ex N = 1EB, (1EB * 2) + 4 = 3DA
+ex O = 9,   3DA + ((9+1)*2) = 3FA
+
+FMT B: 1????NNN NNNNNNNN 01MMMMMM MMMOOOOO
+
+N + M = source node for swap (* 2 + 4 for actual node address)
+O = destination node for swap (relative to source node + 17)
+
+FMT C: ????NNNN NNNNNNNN 0??????? ???????? 01MMMMMM MMMOOOOO
+
+N + M = source node for swap (* 2 + 4 for actual node address)
+O = destination node for swap (relative to source node + 17)
+
+FMT D: ????OOOO OOOOOOOO 00??NNNN NNNNNNNN
+
+N = source node for swap (* 2 + 4 for actual node address)
+O = destination node for swap (relative to source node + 1)
+
+
+STEP B) add new nodes to main list?
+
+start 2 iterations:
+
+iteration A = from node specified by slst[4] to node specified by slst[6]
+iteration B = from beginning of nodes = &slst[8] to node specified by slst[4]
+
+the format of nodes in the 2 ranges from &slst[8]       to &slst[slst[4]]
+                                     and &slst[slst[4]] to &slst[slst[6]]:
+
+ISSSSNNN NNNNNNNN (VVVVVVVV VVVVVVVV x (S+1))
+
+
+
+S = skip/add count
+N = skip/add index
+V = value of node to add when inserting
+I = interleave flag
+
+[or SSSSNNNN NNNNNNNN (IVVVVVVV VVVVVVVV x (S+1))?]
+
+--------------------------------
+
+OLD - misc tests performed when attempting to crack the [extremely complicated] format:
+
+
+t5 = 0
+t4 = 0
+src_count = 0
+dst_count = 0
+
+ex. L range = 1F 00 B0 37  P = 0x1F, W = 0
+    R range = 05 00 7D 37  P = 0x5,  W = 0
+
+rPoly = 5
+lPoly = 31
+
+
+tstA = 5  (rPoly + t5) - src_count       copy nodes from src until this index + t5 is reached
+tstB = 30 (lPoly + t5) - (src_count + 1) or until this index + t5 is reached if it is less
+
+rCount = 1
+lCount = 1
+
+
+(also restricted to current position copying from src and length of src)
+
+src_nodes += 5*2 (src_nodes = 0xE)
+src_count += 5   (src_count = 5)
+dst_count += 5   (dst_count = 5)
+
+dst = 60 37 7C 37 61 37 45 37 44 37
+
+.......
+
+(rPoly + t5) - src_count = 0
+5            -  5
+
+rCount-- (rCount = 0)
+t5++;    (t5 = 1)
+
+src_count++; (src_count = 6)  //we skip copying node at this pt?
+src_nodes+=2; (src_nodes = 0x10)
+
+R range = 16 00 9C 37
+
+rPoly = 22
+rCount = 1
+
+tstA = 17 (rPoly + t5) - src_count
+            22      1     6
+tstB = 25 (lPoly + t5) - src_count - (t4 + 1)
+            31      1            7
+
+src_nodes += 17*2 (src_nodes = 0x32)
+src_count += 17   (src_count = 23)
+dst_count += 17   (dst_count = 22)
+
+60 37 7C 37 61 37 45 37 44 37 7E 37 63 37 62 37 
+46 37 47 37 7F 37 9A 37 2A 37 2B 37 9B 37 80 37 
+65 37 64 37 48 37 49 37 81 37 82 37
+
+(rPoly + t5) - src_count
+22        1      23         == 0
+
+rCount-- (rCount = 0)
+t5++;    (t5 = 2)
+
+src_count++;  (src_count = 24)
+src_nodes+=2; (src_nodes = 0x34)
+
+R range = 1E 10 2F 37
+
+rPoly = 30
+rCount = 2
+
+((lPoly + t5) - (t4 + 1)) - src_count = 8
+   31     2       1          24         8
+
+...
+
+tstA = 8 (rPoly + t5) - src_count            
+            30      2       24
+tstB = 8 (lPoly + t5) - src_count - (t4 + 1)  
+            31      2       24         1        
+
+60 37 7C 37 61 37 45 37 44 37 7E 37 63 37 62 37 
+46 37 47 37 7F 37 9A 37 2A 37 2B 37 9B 37 80 37 
+65 37 64 37 48 37 49 37 81 37 82 37 66 37 4A 37
+4B 37 9E 37 83 37 9F 37 B0 37 68 37
+
+src_nodes += 8*2 (src_nodes = 0x44)
+src_count += 8   (src_count = 32)
+dst_count += 8   (dst_count = 30)
+
+...
+
+(rPoly + t5) - src_count  = 0
+  30     2      32          
+
+...
+
+rCount-- (rCount = 1)
+t5++     (t5 = 3)
+src_count++  (src_count = 33)
+src_nodes+=2 (src_nodes = 0x46)
+
+rCount > 0
+  rNodeC = B1 37
+
+  (37B1 >> 15 = 0)
+  rPoly += 0 
+
+...
+
+rCount-- (rCount = 0)
+t5++     (t5 = 4)
+src_count++  (src_count = 34)
+src_nodes+=2 (src_nodes = 0x48)
+
+R range = 32 00 6D 37
+
+rPoly = 50
+rCount = 1
+
+...
+
+(rPoly + t5) - src_count  = 20
+  50     4      34        = 20  
+
+..
+
+(lPoly + t5) - src_count - (t4 + 1)  
+  31      4       34         1   = 0  
